@@ -23,7 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
+import { JsonCodeEditor } from "../json/JsonEditor";
 
 export function EntityCreateButton() {
   const [isOpen, setIsOpen] = useState(false);
@@ -112,16 +112,21 @@ export function EntityCreateButton() {
               )}
             />
           </div>
+
           <div className='space-y-2'>
             <Label htmlFor='configuration_update'>Configuration (JSON)</Label>
-            <Textarea
-              id='configuration_update'
-              rows={8}
-              placeholder='{ "topic": "home/livingroom/light" }'
-              {...register("configuration")}
-              className='font-mono text-sm'
+            <Controller
+              control={control}
+              name='configuration'
+              render={({ field }) => (
+                <JsonCodeEditor
+                  value={field.value ?? ""}
+                  onChange={field.onChange}
+                />
+              )}
             />
           </div>
+
           <DialogFooter>
             <Button
               type='button'
