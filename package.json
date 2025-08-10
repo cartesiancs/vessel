@@ -1,0 +1,26 @@
+{
+  "name": "vessel",
+  "version": "1.0.0",
+  "description": "Physical Device Orchestration Platform",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "jest",
+    "client": "cd ./apps/client && npm run dev",
+    "server": "cargo run -p server",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "concurrently": "^9.1.2"
+  },
+  "devDependencies": {
+    "jest": "^30.0.5",
+    "supertest": "^7.1.4",
+    "vitepress": "^1.6.3"
+  }
+}

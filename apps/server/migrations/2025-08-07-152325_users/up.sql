@@ -1,0 +1,49 @@
+CREATE TABLE users (
+    id INTEGER PRIMARY KEY NOT NULL,
+    username VARCHAR(255) NOT NULL UNIQUE,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE devices (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    device_id VARCHAR(255) NOT NULL UNIQUE, 
+    name VARCHAR(255),
+    manufacturer VARCHAR(255),
+    model VARCHAR(255)
+);
+
+CREATE TABLE entities (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    entity_id VARCHAR(255) NOT NULL UNIQUE,
+    device_id INTEGER,
+    friendly_name VARCHAR(255),
+    platform VARCHAR(255),
+    FOREIGN KEY(device_id) REFERENCES devices(id) ON DELETE CASCADE
+);
+
+CREATE TABLE states_meta (
+    metadata_id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    entity_id VARCHAR(255) NOT NULL UNIQUE
+);
+
+CREATE TABLE states (
+    state_id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    metadata_id INTEGER,
+    state VARCHAR(255),
+    attributes TEXT,
+    last_changed DATETIME,
+    last_updated DATETIME,
+    created DATETIME,
+    FOREIGN KEY(metadata_id) REFERENCES states_meta(metadata_id)
+);
+
+CREATE TABLE events (
+    event_id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    event_type VARCHAR(64),
+    event_data TEXT,
+    origin VARCHAR(32),
+    time_fired DATETIME
+);

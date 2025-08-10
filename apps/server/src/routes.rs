@@ -1,0 +1,58 @@
+use std::sync::Arc;
+
+use axum::{
+    http::{header, HeaderValue, Method},
+    routing::{get, post, put, delete},
+    Json, Router,
+};
+use anyhow::Result;
+use serde_json::json;
+use tower_http::cors::CorsLayer;
+use tracing::{ info};
+
+use crate::{handler::{
+    auth::auth_with_password, 
+    users::get_users_list, 
+    ws_handler::ws_handler,  
+    devices,
+    entities,
+}, state::AppState};
+
+
+
+async fn get_server_info() -> Json<serde_json::Value> {
+   Json(json!({
+        "id": "vessel-server",
+        "status": "success",
+        "code": 200,
+    }))
+}
+
+
+pub async fn web_server(addr: String, app_state: Arc<AppState>) -> Result<()> {
+    let cors = CorsLayer::new()
+        .allow_origin("http://localhost:5173".parse::<HeaderValue>().unwrap())
+        .allow_methods([Method::GET, Method::POST, Method::PUT, Method::DELETE])
+        .allow_headers([header::AUTHORIZATION, header::CONTENT_TYPE]);
+
+    let api_routes = Router::new()
+        .route("/users", get(get_users_list))
+        .route("/devices", post(devices::create_device).get(devices::get_devices))
+        .route("/devices/:id", put(devices::update_device).delete(devices::delete_device))
+        .route("/entities", post(entities::create_entity).get(entities::get_entities))
+        .route("/entities/:id", put(entities::update_entity).delete(entities::delete_entity));
+
+
+    let app = Router::new()
+        .route("/", get(get_server_info))
+        .route("/signal", get(ws_handler))
+        .route("/auth", post(auth_with_password))
+        .nest("/api", api_routes)
+
+        .with_state(app_state)
+        .layer(cors);
+    info!("Signal server listening on {}", addr);
+    let listener = tokio::net::TcpListener::bind(addr).await?;
+    axum::serve(listener, app.into_make_service()).await?;
+    Ok(())
+}
