@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import Cookies from "js-cookie";
 
@@ -102,6 +102,13 @@ export function LoginForm({
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    const token = Cookies.get("token");
+    if (token) {
+      navigate("/dashboard");
+    }
+  }, [navigate]);
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>

@@ -22,8 +22,6 @@ import { DeviceCreateButton } from "@/features/device/DeviceCreateButton";
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
@@ -95,9 +93,7 @@ export function DeviceList() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align='end'>
-                      <DropdownMenuLabel>Actions</DropdownMenuLabel>
                       <DeviceUpdateButton device={device} />
-                      <DropdownMenuSeparator />
                       <DeviceDeleteButton deviceId={device.id} />
                     </DropdownMenuContent>
                   </DropdownMenu>

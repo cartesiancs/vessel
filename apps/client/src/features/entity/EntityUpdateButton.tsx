@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -11,6 +11,13 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Pencil } from "lucide-react";
 import { useEntityStore } from "@/entities/entity/store";
 import { Entity, EntityPayload } from "@/entities/entity/types";
@@ -23,7 +30,7 @@ interface Props {
 export function EntityUpdateButton({ entity }: Props) {
   const [isOpen, setIsOpen] = useState(false);
   const updateEntity = useEntityStore((state) => state.updateEntity);
-  const { register, handleSubmit } = useForm<EntityPayload>({
+  const { register, handleSubmit, control } = useForm<EntityPayload>({
     defaultValues: {
       entity_id: entity.entity_id,
       device_id: entity.device_id,
@@ -63,7 +70,24 @@ export function EntityUpdateButton({ entity }: Props) {
           </div>
           <div className='space-y-2'>
             <Label htmlFor='platform_update'>Platform</Label>
-            <Input id='platform_update' {...register("platform")} />
+            <Controller
+              control={control}
+              name='platform'
+              render={({ field }) => (
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value ?? ""}
+                >
+                  <SelectTrigger id='platform_update' className='w-full'>
+                    <SelectValue placeholder='Select a platform' />
+                  </SelectTrigger>
+                  <SelectContent className='w-full'>
+                    <SelectItem value='MQTT'>MQTT</SelectItem>
+                    <SelectItem value='UDP'>UDP</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            />
           </div>
           <DialogFooter>
             <Button
