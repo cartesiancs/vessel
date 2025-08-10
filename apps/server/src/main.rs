@@ -11,7 +11,7 @@ use std::env;
 use dotenvy::dotenv;
 
 
-use crate::{ db::models::NewUser, hash::hash_password, routes::web_server, state::{AppState, DbPool, MqttMessage}};
+use crate::{ db::models::{NewSystemConfiguration, NewUser, SystemConfiguration}, hash::hash_password, routes::web_server, state::{AppState, DbPool, MqttMessage}};
 use crate::db::models::User;
 
 mod state;
@@ -74,6 +74,51 @@ pub fn create_initial_admin(conn: &mut SqliteConnection) {
 }
 
 
+pub fn create_initial_configurations(conn: &mut SqliteConnection) {
+    use crate::db::schema::system_configurations::dsl::*;
+
+    let default_configs = vec![
+        (
+            "mqtt_broker_url",
+            "tcp://localhost:1883",
+            "Default MQTT Broker URL. Format: tcp://host:port",
+        ),
+        (
+            "turn_server_config",
+            r#"{ "urls": "turn:turn.example.com:3478", "username": "user", "credential": "pass" }"#,
+            "Default WebRTC TURN Server configuration (JSON format)",
+        ),
+    ];
+
+    for (k, v, d) in default_configs {
+        let config_exists = system_configurations
+            .filter(key.eq(k))
+            .select(SystemConfiguration::as_select())
+            .first::<SystemConfiguration>(conn)
+            .optional()
+            .expect("Error checking for system configuration");
+
+        if config_exists.is_none() {
+            println!("Configuration '{}' not found. Creating...", k);
+            let new_config = NewSystemConfiguration {
+                key: k,
+                value: v,
+                enabled: Some(1), 
+                description: Some(d),
+            };
+
+            diesel::insert_into(system_configurations)
+                .values(&new_config)
+                .execute(conn)
+                .expect("Error creating system configuration");
+            
+            println!("Configuration '{}' created.", k);
+        } else {
+            println!("Configuration '{}' already exists. Skipping creation.", k);
+        }
+    }
+}
+
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -86,6 +131,7 @@ async fn main() -> Result<()> {
     {
         let mut conn = pool.get().expect("Failed to get a connection from the pool");
         create_initial_admin(&mut conn);
+        create_initial_configurations(&mut conn); 
     }
     
 
