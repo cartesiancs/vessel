@@ -7,12 +7,14 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Pencil } from "lucide-react";
 import { useDeviceStore } from "@/entities/device/store";
 import { Device, DevicePayload } from "@/entities/device/types";
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 
 interface Props {
   device: Device;
@@ -37,16 +39,12 @@ export function DeviceUpdateButton({ device }: Props) {
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <Button
-        asChild
-        variant='ghost'
-        size='icon'
-        onClick={() => setIsOpen(true)}
-      >
-        <span>
-          <Pencil className='h-4 w-4' />
-        </span>
-      </Button>
+      <DialogTrigger asChild>
+        <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+          <Pencil className='mr-2 h-4 w-4' />
+          <span>Edit</span>
+        </DropdownMenuItem>
+      </DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Edit Device</DialogTitle>

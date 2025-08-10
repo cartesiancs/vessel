@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -9,9 +8,11 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Trash2 } from "lucide-react";
 import { useEntityStore } from "@/entities/entity/store";
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 
 interface Props {
   entityId: number;
@@ -28,16 +29,15 @@ export function EntityDeleteButton({ entityId }: Props) {
 
   return (
     <AlertDialog open={isOpen} onOpenChange={setIsOpen}>
-      <Button
-        asChild
-        variant='ghost'
-        size='icon'
-        onClick={() => setIsOpen(true)}
-      >
-        <span>
-          <Trash2 className='h-4 w-4 text-red-500' />
-        </span>
-      </Button>
+      <AlertDialogTrigger asChild>
+        <DropdownMenuItem
+          onSelect={(e) => e.preventDefault()}
+          className='text-red-500 focus:text-red-500'
+        >
+          <Trash2 className='mr-2 h-4 w-4 text-red-500 focus:text-red-500' />
+          <span>Delete</span>
+        </DropdownMenuItem>
+      </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Are you sure?</AlertDialogTitle>

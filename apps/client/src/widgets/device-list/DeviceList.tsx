@@ -14,11 +14,19 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Loader2 } from "lucide-react";
+import { Loader2, MoreHorizontal } from "lucide-react";
 import { useDeviceStore } from "@/entities/device/store";
 import { DeviceDeleteButton } from "@/features/device/DeviceDeleteButton";
 import { DeviceUpdateButton } from "@/features/device/DeviceUpdateButton";
 import { DeviceCreateButton } from "@/features/device/DeviceCreateButton";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
 
 export function DeviceList() {
   const { devices, isLoading, fetchDevices, selectDevice, selectedDevice } =
@@ -79,8 +87,20 @@ export function DeviceList() {
                   className='text-right space-x-1'
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <DeviceUpdateButton device={device} />
-                  <DeviceDeleteButton deviceId={device.id} />
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant='ghost' className='h-8 w-8 p-0'>
+                        <span className='sr-only'>Open menu</span>
+                        <MoreHorizontal className='h-4 w-4' />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align='end'>
+                      <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                      <DeviceUpdateButton device={device} />
+                      <DropdownMenuSeparator />
+                      <DeviceDeleteButton deviceId={device.id} />
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </TableCell>
               </TableRow>
             ))}

@@ -15,12 +15,18 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Loader2 } from "lucide-react";
+import { Loader2, MoreHorizontal } from "lucide-react";
 import { useDeviceStore } from "@/entities/device/store";
 import { useEntityStore } from "@/entities/entity/store";
 import { EntityCreateButton } from "@/features/entity/EntityCreateButton";
 import { EntityDeleteButton } from "@/features/entity/EntityDeleteButton";
 import { EntityUpdateButton } from "@/features/entity/EntityUpdateButton";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
 
 export function EntityList() {
   const { selectedDevice } = useDeviceStore();
@@ -85,8 +91,18 @@ export function EntityList() {
                   </TableCell>
                   <TableCell>{entity.friendly_name ?? "N/A"}</TableCell>
                   <TableCell className='text-right space-x-1'>
-                    <EntityUpdateButton entity={entity} />
-                    <EntityDeleteButton entityId={entity.id} />
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant='ghost' className='h-8 w-8 p-0'>
+                          <span className='sr-only'>Open menu</span>
+                          <MoreHorizontal className='h-4 w-4' />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align='end'>
+                        <EntityUpdateButton entity={entity} />
+                        <EntityDeleteButton entityId={entity.id} />
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </TableCell>
                 </TableRow>
               ))}
