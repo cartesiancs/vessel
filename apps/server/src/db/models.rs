@@ -1,7 +1,8 @@
 use chrono::NaiveDateTime;
 use diesel::prelude::*;
-use crate::db::schema::{devices, entities, events, states, states_meta, users};
-use serde::Serialize;
+use serde_json::Value;
+use crate::db::schema::{devices, entities, entities_configurations, events, states, states_meta, users};
+use serde::{Deserialize, Serialize};
 
 #[derive(Queryable, Selectable, Identifiable, Serialize)]
 #[diesel(table_name = crate::db::schema::users)]
@@ -61,6 +62,33 @@ pub struct NewEntity<'a> {
     pub device_id: Option<i32>,
     pub friendly_name: Option<&'a str>,
     pub platform: Option<&'a str>,
+}
+
+#[derive(Queryable, Selectable, Identifiable, Associations, Serialize, Deserialize, Clone)]
+#[diesel(table_name = entities_configurations)]
+#[diesel(belongs_to(Entity))]
+#[diesel(primary_key(id))]
+pub struct EntityConfiguration {
+    pub id: i32,
+    pub entity_id: i32,
+    pub configuration: String,
+    pub created_at: NaiveDateTime,
+    pub updated_at: NaiveDateTime,
+}
+
+#[derive(Insertable)]
+#[diesel(table_name = entities_configurations)]
+pub struct NewEntityConfiguration<'a> {
+    pub entity_id: i32,
+    pub configuration: &'a str,
+}
+
+
+#[derive(Serialize)]
+pub struct EntityWithConfig {
+    #[serde(flatten)]
+    pub entity: Entity,
+    pub configuration: Option<Value>,
 }
 
 #[derive(Queryable, Selectable, Identifiable, Serialize)]

@@ -47,3 +47,12 @@ CREATE TABLE events (
     origin VARCHAR(32),
     time_fired DATETIME
 );
+
+CREATE TABLE entities_configurations (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    entity_id INTEGER NOT NULL UNIQUE,
+    configuration TEXT NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(entity_id) REFERENCES entities(id) ON DELETE CASCADE
+);

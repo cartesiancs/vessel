@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -16,12 +16,20 @@ import { PlusCircle } from "lucide-react";
 import { useDeviceStore } from "@/entities/device/store";
 import { useEntityStore } from "@/entities/entity/store";
 import { EntityPayload } from "@/entities/entity/types";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 
 export function EntityCreateButton() {
   const [isOpen, setIsOpen] = useState(false);
   const createEntity = useEntityStore((state) => state.createEntity);
   const selectedDevice = useDeviceStore((state) => state.selectedDevice);
-  const { register, handleSubmit, reset } = useForm<EntityPayload>();
+  const { register, handleSubmit, reset, control } = useForm<EntityPayload>();
 
   useEffect(() => {
     if (isOpen && selectedDevice) {
@@ -29,13 +37,30 @@ export function EntityCreateButton() {
         entity_id: `${selectedDevice.device_id}-`,
         friendly_name: "",
         platform: "",
+        configuration: "",
       });
     }
   }, [isOpen, selectedDevice, reset]);
 
   const onSubmit = async (data: EntityPayload) => {
     if (!selectedDevice) return;
-    const payload = { ...data, device_id: selectedDevice.id };
+    let configPayload: string | null = null;
+
+    try {
+      if (data.configuration && data.configuration.trim() !== "") {
+        configPayload = JSON.parse(data.configuration);
+      }
+    } catch (error) {
+      console.error("Invalid JSON format:", error);
+      return;
+    }
+
+    const payload = {
+      ...data,
+      device_id: selectedDevice.id,
+      configuration: configPayload,
+    };
+
     await createEntity(payload);
     setIsOpen(false);
   };
@@ -67,8 +92,35 @@ export function EntityCreateButton() {
             <Input id='friendly_name_create' {...register("friendly_name")} />
           </div>
           <div className='space-y-2'>
-            <Label htmlFor='platform_create'>Platform</Label>
-            <Input id='platform_create' {...register("platform")} />
+            <Label htmlFor='platform_update'>Platform</Label>
+            <Controller
+              control={control}
+              name='platform'
+              render={({ field }) => (
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value ?? ""}
+                >
+                  <SelectTrigger id='platform_update' className='w-full'>
+                    <SelectValue placeholder='Select a platform' />
+                  </SelectTrigger>
+                  <SelectContent className='w-full'>
+                    <SelectItem value='MQTT'>MQTT</SelectItem>
+                    <SelectItem value='UDP'>UDP</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            />
+          </div>
+          <div className='space-y-2'>
+            <Label htmlFor='configuration_update'>Configuration (JSON)</Label>
+            <Textarea
+              id='configuration_update'
+              rows={8}
+              placeholder='{ "topic": "home/livingroom/light" }'
+              {...register("configuration")}
+              className='font-mono text-sm'
+            />
           </div>
           <DialogFooter>
             <Button

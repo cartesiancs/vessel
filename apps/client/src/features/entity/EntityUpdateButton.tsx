@@ -22,25 +22,52 @@ import { Pencil } from "lucide-react";
 import { useEntityStore } from "@/entities/entity/store";
 import { Entity, EntityPayload } from "@/entities/entity/types";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { Textarea } from "@/components/ui/textarea";
 
 interface Props {
   entity: Entity;
 }
 
+type EntityFormValues = Omit<EntityPayload, "configuration"> & {
+  configuration: string;
+};
+
 export function EntityUpdateButton({ entity }: Props) {
   const [isOpen, setIsOpen] = useState(false);
+  const [jsonError, setJsonError] = useState<string | null>(null);
   const updateEntity = useEntityStore((state) => state.updateEntity);
-  const { register, handleSubmit, control } = useForm<EntityPayload>({
+  const { register, handleSubmit, control } = useForm<EntityFormValues>({
     defaultValues: {
       entity_id: entity.entity_id,
       device_id: entity.device_id,
       friendly_name: entity.friendly_name ?? "",
       platform: entity.platform ?? "",
+      configuration: entity.configuration
+        ? JSON.stringify(entity.configuration, null, 2)
+        : "",
     },
   });
 
-  const onSubmit = async (data: EntityPayload) => {
-    await updateEntity(entity.id, data);
+  const onSubmit = async (data: EntityFormValues) => {
+    setJsonError(null);
+    let configPayload: string | null = null;
+
+    try {
+      if (data.configuration && data.configuration.trim() !== "") {
+        configPayload = JSON.parse(data.configuration);
+      }
+    } catch (error) {
+      console.error("Invalid JSON format:", error);
+      setJsonError("Invalid JSON format. Please check the syntax.");
+      return;
+    }
+
+    const finalPayload: EntityPayload = {
+      ...data,
+      configuration: configPayload,
+    };
+
+    await updateEntity(entity.id, finalPayload);
     setIsOpen(false);
   };
 
@@ -88,6 +115,17 @@ export function EntityUpdateButton({ entity }: Props) {
                 </Select>
               )}
             />
+          </div>
+          <div className='space-y-2'>
+            <Label htmlFor='configuration_update'>Configuration (JSON)</Label>
+            <Textarea
+              id='configuration_update'
+              rows={8}
+              placeholder='{ "topic": "home/livingroom/light" }'
+              {...register("configuration")}
+              className='font-mono text-sm'
+            />
+            {jsonError && <p className='text-sm text-red-500'>{jsonError}</p>}
           </div>
           <DialogFooter>
             <Button

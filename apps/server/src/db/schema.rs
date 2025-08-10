@@ -21,6 +21,16 @@ diesel::table! {
 }
 
 diesel::table! {
+    entities_configurations (id) {
+        id -> Integer,
+        entity_id -> Integer,
+        configuration -> Text,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
+    }
+}
+
+diesel::table! {
     events (event_id) {
         event_id -> Integer,
         event_type -> Nullable<Text>,
@@ -61,11 +71,13 @@ diesel::table! {
 }
 
 diesel::joinable!(entities -> devices (device_id));
+diesel::joinable!(entities_configurations -> entities (entity_id));
 diesel::joinable!(states -> states_meta (metadata_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
     devices,
     entities,
+    entities_configurations,
     events,
     states,
     states_meta,

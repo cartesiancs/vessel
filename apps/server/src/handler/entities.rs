@@ -2,7 +2,7 @@ use std::sync::Arc;
 use axum::{extract::{State, Path}, Json};
 use serde::Deserialize;
 use serde_json::{json, Value};
-use crate::{db::{self, models::{Entity, NewEntity}}, error::AppError, state::AppState};
+use crate::{db::{self, models::{EntityWithConfig, NewEntity}}, error::AppError, state::AppState};
 
 #[derive(Deserialize)]
 pub struct EntityPayload {
@@ -10,26 +10,42 @@ pub struct EntityPayload {
     pub device_id: Option<i32>,
     pub friendly_name: Option<String>,
     pub platform: Option<String>,
+    pub configuration: Option<Value>,
 }
 
 pub async fn create_entity(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<EntityPayload>,
-) -> Result<Json<Entity>, AppError> {
+) -> Result<Json<EntityWithConfig>, AppError> {
     let new_entity = NewEntity {
         entity_id: &payload.entity_id,
         device_id: payload.device_id,
         friendly_name: payload.friendly_name.as_deref(),
         platform: payload.platform.as_deref(),
     };
-    let entity = db::repository::create_entity(&state.pool, new_entity)?;
-    Ok(Json(entity))
+    
+    let config_str = payload.configuration
+        .map(|v| if v.is_null() || v.as_object().map_or(false, |m| m.is_empty()) {
+            String::new()
+        } else {
+            v.to_string()
+        })
+        .unwrap_or_default();
+
+    let (entity, config_opt) = db::repository::create_entity_with_config(&state.pool, new_entity, &config_str)?;
+
+    let response = EntityWithConfig {
+        entity,
+        configuration: config_opt.map(|c| serde_json::from_str(&c.configuration).unwrap_or_default())
+    };
+    
+    Ok(Json(response))
 }
 
 pub async fn get_entities(
     State(state): State<Arc<AppState>>,
-) -> Result<Json<Vec<Entity>>, AppError> {
-    let entities = db::repository::get_all_entities(&state.pool)?;
+) -> Result<Json<Vec<EntityWithConfig>>, AppError> {
+    let entities = db::repository::get_all_entities_with_configs(&state.pool)?;
     Ok(Json(entities))
 }
 
@@ -37,16 +53,32 @@ pub async fn update_entity(
     State(state): State<Arc<AppState>>,
     Path(id): Path<i32>,
     Json(payload): Json<EntityPayload>,
-) -> Result<Json<Entity>, AppError> {
+) -> Result<Json<EntityWithConfig>, AppError> {
     let updated_entity = NewEntity {
         entity_id: &payload.entity_id,
         device_id: payload.device_id,
         friendly_name: payload.friendly_name.as_deref(),
         platform: payload.platform.as_deref(),
     };
-    let entity = db::repository::update_entity(&state.pool, id, &updated_entity)?;
-    Ok(Json(entity))
+
+    let config_str = payload.configuration
+        .map(|v| if v.is_null() || v.as_object().map_or(false, |m| m.is_empty()) {
+            String::new()
+        } else {
+            v.to_string()
+        })
+        .unwrap_or_default();
+    
+    let (entity, config_opt) = db::repository::update_entity_with_config(&state.pool, id, &updated_entity, &config_str)?;
+
+    let response = EntityWithConfig {
+        entity,
+        configuration: config_opt.map(|c| serde_json::from_str(&c.configuration).unwrap_or_default())
+    };
+
+    Ok(Json(response))
 }
+
 
 pub async fn delete_entity(
     State(state): State<Arc<AppState>>,

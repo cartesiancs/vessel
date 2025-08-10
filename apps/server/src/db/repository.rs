@@ -1,6 +1,6 @@
-use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper};
+use diesel::{Connection, ExpressionMethods, JoinOnDsl, QueryDsl, RunQueryDsl, SelectableHelper};
 
-use crate::{db::models::{Device, Entity, NewDevice, NewEntity, User}, state::DbPool};
+use crate::{db::models::{Device, Entity, EntityConfiguration, EntityWithConfig, NewDevice, NewEntity, NewEntityConfiguration, User}, state::DbPool};
 
 
 pub fn get_user_by_name(pool: &DbPool, target_username: &str) -> Result<User, anyhow::Error> {
@@ -97,6 +97,106 @@ pub fn update_entity(pool: &DbPool, target_id: i32, updated_entity: &NewEntity) 
         ))
         .get_result(&mut conn)?;
     Ok(entity)
+}
+
+pub fn create_entity_with_config(
+    pool: &DbPool,
+    new_entity: NewEntity,
+    config_str: &str,
+) -> Result<(Entity, Option<EntityConfiguration>), anyhow::Error> {
+    use crate::db::schema::entities;
+    use crate::db::schema::entities_configurations;
+
+    let mut conn = pool.get()?;
+
+    conn.transaction(|conn| {
+        let entity: Entity = diesel::insert_into(entities::table)
+            .values(&new_entity)
+            .get_result(conn)?;
+
+        if !config_str.is_empty() {
+            let new_config = NewEntityConfiguration {
+                entity_id: entity.id,
+                configuration: config_str,
+            };
+
+            let config: EntityConfiguration = diesel::insert_into(entities_configurations::table)
+                .values(&new_config)
+                .get_result(conn)?;
+            
+            Ok((entity, Some(config)))
+        } else {
+            Ok((entity, None))
+        }
+    })
+}
+
+pub fn get_all_entities_with_configs(
+    pool: &DbPool,
+) -> Result<Vec<EntityWithConfig>, anyhow::Error> {
+    use crate::db::schema::entities::dsl as e;
+    use crate::db::schema::entities_configurations::dsl as ec;
+
+    let mut conn = pool.get()?;
+
+    let results = e::entities
+        .left_join(ec::entities_configurations.on(e::id.eq(ec::entity_id)))
+        .load::<(Entity, Option<EntityConfiguration>)>(&mut conn)?;
+
+    let entities_with_configs = results
+        .into_iter()
+        .map(|(entity, config_opt)| {
+            let configuration = config_opt
+                .map(|c| serde_json::from_str(&c.configuration).unwrap_or(serde_json::Value::Null))
+                .filter(|v| !v.is_null());
+            EntityWithConfig { entity, configuration }
+        })
+        .collect();
+
+    Ok(entities_with_configs)
+}
+
+pub fn update_entity_with_config(
+    pool: &DbPool,
+    target_id: i32,
+    updated_entity: &NewEntity,
+    config_str: &str,
+) -> Result<(Entity, Option<EntityConfiguration>), anyhow::Error> {
+    use crate::db::schema::entities;
+    use crate::db::schema::entities_configurations;
+
+    let mut conn = pool.get()?;
+
+    conn.transaction(|conn| {
+        let entity: Entity = diesel::update(entities::table.find(target_id))
+            .set((
+                entities::entity_id.eq(&updated_entity.entity_id),
+                entities::device_id.eq(updated_entity.device_id),
+                entities::friendly_name.eq(&updated_entity.friendly_name),
+                entities::platform.eq(&updated_entity.platform),
+            ))
+            .get_result(conn)?;
+        
+        use crate::db::schema::entities_configurations::dsl::*;
+        if !config_str.is_empty() {
+            let new_config = NewEntityConfiguration {
+                entity_id: entity.id,
+                configuration: config_str,
+            };
+
+            let config: EntityConfiguration = diesel::insert_into(entities_configurations)
+                .values(&new_config)
+                .on_conflict(entity_id)
+                .do_update()
+                .set(configuration.eq(config_str))
+                .get_result(conn)?;
+
+            Ok((entity, Some(config)))
+        } else {
+            diesel::delete(entities_configurations.filter(entity_id.eq(target_id))).execute(conn)?;
+            Ok((entity, None))
+        }
+    })
 }
 
 pub fn delete_entity(pool: &DbPool, target_id: i32) -> Result<usize, anyhow::Error> {
