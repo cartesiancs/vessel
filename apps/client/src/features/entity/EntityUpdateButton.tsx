@@ -22,7 +22,7 @@ import { Pencil } from "lucide-react";
 import { useEntityStore } from "@/entities/entity/store";
 import { Entity, EntityPayload } from "@/entities/entity/types";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
-import { Textarea } from "@/components/ui/textarea";
+import { JsonCodeEditor } from "../json/JsonEditor";
 
 interface Props {
   entity: Entity;
@@ -118,12 +118,12 @@ export function EntityUpdateButton({ entity }: Props) {
           </div>
           <div className='space-y-2'>
             <Label htmlFor='configuration_update'>Configuration (JSON)</Label>
-            <Textarea
-              id='configuration_update'
-              rows={8}
-              placeholder='{ "topic": "home/livingroom/light" }'
-              {...register("configuration")}
-              className='font-mono text-sm'
+            <Controller
+              control={control}
+              name='configuration'
+              render={({ field }) => (
+                <JsonCodeEditor value={field.value} onChange={field.onChange} />
+              )}
             />
             {jsonError && <p className='text-sm text-red-500'>{jsonError}</p>}
           </div>

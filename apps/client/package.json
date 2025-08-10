@@ -14,6 +14,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@codemirror/lang-json": "^6.0.2",
     "@emotion/react": "^11.14.0",
     "@radix-ui/react-alert-dialog": "^1.1.14",
     "@radix-ui/react-avatar": "^1.1.10",
@@ -27,6 +28,7 @@
     "@shadcn/ui": "^0.0.4",
     "@tailwindcss/postcss": "^4.1.8",
     "@tailwindcss/vite": "^4.1.8",
+    "@uiw/react-codemirror": "^4.24.2",
     "autoprefixer": "^10.4.21",
     "axios": "^1.11.0",
     "class-variance-authority": "^0.7.1",
