@@ -1,7 +1,7 @@
 use chrono::NaiveDateTime;
 use diesel::prelude::*;
 use serde_json::Value;
-use crate::db::schema::{devices, entities, entities_configurations, events, states, states_meta, users};
+use crate::db::schema::{devices, entities, entities_configurations, events, states, states_meta, system_configurations, users};
 use serde::{Deserialize, Serialize};
 
 #[derive(Queryable, Selectable, Identifiable, Serialize)]
@@ -148,4 +148,25 @@ pub struct NewEvent<'a> {
     pub event_data: Option<&'a str>,
     pub origin: Option<&'a str>,
     pub time_fired: Option<NaiveDateTime>,
+}
+
+#[derive(Queryable, Selectable, Identifiable, Serialize, Clone)]
+#[diesel(table_name = system_configurations)]
+pub struct SystemConfiguration {
+    pub id: i32,
+    pub key: String,
+    pub value: String,
+    pub enabled: i32, 
+    pub description: Option<String>,
+    pub created_at: NaiveDateTime,
+    pub updated_at: NaiveDateTime,
+}
+
+#[derive(Insertable, AsChangeset)]
+#[diesel(table_name = system_configurations)]
+pub struct NewSystemConfiguration<'a> {
+    pub key: &'a str,
+    pub value: &'a str,
+    pub enabled: Option<i32>,
+    pub description: Option<&'a str>,
 }

@@ -60,6 +60,18 @@ diesel::table! {
 }
 
 diesel::table! {
+    system_configurations (id) {
+        id -> Integer,
+        key -> Text,
+        value -> Text,
+        enabled -> Integer,
+        description -> Nullable<Text>,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
+    }
+}
+
+diesel::table! {
     users (id) {
         id -> Integer,
         username -> Text,
@@ -81,5 +93,6 @@ diesel::allow_tables_to_appear_in_same_query!(
     events,
     states,
     states_meta,
+    system_configurations,
     users,
 );

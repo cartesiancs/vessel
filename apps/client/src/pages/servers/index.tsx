@@ -12,6 +12,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import { ConfigurationTable } from "@/features/configurations/ui/ConfigurationTable";
 import { AppSidebar } from "@/features/sidebar";
 
 export function ServersPage() {
@@ -37,7 +38,9 @@ export function ServersPage() {
             </BreadcrumbList>
           </Breadcrumb>
         </header>
-        <div className='flex flex-1 flex-col gap-4 p-4'></div>
+        <div className='flex flex-1 flex-col gap-4 p-4'>
+          <ConfigurationTable />
+        </div>
       </SidebarInset>
     </SidebarProvider>
   );

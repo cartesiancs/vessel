@@ -1,6 +1,6 @@
 use diesel::{Connection, ExpressionMethods, JoinOnDsl, QueryDsl, RunQueryDsl, SelectableHelper};
 
-use crate::{db::models::{Device, Entity, EntityConfiguration, EntityWithConfig, NewDevice, NewEntity, NewEntityConfiguration, User}, state::DbPool};
+use crate::{db::models::{Device, Entity, EntityConfiguration, EntityWithConfig, NewDevice, NewEntity, NewEntityConfiguration, NewSystemConfiguration, SystemConfiguration, User}, state::DbPool};
 
 
 pub fn get_user_by_name(pool: &DbPool, target_username: &str) -> Result<User, anyhow::Error> {
@@ -203,5 +203,46 @@ pub fn delete_entity(pool: &DbPool, target_id: i32) -> Result<usize, anyhow::Err
     use crate::db::schema::entities::dsl::*;
     let mut conn = pool.get()?;
     let num_deleted = diesel::delete(entities.find(target_id)).execute(&mut conn)?;
+    Ok(num_deleted)
+}
+
+pub fn create_system_config(
+    pool: &DbPool,
+    new_config: NewSystemConfiguration,
+) -> Result<SystemConfiguration, anyhow::Error> {
+    use crate::db::schema::system_configurations::dsl::*;
+    let mut conn = pool.get()?;
+    let config = diesel::insert_into(system_configurations)
+        .values(&new_config)
+        .get_result(&mut conn)?;
+    Ok(config)
+}
+
+pub fn get_all_system_configs(pool: &DbPool) -> Result<Vec<SystemConfiguration>, anyhow::Error> {
+    use crate::db::schema::system_configurations::dsl::*;
+    let mut conn = pool.get()?;
+    let configs = system_configurations
+        .select(SystemConfiguration::as_select())
+        .load::<SystemConfiguration>(&mut conn)?;
+    Ok(configs)
+}
+
+pub fn update_system_config(
+    pool: &DbPool,
+    target_id: i32,
+    updated_config: &NewSystemConfiguration,
+) -> Result<SystemConfiguration, anyhow::Error> {
+    use crate::db::schema::system_configurations::dsl::*;
+    let mut conn = pool.get()?;
+    let config = diesel::update(system_configurations.find(target_id))
+        .set(updated_config)
+        .get_result(&mut conn)?;
+    Ok(config)
+}
+
+pub fn delete_system_config(pool: &DbPool, target_id: i32) -> Result<usize, anyhow::Error> {
+    use crate::db::schema::system_configurations::dsl::*;
+    let mut conn = pool.get()?;
+    let num_deleted = diesel::delete(system_configurations.find(target_id)).execute(&mut conn)?;
     Ok(num_deleted)
 }
