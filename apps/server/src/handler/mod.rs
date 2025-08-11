@@ -4,3 +4,4 @@ pub mod users;
 pub mod devices;
 pub mod entities;
 pub mod configurations;
+pub mod streams;

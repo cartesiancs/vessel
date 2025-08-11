@@ -9,6 +9,17 @@ use diesel::r2d2::{self, ConnectionManager};
 
 pub type DbPool = r2d2::Pool<ConnectionManager<SqliteConnection>>;
 
+use dashmap::DashMap;
+
+#[derive(Clone)] 
+pub struct StreamInfo {
+    pub topic: String,
+    pub user_id: String,
+    pub packet_tx: broadcast::Sender<Packet>,
+}
+
+pub type StreamManager = Arc<DashMap<u32, StreamInfo>>; 
+
 #[derive(Serialize, Clone, Debug)]
 pub struct MqttMessage {
     pub topic: String,
@@ -16,7 +27,7 @@ pub struct MqttMessage {
 }
 
 pub struct AppState {
-    pub packet_tx: broadcast::Sender<Packet>,
+    pub streams: StreamManager,
     pub mqtt_tx: broadcast::Sender<MqttMessage>,
     pub jwt_secret: String, 
     pub pool: DbPool,
