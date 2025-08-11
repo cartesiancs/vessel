@@ -186,6 +186,8 @@ export function Graph({
       .attr("pointer-events", "none");
 
     const nodeColor = "#2a2c36";
+    const nodeHoverColor = "#444754";
+
     const nodeLightColor = "#d1d4e3";
     const highlightColor = "#1976d2";
 
@@ -256,7 +258,38 @@ export function Graph({
           : nodeColor,
       );
 
-    // 노드 헤더(header)의 배경 색상 변경
+    nodesMerged
+      .on("mouseover", function (event, d) {
+        if (selectedElement?.type === "node" && selectedElement.id === d.id)
+          return;
+        d3.select(this)
+          .select(".node-body")
+          .transition()
+          .duration(100)
+          .attr("stroke", nodeHoverColor);
+
+        d3.select(this)
+          .select(".node-header")
+          .transition()
+          .duration(100)
+          .attr("fill", nodeHoverColor);
+      })
+      .on("mouseout", function (event, d) {
+        if (selectedElement?.type === "node" && selectedElement.id === d.id)
+          return;
+        d3.select(this)
+          .select(".node-body")
+          .transition()
+          .duration(100)
+          .attr("stroke", nodeColor);
+
+        d3.select(this)
+          .select(".node-header")
+          .transition()
+          .duration(100)
+          .attr("fill", nodeColor);
+      });
+
     nodesMerged
       .select<SVGRectElement>(".node-header")
       .attr("fill", (d) =>
