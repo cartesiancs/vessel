@@ -13,14 +13,12 @@ use jsonwebtoken::{decode, DecodingKey, Validation};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::sync::Arc;
+use anyhow::anyhow;
 
 use crate::{
     db::{
-        models::User,
-        repository::{get_user_by_name, self},
-    },
-    hash::verify_password,
-    AppState,
+        self, models::{Device, User}, repository::{self, get_user_by_name}
+    },  hash::{self, verify_password}, AppState, error::AppError
 };
 
 #[derive(Debug, Serialize)]
@@ -176,5 +174,55 @@ pub async fn auth_with_password(
             }
         }
         Err(_) => Err(AuthError::UserNotFound),
+    }
+}
+
+
+
+pub struct DeviceTokenAuth {
+    pub device: Device,
+}
+
+#[async_trait]
+impl FromRequestParts<Arc<AppState>> for DeviceTokenAuth {
+    type Rejection = AppError;
+
+    async fn from_request_parts(
+        parts: &mut Parts,
+        state: &Arc<AppState>,
+    ) -> Result<Self, Self::Rejection> {
+        let TypedHeader(Authorization(bearer)) =
+            TypedHeader::<Authorization<Bearer>>::from_request_parts(parts, state)
+                .await
+                .map_err(|_| anyhow!("Missing or invalid authorization header"))?;
+
+        let device_id_header = parts
+            .headers
+            .get("X-Device-Id")
+            .and_then(|value| value.to_str().ok())
+            .ok_or_else(|| anyhow!("Missing X-Device-Id header"))?;
+
+        let pool = state.pool.clone();
+        let device_id_clone = device_id_header.to_string();
+        let token_clone = bearer.token().to_string();
+
+        let device = tokio::task::spawn_blocking(move || {
+            let device = db::repository::get_device_by_device_id(&pool, &device_id_clone)?;
+
+            let token_info = db::repository::get_token_info_for_device(&pool, device.id)?
+                .ok_or_else(|| anyhow!("No active token for this device"))?;
+
+            let token_valid = hash::verify_password(&token_clone, &token_info.token_hash)?;
+
+            if token_valid {
+                Ok(device)
+            } else {
+                Err(anyhow!("Invalid token"))
+            }
+        })
+        .await
+        .map_err(|e| anyhow!("Task execution error: {}", e))??;
+
+        Ok(DeviceTokenAuth { device })
     }
 }

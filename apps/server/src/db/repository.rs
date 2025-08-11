@@ -291,3 +291,13 @@ pub fn delete_token_for_device(pool: &DbPool, target_device_id: i32) -> Result<u
         .execute(&mut conn)?;
     Ok(num_deleted)
 }
+
+pub fn get_device_by_device_id(pool: &DbPool, target_device_id: &str) -> Result<Device, anyhow::Error> {
+    use crate::db::schema::devices::dsl::*;
+    let mut conn = pool.get()?;
+    let device_result = devices
+        .filter(device_id.eq(target_device_id))
+        .select(Device::as_select())
+        .first::<Device>(&mut conn)?;
+    Ok(device_result)
+}

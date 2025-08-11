@@ -18,58 +18,60 @@ type RegisterResponse struct {
 }
 
 func main() {
-	serverURL := "http://127.0.0.1:8080/api/streams/register"
-	topic := "go_stream_1"
-	jwtToken := "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhZG1pbiIsImV4cCI6MTc1NDg5MDA1M30.h5n5LQLTvmr_EEKAtB41hCwPkSfqOOBGyz9COMHuVoY"
-	
-	if jwtToken == "" {
-		fmt.Println("Error: JWT_TOKEN environment variable not set.")
-		fmt.Println("Please login via /auth endpoint and set the token.")
-		return
-	}
+    deviceId := "sdfg"
+    deviceToken := "IZUqpygATi6xqkQmaP0VNx-nEoaZaj828SfC0P5XFLM"
 
-	reqBody := RegisterRequest{Topic: topic}
-	jsonBody, err := json.Marshal(reqBody)
-	if err != nil {
-		fmt.Printf("Error marshalling request body: %v\n", err)
-		return
-	}
+    serverURL := "http://127.0.0.1:8080/api/streams/register"
+    topic := "go_stream_1"
 
-	req, err := http.NewRequest("POST", serverURL, bytes.NewBuffer(jsonBody))
-	if err != nil {
-		fmt.Printf("Error creating request: %v\n", err)
-		return
-	}
+    if deviceId == "" || deviceToken == "" {
+        fmt.Println("Error: Please set the deviceId and deviceToken variables.")
+        return
+    }
 
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+jwtToken)
+    reqBody := RegisterRequest{Topic: topic}
+    jsonBody, err := json.Marshal(reqBody)
+    if err != nil {
+        fmt.Printf("Error marshalling request body: %v\n", err)
+        return
+    }
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		fmt.Printf("Error making request to server: %v\n", err)
-		return
-	}
-	defer resp.Body.Close()
+    req, err := http.NewRequest("POST", serverURL, bytes.NewBuffer(jsonBody))
+    if err != nil {
+        fmt.Printf("Error creating request: %v\n", err)
+        return
+    }
 
-	if resp.StatusCode != http.StatusOK {
-		fmt.Printf("Server returned non-OK status: %s\n", resp.Status)
-		body := new(bytes.Buffer)
-		body.ReadFrom(resp.Body)
-		fmt.Printf("Response body: %s\n", body.String())
-		return
-	}
+    req.Header.Set("Content-Type", "application/json")
+    req.Header.Set("X-Device-Id", deviceId)            
+    req.Header.Set("Authorization", "Bearer "+deviceToken) 
 
-	var regResponse RegisterResponse
-	if err := json.NewDecoder(resp.Body).Decode(&regResponse); err != nil {
-		fmt.Printf("Error decoding response body: %v\n", err)
-		return
-	}
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    if err != nil {
+        fmt.Printf("Error making request to server: %v\n", err)
+        return
+    }
+    defer resp.Body.Close()
 
-	fmt.Printf("Successfully registered stream. Topic: %s, SSRC: %d\n", topic, regResponse.Ssrc)
-	
-	rtpURL := fmt.Sprintf("rtp://127.0.0.1:%d?ssrc=%d", regResponse.RtpPort, regResponse.Ssrc)
-	fmt.Printf("Starting ffmpeg stream to: %s\n", rtpURL)
+    if resp.StatusCode != http.StatusOK {
+        fmt.Printf("Server returned non-OK status: %s\n", resp.Status)
+        body := new(bytes.Buffer)
+        body.ReadFrom(resp.Body)
+        fmt.Printf("Response body: %s\n", body.String())
+        return
+    }
+
+    var regResponse RegisterResponse
+    if err := json.NewDecoder(resp.Body).Decode(&regResponse); err != nil {
+        fmt.Printf("Error decoding response body: %v\n", err)
+        return
+    }
+
+    fmt.Printf("Successfully registered stream. Topic: %s, SSRC: %d\n", topic, regResponse.Ssrc)
+
+    rtpURL := fmt.Sprintf("rtp://127.0.0.1:%d?ssrc=%d", regResponse.RtpPort, regResponse.Ssrc)
+    fmt.Printf("Starting ffmpeg stream to: %s\n", rtpURL)
 
 	cmd := exec.Command(
 		"ffmpeg",

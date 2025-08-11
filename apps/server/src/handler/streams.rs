@@ -8,7 +8,7 @@ use tokio::sync::broadcast;
 use tracing::info;
 
 use crate::{
-    handler::auth::JwtAuth,
+    handler::auth::{DeviceTokenAuth, JwtAuth},
     state::{AppState, StreamInfo},
 };
 
@@ -25,7 +25,7 @@ pub struct RegisterStreamResponse {
 
 pub async fn register_stream(
     State(state): State<Arc<AppState>>,
-    JwtAuth(claims): JwtAuth, 
+    DeviceTokenAuth { device: auth }: DeviceTokenAuth, 
     Json(payload): Json<RegisterStreamRequest>,
 ) -> impl IntoResponse {
 
@@ -35,7 +35,7 @@ pub async fn register_stream(
 
     let stream_info = StreamInfo {
         topic: payload.topic.clone(),
-        user_id: claims.sub,
+        user_id: auth.device_id,
         packet_tx,
     };
     
