@@ -1,0 +1,93 @@
+use diesel::{ ExpressionMethods, OptionalExtension, QueryDsl, RunQueryDsl, SelectableHelper, SqliteConnection};
+
+
+use crate::{ db::models::{NewSystemConfiguration, NewUser, SystemConfiguration}, hash::hash_password, routes::web_server, state::{AppState, DbPool, MqttMessage}};
+use crate::db::models::User;
+
+
+pub fn create_initial_admin(conn: &mut SqliteConnection) {
+    use crate::db::schema::users::dsl::*;
+
+    let admin_username = "admin";
+
+    let admin_exists = users
+        .filter(username.eq(admin_username))
+        .select(User::as_select())
+        .first::<User>(conn)
+        .optional()
+        .expect("Error checking for admin user");
+
+    if admin_exists.is_none() {
+        let password = "admin"; 
+   
+        println!("Admin user not found. Creating...");
+
+        match hash_password(password) {
+            Ok(hashed_password) => {
+                let new_admin = NewUser {
+                    username: admin_username,
+                    email: "admin@example.com",
+                    password_hash: &hashed_password
+                };
+
+                diesel::insert_into(users)
+                    .values(&new_admin)
+                    .execute(conn)
+                    .expect("Error creating admin user");
+                
+                println!("Admin user '{}' created.", admin_username);
+            }
+            Err(e) => eprintln!("error: {}", e),
+        }
+
+    } else {
+        println!("Admin user already exists. Skipping creation.");
+    }
+}
+
+
+pub fn create_initial_configurations(conn: &mut SqliteConnection) {
+    use crate::db::schema::system_configurations::dsl::*;
+
+    let default_configs = vec![
+        (
+            "mqtt_broker_url",
+            "tcp://localhost:1883",
+            "Default MQTT Broker URL. Format: tcp://host:port",
+        ),
+        (
+            "turn_server_config",
+            r#"{ "urls": "turn:turn.example.com:3478", "username": "user", "credential": "pass" }"#,
+            "Default WebRTC TURN Server configuration (JSON format)",
+        ),
+    ];
+
+    for (k, v, d) in default_configs {
+        let config_exists = system_configurations
+            .filter(key.eq(k))
+            .select(SystemConfiguration::as_select())
+            .first::<SystemConfiguration>(conn)
+            .optional()
+            .expect("Error checking for system configuration");
+
+        if config_exists.is_none() {
+            println!("Configuration '{}' not found. Creating...", k);
+            let new_config = NewSystemConfiguration {
+                key: k,
+                value: v,
+                enabled: Some(1), 
+                description: Some(d),
+            };
+
+            diesel::insert_into(system_configurations)
+                .values(&new_config)
+                .execute(conn)
+                .expect("Error creating system configuration");
+            
+            println!("Configuration '{}' created.", k);
+        } else {
+            println!("Configuration '{}' already exists. Skipping creation.", k);
+        }
+    }
+}
+
