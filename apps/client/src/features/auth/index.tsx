@@ -45,6 +45,8 @@ export function LoginForm({
         data.status === "success"
       ) {
         toast.success("Connected to server successfully. Please authenticate.");
+        Cookies.set("server_url", processedUrl, { expires: 1 / 24 });
+
         setShowAuthFields(true);
       } else {
         throw new Error("Failed to connect to the server.");
