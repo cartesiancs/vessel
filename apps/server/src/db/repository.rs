@@ -1,4 +1,4 @@
-use diesel::{dsl::max, BoolExpressionMethods, Connection, ExpressionMethods, JoinOnDsl, OptionalExtension, QueryDsl, RunQueryDsl, SelectableHelper};
+use diesel::{dsl::max, BoolExpressionMethods, Connection, ExpressionMethods, JoinOnDsl, OptionalExtension, QueryDsl, QueryResult, RunQueryDsl, SelectableHelper};
 
 use crate::{db::models::{Device, DeviceToken, Entity, EntityConfiguration, EntityWithConfig, Flow, FlowVersion, NewDevice, NewDeviceToken, NewEntity, NewEntityConfiguration, NewFlow, NewFlowVersion, NewSystemConfiguration, SystemConfiguration, User}, state::DbPool};
 
@@ -304,13 +304,16 @@ pub fn get_device_by_device_id(pool: &DbPool, target_device_id: &str) -> Result<
 
 
 
-pub fn create_flow(pool: &DbPool, new_flow: NewFlow) -> Result<usize, anyhow::Error> {
+pub fn create_flow(pool: &DbPool, new_flow: NewFlow) -> Result<Flow, anyhow::Error> {
     use crate::db::schema::flows::dsl::*;
     let mut conn = pool.get()?;
-    let num_inserted = diesel::insert_into(flows)
+
+   let version_insert = diesel::insert_into(flows)
         .values(&new_flow)
-        .execute(&mut conn)?;
-    Ok(num_inserted)
+        .returning(Flow::as_returning())
+        .get_result(&mut conn)?;
+
+    Ok(version_insert)
 }
 
 pub fn get_all_flows(pool: &DbPool) -> Result<Vec<Flow>, anyhow::Error> {

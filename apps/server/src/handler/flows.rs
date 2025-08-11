@@ -33,16 +33,15 @@ pub async fn get_all_flows(
 pub async fn create_flow(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<FlowPayload>,
-) -> Result<Json<Value>, AppError> {
+) -> Result<Json<Flow>, AppError> {
     let new_flow = NewFlow {
         name: &payload.name,
         description: payload.description.as_deref(),
         enabled: payload.enabled,
     };
-    db::repository::create_flow(&state.pool, new_flow)?;
-    Ok(Json(json!({ "status": "success", "message": "Flow created successfully" })))
+    let flow = db::repository::create_flow(&state.pool, new_flow)?;
+    Ok(Json(flow))
 }
-
 
 pub async fn update_flow(
     State(state): State<Arc<AppState>>,
