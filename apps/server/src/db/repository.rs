@@ -1,6 +1,6 @@
-use diesel::{Connection, ExpressionMethods, JoinOnDsl, OptionalExtension, QueryDsl, RunQueryDsl, SelectableHelper};
+use diesel::{dsl::max, BoolExpressionMethods, Connection, ExpressionMethods, JoinOnDsl, OptionalExtension, QueryDsl, RunQueryDsl, SelectableHelper};
 
-use crate::{db::models::{Device, DeviceToken, Entity, EntityConfiguration, EntityWithConfig, NewDevice, NewDeviceToken, NewEntity, NewEntityConfiguration, NewSystemConfiguration, SystemConfiguration, User}, state::DbPool};
+use crate::{db::models::{Device, DeviceToken, Entity, EntityConfiguration, EntityWithConfig, Flow, FlowVersion, NewDevice, NewDeviceToken, NewEntity, NewEntityConfiguration, NewFlow, NewFlowVersion, NewSystemConfiguration, SystemConfiguration, User}, state::DbPool};
 
 
 pub fn get_user_by_name(pool: &DbPool, target_username: &str) -> Result<User, anyhow::Error> {
@@ -300,4 +300,78 @@ pub fn get_device_by_device_id(pool: &DbPool, target_device_id: &str) -> Result<
         .select(Device::as_select())
         .first::<Device>(&mut conn)?;
     Ok(device_result)
+}
+
+
+
+pub fn create_flow(pool: &DbPool, new_flow: NewFlow) -> Result<usize, anyhow::Error> {
+    use crate::db::schema::flows::dsl::*;
+    let mut conn = pool.get()?;
+    let num_inserted = diesel::insert_into(flows)
+        .values(&new_flow)
+        .execute(&mut conn)?;
+    Ok(num_inserted)
+}
+
+pub fn get_all_flows(pool: &DbPool) -> Result<Vec<Flow>, anyhow::Error> {
+    use crate::db::schema::flows::dsl::*;
+    let mut conn = pool.get()?;
+    let all_flows = flows
+        .select(Flow::as_select())
+        .load::<Flow>(&mut conn)?;
+    Ok(all_flows)
+}
+
+pub fn update_flow(pool: &DbPool, target_id: i32, updated_flow: &NewFlow) -> Result<usize, anyhow::Error> {
+    use crate::db::schema::flows::dsl::*;
+    let mut conn = pool.get()?;
+    let num_updated = diesel::update(flows.find(target_id))
+        .set(updated_flow)
+        .execute(&mut conn)?;
+    Ok(num_updated)
+}
+
+pub fn delete_flow(pool: &DbPool, target_id: i32) -> Result<usize, anyhow::Error> {
+    use crate::db::schema::flows::dsl::*;
+    let mut conn = pool.get()?;
+    let num_deleted = diesel::delete(flows.find(target_id)).execute(&mut conn)?;
+    Ok(num_deleted)
+}
+
+
+
+pub fn create_flow_version(
+    pool: &DbPool,
+    new_version_data: NewFlowVersion,
+) -> Result<FlowVersion, anyhow::Error> {
+    use crate::db::schema::flow_versions::dsl::*;
+    let mut conn = pool.get()?;
+    let version_insert = diesel::insert_into(flow_versions)
+        .values(&new_version_data)
+        .get_result(&mut conn)?;
+    Ok(version_insert)
+}
+
+pub fn get_latest_version_number(pool: &DbPool, target_flow_id: i32) -> Result<Option<i32>, anyhow::Error> {
+    use crate::db::schema::flow_versions::dsl::*;
+    let mut conn = pool.get()?;
+    let max_version = flow_versions
+        .filter(flow_id.eq(target_flow_id))
+        .select(max(version))
+        .first::<Option<i32>>(&mut conn)?;
+    Ok(max_version)
+}
+
+pub fn get_versions_for_flow(
+    pool: &DbPool,
+    target_flow_id: i32,
+) -> Result<Vec<FlowVersion>, anyhow::Error> {
+    use crate::db::schema::flow_versions::dsl::*;
+    let mut conn = pool.get()?;
+    let versions = flow_versions
+        .filter(flow_id.eq(target_flow_id))
+        .order(version.desc())
+        .select(FlowVersion::as_select())
+        .load::<FlowVersion>(&mut conn)?;
+    Ok(versions)
 }

@@ -1,7 +1,7 @@
 use chrono::NaiveDateTime;
 use diesel::prelude::*;
 use serde_json::Value;
-use crate::db::schema::{device_tokens, devices, entities, entities_configurations, events, states, states_meta, system_configurations, users};
+use crate::db::schema::{device_tokens, devices, entities, entities_configurations, events, flow_versions, flows, states, states_meta, system_configurations, users};
 use serde::{Deserialize, Serialize};
 
 #[derive(Queryable, Selectable, Identifiable, Serialize)]
@@ -189,4 +189,44 @@ pub struct DeviceToken {
 pub struct NewDeviceToken<'a> {
     pub device_id: i32,
     pub token_hash: &'a str,
+}
+
+#[derive(Queryable, Selectable, Identifiable, Serialize, Clone)]
+#[diesel(table_name = flows)]
+pub struct Flow {
+    pub id: i32,
+    pub name: String,
+    pub description: Option<String>,
+    pub enabled: i32,
+    pub created_at: NaiveDateTime,
+    pub updated_at: NaiveDateTime,
+}
+
+#[derive(Insertable, AsChangeset)]
+#[diesel(table_name = flows)]
+pub struct NewFlow<'a> {
+    pub name: &'a str,
+    pub description: Option<&'a str>,
+    pub enabled: Option<i32>,
+}
+
+#[derive(Queryable, Selectable, Identifiable, Associations, Serialize, Clone)]
+#[diesel(table_name = flow_versions)]
+#[diesel(belongs_to(Flow))]
+pub struct FlowVersion {
+    pub id: i32,
+    pub flow_id: i32,
+    pub version: i32,
+    pub graph_json: String,
+    pub comment: Option<String>,
+    pub created_at: NaiveDateTime,
+}
+
+#[derive(Insertable)]
+#[diesel(table_name = flow_versions)]
+pub struct NewFlowVersion<'a> {
+    pub flow_id: i32,
+    pub version: i32,
+    pub graph_json: &'a str,
+    pub comment: Option<&'a str>,
 }

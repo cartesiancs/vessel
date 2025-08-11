@@ -52,6 +52,28 @@ diesel::table! {
 }
 
 diesel::table! {
+    flow_versions (id) {
+        id -> Integer,
+        flow_id -> Integer,
+        version -> Integer,
+        graph_json -> Text,
+        comment -> Nullable<Text>,
+        created_at -> Timestamp,
+    }
+}
+
+diesel::table! {
+    flows (id) {
+        id -> Integer,
+        name -> Text,
+        description -> Nullable<Text>,
+        enabled -> Integer,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
+    }
+}
+
+diesel::table! {
     states (state_id) {
         state_id -> Integer,
         metadata_id -> Nullable<Integer>,
@@ -96,6 +118,7 @@ diesel::table! {
 diesel::joinable!(device_tokens -> devices (device_id));
 diesel::joinable!(entities -> devices (device_id));
 diesel::joinable!(entities_configurations -> entities (entity_id));
+diesel::joinable!(flow_versions -> flows (flow_id));
 diesel::joinable!(states -> states_meta (metadata_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
@@ -104,6 +127,8 @@ diesel::allow_tables_to_appear_in_same_query!(
     entities,
     entities_configurations,
     events,
+    flow_versions,
+    flows,
     states,
     states_meta,
     system_configurations,
