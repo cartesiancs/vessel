@@ -11,6 +11,11 @@ export const createFlow = async (payload: FlowPayload): Promise<Flow> => {
   return data;
 };
 
+export const deleteFlow = async (id: number): Promise<Flow> => {
+  const { data } = await apiClient.delete<Flow>(`/flows/${id}`);
+  return data;
+};
+
 export const saveFlowVersion = async (
   flowId: number,
   payload: FlowVersionPayload,

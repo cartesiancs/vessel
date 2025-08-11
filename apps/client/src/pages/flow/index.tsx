@@ -11,7 +11,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import Flow, { FlowHeader } from "@/features/flow/Flow";
+import Flow, { FlowHeader, FlowSidebar } from "@/features/flow/Flow";
 import { AppSidebar } from "@/features/sidebar";
 import { Separator } from "@radix-ui/react-separator";
 
@@ -42,7 +42,8 @@ export function FlowPage() {
 
           <FlowHeader />
         </header>
-        <div className='flex flex-1 flex-col gap-4'>
+        <div className='flex flex-1 flex-row gap-4'>
+          <FlowSidebar />
           <Flow />
         </div>
       </SidebarInset>
