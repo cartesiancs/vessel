@@ -1,7 +1,7 @@
 use chrono::NaiveDateTime;
 use diesel::prelude::*;
 use serde_json::Value;
-use crate::db::schema::{devices, entities, entities_configurations, events, states, states_meta, system_configurations, users};
+use crate::db::schema::{device_tokens, devices, entities, entities_configurations, events, states, states_meta, system_configurations, users};
 use serde::{Deserialize, Serialize};
 
 #[derive(Queryable, Selectable, Identifiable, Serialize)]
@@ -169,4 +169,24 @@ pub struct NewSystemConfiguration<'a> {
     pub value: &'a str,
     pub enabled: Option<i32>,
     pub description: Option<&'a str>,
+}
+
+#[derive(Queryable, Selectable, Identifiable, Associations, Serialize, Clone)]
+#[diesel(table_name = device_tokens)]
+#[diesel(belongs_to(Device))]
+pub struct DeviceToken {
+    pub id: i32,
+    pub device_id: i32,
+    #[serde(skip_serializing)] 
+    pub token_hash: String,
+    pub expires_at: Option<NaiveDateTime>,
+    pub last_used_at: Option<NaiveDateTime>,
+    pub created_at: NaiveDateTime,
+}
+
+#[derive(Insertable)]
+#[diesel(table_name = device_tokens)]
+pub struct NewDeviceToken<'a> {
+    pub device_id: i32,
+    pub token_hash: &'a str,
 }

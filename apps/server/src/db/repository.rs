@@ -1,6 +1,6 @@
-use diesel::{Connection, ExpressionMethods, JoinOnDsl, QueryDsl, RunQueryDsl, SelectableHelper};
+use diesel::{Connection, ExpressionMethods, JoinOnDsl, OptionalExtension, QueryDsl, RunQueryDsl, SelectableHelper};
 
-use crate::{db::models::{Device, Entity, EntityConfiguration, EntityWithConfig, NewDevice, NewEntity, NewEntityConfiguration, NewSystemConfiguration, SystemConfiguration, User}, state::DbPool};
+use crate::{db::models::{Device, DeviceToken, Entity, EntityConfiguration, EntityWithConfig, NewDevice, NewDeviceToken, NewEntity, NewEntityConfiguration, NewSystemConfiguration, SystemConfiguration, User}, state::DbPool};
 
 
 pub fn get_user_by_name(pool: &DbPool, target_username: &str) -> Result<User, anyhow::Error> {
@@ -244,5 +244,50 @@ pub fn delete_system_config(pool: &DbPool, target_id: i32) -> Result<usize, anyh
     use crate::db::schema::system_configurations::dsl::*;
     let mut conn = pool.get()?;
     let num_deleted = diesel::delete(system_configurations.find(target_id)).execute(&mut conn)?;
+    Ok(num_deleted)
+}
+
+pub fn create_or_replace_device_token(
+    pool: &DbPool,
+    target_device_id: i32,
+    hashed_token: &str,
+) -> Result<DeviceToken, anyhow::Error> {
+    use crate::db::schema::device_tokens::dsl::*;
+    let mut conn = pool.get()?;
+
+    let new_token = NewDeviceToken {
+        device_id: target_device_id,
+        token_hash: hashed_token,
+    };
+
+    let token = diesel::insert_into(device_tokens)
+        .values(&new_token)
+        .on_conflict(device_id)
+        .do_update()
+        .set(token_hash.eq(hashed_token))
+        .get_result(&mut conn)?;
+
+    Ok(token)
+}
+
+pub fn get_token_info_for_device(
+    pool: &DbPool,
+    target_device_id: i32,
+) -> Result<Option<DeviceToken>, anyhow::Error> {
+    use crate::db::schema::device_tokens::dsl::*;
+    let mut conn = pool.get()?;
+    let token_info = device_tokens
+        .filter(device_id.eq(target_device_id))
+        .select(DeviceToken::as_select())
+        .first::<DeviceToken>(&mut conn)
+        .optional()?;
+    Ok(token_info)
+}
+
+pub fn delete_token_for_device(pool: &DbPool, target_device_id: i32) -> Result<usize, anyhow::Error> {
+    use crate::db::schema::device_tokens::dsl::*;
+    let mut conn = pool.get()?;
+    let num_deleted = diesel::delete(device_tokens.filter(device_id.eq(target_device_id)))
+        .execute(&mut conn)?;
     Ok(num_deleted)
 }

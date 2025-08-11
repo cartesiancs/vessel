@@ -1,6 +1,17 @@
 // @generated automatically by Diesel CLI.
 
 diesel::table! {
+    device_tokens (id) {
+        id -> Integer,
+        device_id -> Integer,
+        token_hash -> Text,
+        expires_at -> Nullable<Timestamp>,
+        last_used_at -> Nullable<Timestamp>,
+        created_at -> Timestamp,
+    }
+}
+
+diesel::table! {
     devices (id) {
         id -> Integer,
         device_id -> Text,
@@ -82,11 +93,13 @@ diesel::table! {
     }
 }
 
+diesel::joinable!(device_tokens -> devices (device_id));
 diesel::joinable!(entities -> devices (device_id));
 diesel::joinable!(entities_configurations -> entities (entity_id));
 diesel::joinable!(states -> states_meta (metadata_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
+    device_tokens,
     devices,
     entities,
     entities_configurations,

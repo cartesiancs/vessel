@@ -17,7 +17,8 @@ use crate::{handler::{
     devices,
     entities,
     configurations,
-    streams
+    streams,
+    device_tokens
 }, state::AppState};
 
 
@@ -45,7 +46,8 @@ pub async fn web_server(addr: String, app_state: Arc<AppState>) -> Result<()> {
         .route("/entities/:id", put(entities::update_entity).delete(entities::delete_entity))
         .route("/configurations", post(configurations::create_config).get(configurations::get_configs))
         .route("/configurations/:id", put(configurations::update_config).delete(configurations::delete_config))
-        .route("/streams/register", post(streams::register_stream));
+        .route("/streams/register", post(streams::register_stream))
+        .route("/devices/:id/token", post(device_tokens::issue_token).get(device_tokens::get_token_info).delete(device_tokens::revoke_token));
 
 
     let app = Router::new()

@@ -12,3 +12,7 @@
 
 (concept image)  
 (flow image)
+
+## Develop
+
+`diesel migration run`

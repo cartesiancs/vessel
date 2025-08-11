@@ -5,3 +5,4 @@ pub mod devices;
 pub mod entities;
 pub mod configurations;
 pub mod streams;
+pub mod device_tokens;
