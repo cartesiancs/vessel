@@ -12,6 +12,7 @@ impl ExecutableNode for AddNumbersNode {
         let a = inputs.get("a").and_then(Value::as_f64).ok_or_else(|| anyhow!("Input 'a' is not a valid number"))?;
         let b = inputs.get("b").and_then(Value::as_f64).ok_or_else(|| anyhow!("Input 'b' is not a valid number"))?;
 
+        println!("Adding numbers: a = {}, b = {}", a, b);
         let result = a + b;
         let mut outputs = HashMap::new();
         // 프론트엔드 ADD 노드의 출력 커넥터 이름은 "number" 입니다.
