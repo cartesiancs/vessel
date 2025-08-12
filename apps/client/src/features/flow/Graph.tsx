@@ -45,6 +45,7 @@ export function Graph({
     id: string;
   } | null>(null);
   const [open, setOpen] = useState(false);
+  const [openedNode, setOpenedNode] = useState<Node | null>(null);
 
   const svgRef = useRef<SVGSVGElement>(null);
   const gRef = useRef<SVGGElement>(null);
@@ -54,15 +55,20 @@ export function Graph({
   const nodesRef = useRef(nodes);
 
   const nodeRenderers: Record<string, NodeRenderer> = {
-    BUTTON: (g, d) => renderButtonNode(g, d, () => setOpen(true)),
+    BUTTON: (g, d) => renderButtonNode(g, d, () => handleClickOption(d)),
     TITLE: (g, d) => renderTitleNode(g, d),
     START: (g, d) => renderTitleNode(g, d),
     SET_VARIABLE: (g, d) => renderProcessingNode(g, d),
     CONDITION: (g, d) => renderProcessingNode(g, d),
     LOG_MESSAGE: (g, d) => renderProcessingNode(g, d),
 
-    NUMBER: (g, d) => renderNumberNode(g, d, () => setOpen(true)),
+    NUMBER: (g, d) => renderNumberNode(g, d, () => handleClickOption(d)),
     ADD: (g, d) => renderProcessingNode(g, d),
+  };
+
+  const handleClickOption = (node: Node) => {
+    setOpenedNode(node);
+    setOpen(true);
   };
 
   const handleOpenOptions = (isOpen: boolean) => {
@@ -235,12 +241,6 @@ export function Graph({
       .attr("font-weight", 800)
       .text((d) => d.nodeType || "");
 
-    nodeEnter.each(function (d) {
-      const g = d3.select<SVGGElement, Node>(this);
-      const renderer = d.nodeType ? nodeRenderers[d.nodeType] : null;
-      if (renderer) renderer(g, d);
-    });
-
     const nodesMerged = nodeEnter.merge(nodeSel);
 
     nodesMerged
@@ -302,6 +302,14 @@ export function Graph({
           ? highlightColor
           : nodeColor,
       );
+
+    nodesMerged.each(function (d) {
+      const g = d3.select<SVGGElement, Node>(this);
+      console.log("Rendering nodes:");
+      g.selectAll(".node-content").remove();
+      const renderer = d.nodeType ? nodeRenderers[d.nodeType] : null;
+      if (renderer) renderer(g, d);
+    });
 
     const drag = d3.drag<SVGGElement, Node>().on("drag", (e, d) => {
       if (locked || isDraggingRef.current) return;
@@ -652,7 +660,11 @@ export function Graph({
           {locked ? <Lock size={18} /> : <LockOpen size={18} />}
         </Button>
 
-        <Options open={open} setOpen={handleOpenOptions} />
+        <Options
+          open={open}
+          selectedNode={openedNode}
+          setOpen={handleOpenOptions}
+        />
       </div>
     </div>
   );

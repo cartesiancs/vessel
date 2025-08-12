@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { Edge, Node } from "@/features/flow/flowTypes";
+import { DataNodeType, Edge, Node } from "@/features/flow/flowTypes";
 import {
   getFlows,
   getFlowVersions,
@@ -15,10 +15,13 @@ interface FlowState {
   error: string | null;
   nodes: Node[];
   edges: Edge[];
+  refresh: number;
   fetchFlows: () => Promise<void>;
   setCurrentFlowId: (flowId: number | null) => void;
   setNodes: (nodes: Node[]) => void;
   setEdges: (edges: Edge[]) => void;
+  updateNode: (nodeId: string, data: DataNodeType) => void;
+  addRefresh: () => void;
   createNewFlow: (name: string) => Promise<void>;
   saveGraph: (comment?: string) => Promise<void>;
   loadGraph: () => Promise<void>;
@@ -31,6 +34,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
   edges: [],
   isLoading: false,
   error: null,
+  refresh: 1,
 
   fetchFlows: async () => {
     set({ isLoading: true, error: null });
@@ -53,6 +57,20 @@ export const useFlowStore = create<FlowState>((set, get) => ({
 
   setNodes: (nodes) => set({ nodes }),
   setEdges: (edges) => set({ edges }),
+
+  updateNode: (nodeId: string, data: DataNodeType) => {
+    set((state) => ({
+      nodes: state.nodes.map((node) =>
+        node.id === nodeId
+          ? { ...node, data: { ...node.data, ...data } }
+          : node,
+      ),
+    }));
+  },
+
+  addRefresh: () => {
+    set((state) => ({ refresh: state.refresh + 1 }));
+  },
 
   createNewFlow: async (name: string) => {
     set({ isLoading: true, error: null });

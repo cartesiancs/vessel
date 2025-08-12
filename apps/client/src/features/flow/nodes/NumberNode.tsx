@@ -1,4 +1,4 @@
-import { Node } from "../flowTypes";
+import { Node, NumberNodeType } from "../flowTypes";
 
 export function renderNumberNode(
   g: d3.Selection<SVGGElement, Node, null, undefined>,
@@ -7,7 +7,10 @@ export function renderNumberNode(
 ) {
   const w = d.width;
   const h = d.height;
-  const group = g.append("g").style("cursor", "pointer");
+  const group = g
+    .append("g")
+    .attr("class", "node-content")
+    .style("cursor", "pointer");
   group
     .append("rect")
     .attr("x", w / 2 - 40)
@@ -24,7 +27,7 @@ export function renderNumberNode(
     .attr("dominant-baseline", "middle")
     .attr("font-size", 8)
     .attr("fill", "#fff")
-    .text("Edit Number");
+    .text(`Edit Number ${(d.data as NumberNodeType).number ?? 0}`);
   group.on("click", (e) => {
     e.stopPropagation();
     onOpen();

@@ -7,6 +7,7 @@ export function renderTitleNode(
   const w = d.width;
   const h = d.height;
   g.append("text")
+    .attr("class", "node-content")
     .attr("x", w / 2)
     .attr("y", h / 2 + 4)
     .attr("text-anchor", "middle")

@@ -7,7 +7,10 @@ export function renderButtonNode(
 ) {
   const w = d.width;
   const h = d.height;
-  const group = g.append("g").style("cursor", "pointer");
+  const group = g
+    .append("g")
+    .attr("class", "node-content")
+    .style("cursor", "pointer");
   group
     .append("rect")
     .attr("x", w / 2 - 20)
