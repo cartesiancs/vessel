@@ -9,7 +9,15 @@ export type NodeRenderer = (
   d: Node,
 ) => void;
 
-export type NodeTypes = "BUTTON" | "TITLE" | "NUMBER" | "ADD";
+export type NodeTypes =
+  | "BUTTON"
+  | "TITLE"
+  | "NUMBER"
+  | "ADD"
+  | "START"
+  | "SET_VARIABLE"
+  | "CONDITION"
+  | "LOG_MESSAGE";
 
 export type NumberNodeType = {
   number: number;
@@ -24,7 +32,21 @@ export type AddNodeType = {
   b: number;
 };
 
-export type DataNodeType = NumberNodeType | TextNodeType | AddNodeType;
+export type SetVariableNodeType = {
+  variableName: string;
+};
+
+export type ConditionNodeType = {
+  operator: "GreaterThan" | "LessThan" | "EqualTo";
+  operand: number;
+};
+
+export type DataNodeType =
+  | NumberNodeType
+  | TextNodeType
+  | AddNodeType
+  | SetVariableNodeType
+  | ConditionNodeType;
 
 export type Node = {
   id: string;
@@ -36,10 +58,6 @@ export type Node = {
   connectors: Connector[];
   nodeType?: NodeTypes;
   data?: DataNodeType;
-  compute?: (
-    inputs: Record<string, DataNodeType>,
-    data?: DataNodeType,
-  ) => Record<string, DataNodeType>;
 };
 
 export type Edge = {

@@ -56,6 +56,11 @@ export function Graph({
   const nodeRenderers: Record<string, NodeRenderer> = {
     BUTTON: (g, d) => renderButtonNode(g, d, () => setOpen(true)),
     TITLE: (g, d) => renderTitleNode(g, d),
+    START: (g, d) => renderTitleNode(g, d),
+    SET_VARIABLE: (g, d) => renderProcessingNode(g, d),
+    CONDITION: (g, d) => renderProcessingNode(g, d),
+    LOG_MESSAGE: (g, d) => renderProcessingNode(g, d),
+
     NUMBER: (g, d) => renderNumberNode(g, d, () => setOpen(true)),
     ADD: (g, d) => renderProcessingNode(g, d),
   };
@@ -606,6 +611,19 @@ export function Graph({
             <DropdownMenuItem onClick={() => handleAddNode("ADD")}>
               Add
             </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleAddNode("START")}>
+              Start
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleAddNode("SET_VARIABLE")}>
+              SET_VARIABLE
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleAddNode("CONDITION")}>
+              CONDITION
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleAddNode("LOG_MESSAGE")}>
+              LOG_MESSAGE
+            </DropdownMenuItem>
+
             <DropdownMenuItem>Text</DropdownMenuItem>
             <DropdownMenuItem>Bool</DropdownMenuItem>
             <DropdownMenuItem>Array</DropdownMenuItem>

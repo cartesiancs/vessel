@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { Edge, Node } from "./flowTypes";
+import { Edge, Node } from "@/features/flow/flowTypes";
 import {
   getFlows,
   getFlowVersions,

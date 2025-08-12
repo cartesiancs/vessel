@@ -42,7 +42,7 @@ export function FlowPage() {
 
           <FlowHeader />
         </header>
-        <div className='flex flex-1 flex-row gap-4'>
+        <div className='flex flex-1 flex-row'>
           <FlowSidebar />
           <Flow />
         </div>

@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { Graph } from "./Graph";
-import { useFlowStore } from "./flowStore";
 import { Button } from "@/components/ui/button";
 
 import {
@@ -35,6 +34,7 @@ import {
   AlertDialogDescription,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useFlowStore } from "@/entities/flow/store";
 
 export default function FlowPage() {
   const { nodes, edges, setNodes, setEdges, flows, fetchFlows, currentFlowId } =
