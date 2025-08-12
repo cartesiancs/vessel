@@ -1,15 +1,14 @@
 use async_trait::async_trait;
 use std::collections::HashMap;
-use anyhow::{Result};
+use anyhow::{Result, anyhow};
 use serde::Deserialize;
 use serde_json::Value;
-use super::{ExecutableNode, ExecutionResult};
+use super::{ExecutableNode, ExecutionResult, ExecutionContext};
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
 struct SetVariableNodeData {
-    // "value" 또는 "number" 라는 키를 모두 "number" 필드로 받습니다.
-    #[serde(alias = "value")]
-    number: Value,
+    variable_name: String,
 }
 
 pub struct SetVariableNode {
@@ -25,14 +24,15 @@ impl SetVariableNode {
 
 #[async_trait]
 impl ExecutableNode for SetVariableNode {
-    async fn execute(&self, _inputs: HashMap<String, Value>) -> Result<ExecutionResult> {
-        let mut outputs = HashMap::new();
-        // 노드의 출력 커넥터 이름이 "number" 또는 "value"일 수 있으므로,
-        // 둘 다 동일한 결과값을 출력하도록 합니다.
-        let output_value = self.data.number.clone();
-        outputs.insert("value".to_string(), output_value.clone());
-        outputs.insert("number".to_string(), output_value);
-
-        Ok(ExecutionResult { outputs })
+    async fn execute(&self, context: &mut ExecutionContext, inputs: HashMap<String, Value>) -> Result<ExecutionResult> {
+        if let Some(in_value) = inputs.get("in") {
+            context.set_variable(&self.data.variable_name, in_value.clone());
+            
+            let mut outputs = HashMap::new();
+            outputs.insert("out".to_string(), in_value.clone());
+            return Ok(ExecutionResult { outputs });
+        }
+        
+        Err(anyhow!("'SET_VARIABLE' node requires an input on the 'in' connector"))
     }
 }

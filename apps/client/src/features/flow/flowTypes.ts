@@ -1,7 +1,7 @@
 export type Connector = {
   id: string;
   name: string;
-  type: "in" | "out";
+  type: "in" | "out" | "execution";
 };
 
 export type NodeRenderer = (

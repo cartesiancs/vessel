@@ -10,7 +10,26 @@ use crate::flow::nodes::{
     add_numbers::AddNumbersNode,
     set_variable::SetVariableNode,
     condition::ConditionNode,
+    number::NumberNode,
+    // button::ButtonNode,
+    // title::TitleNode,
 };
+
+// 1. 실행 컨텍스트 정의
+#[derive(Default)]
+pub struct ExecutionContext {
+    variables: HashMap<String, Value>,
+}
+
+impl ExecutionContext {
+    pub fn set_variable(&mut self, name: &str, value: Value) {
+        self.variables.insert(name.to_string(), value);
+    }
+
+    pub fn get_variable(&self, name: &str) -> Option<&Value> {
+        self.variables.get(name)
+    }
+}
 
 pub struct FlowEngine {
     nodes: HashMap<String, Node>,
@@ -65,20 +84,22 @@ impl FlowEngine {
     fn get_node_instance(&self, node_id: &str) -> Result<Box<dyn ExecutableNode>> {
         let node = self.nodes.get(node_id).ok_or_else(|| anyhow!("Node not found: '{}'", node_id))?;
         match node.node_type.as_str() {
-            "NUMBER" => Ok(Box::new(SetVariableNode::new(&node.data)?)),
             "START" => Ok(Box::new(StartNode)),
-            "LOG_MESSAGE" => Ok(Box::new(LogMessageNode)),
+            "NUMBER" => Ok(Box::new(NumberNode::new(&node.data)?)),
             "ADD" => Ok(Box::new(AddNumbersNode)),
             "SET_VARIABLE" => Ok(Box::new(SetVariableNode::new(&node.data)?)),
             "CONDITION" => Ok(Box::new(ConditionNode::new(&node.data)?)),
-            _ => Err(anyhow!("Unknown node type: {}", node.node_type)),
+            "LOG_MESSAGE" => Ok(Box::new(LogMessageNode)),
+            // "TITLE" => Ok(Box::new(TitleNode::new(&node.data)?)),
+            // "BUTTON" => Ok(Box::new(ButtonNode)),
+            _ => Err(anyhow!("Unknown or unimplemented node type: {}", node.node_type)),
         }
     }
 
-     pub async fn run(&self) -> Result<()> {
+    pub async fn run(&self) -> Result<()> {
+        let mut context = ExecutionContext::default();
+        
         let mut in_degrees: HashMap<&String, usize> = HashMap::new();
-
-        // 1. 모든 노드의 입력 카운트(in-degree)를 계산합니다.
         for edge in &self.edges {
             if let Some(target_node_id) = self.connector_to_node_map.get(&edge.target) {
                 *in_degrees.entry(target_node_id).or_insert(0) += 1;
@@ -86,8 +107,6 @@ impl FlowEngine {
         }
 
         let mut queue: VecDeque<(String, HashMap<String, Value>)> = VecDeque::new();
-
-        // 2. 입력이 0인 노드를 찾아 시작 큐에 추가합니다.
         for node_id in self.nodes.keys() {
             if in_degrees.get(node_id).unwrap_or(&0) == &0 {
                 println!("Found start node: {}", node_id);
@@ -99,10 +118,9 @@ impl FlowEngine {
             return Err(anyhow!("No start node found (a node with no inputs)"));
         }
         
-        // 3. 기존의 실행 루프는 그대로 사용합니다.
         while let Some((node_id, inputs)) = queue.pop_front() {
             let node_instance = self.get_node_instance(&node_id)?;
-            let result = node_instance.execute(inputs).await?;
+            let result = node_instance.execute(&mut context, inputs).await?;
 
             if let Some(next_connections) = self.adjacency.get(&node_id) {
                 for (output_name, _output_value) in &result.outputs {

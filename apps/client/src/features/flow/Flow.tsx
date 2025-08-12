@@ -103,7 +103,7 @@ export function FlowHeader() {
     >
       <Dialog onOpenChange={(open) => !open && setSaveComment("")}>
         <DialogTrigger asChild>
-          <Button disabled={!currentFlowId || isLoading}>
+          <Button size={"sm"} disabled={!currentFlowId || isLoading}>
             {isLoading ? "Saving..." : "Save Current Flow"}
           </Button>
         </DialogTrigger>

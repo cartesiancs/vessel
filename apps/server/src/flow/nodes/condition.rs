@@ -3,6 +3,8 @@ use std::collections::HashMap;
 use anyhow::{Result, anyhow};
 use serde::Deserialize;
 use serde_json::Value;
+use crate::flow::engine::ExecutionContext;
+
 use super::{ExecutableNode, ExecutionResult};
 
 #[derive(Deserialize)]
@@ -32,7 +34,7 @@ impl ConditionNode {
 
 #[async_trait]
 impl ExecutableNode for ConditionNode {
-    async fn execute(&self, inputs: HashMap<String, Value>) -> Result<ExecutionResult> {
+    async fn execute(&self, context: &mut ExecutionContext, inputs: HashMap<String, Value>) -> Result<ExecutionResult> {
         let input_val = inputs.get("input").and_then(Value::as_f64).ok_or_else(|| anyhow!("Conditional input is not a valid number"))?;
 
         let condition_met = match self.data.operator {
