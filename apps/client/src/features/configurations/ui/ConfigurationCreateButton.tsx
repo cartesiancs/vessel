@@ -40,7 +40,7 @@ export function ConfigurationCreateButton() {
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button>
+        <Button size={"sm"} variant='outline'>
           <PlusCircle className='mr-2 h-4 w-4' />
           Add Configuration
         </Button>
