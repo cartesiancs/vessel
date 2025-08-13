@@ -28,7 +28,7 @@ use webrtc::{
     track::track_local::{track_local_static_rtp::TrackLocalStaticRTP, TrackLocal, TrackLocalWriter},
 };
 
-use crate::{handler::auth::JwtAuth, state::AppState};
+use crate::{db, flow::engine::FlowEngine, handler::auth::JwtAuth, state::AppState};
 
 #[derive(Serialize)]
 struct WsMessageOut<'a, T: Serialize> {
@@ -58,6 +58,9 @@ enum ActorCommand {
         candidate: RTCIceCandidateInit,
     },
     HealthCheck {
+        payload: serde_json::Value,
+    },
+    ComputeFlow {
         payload: serde_json::Value,
     },
     SubscribeToTopic {
@@ -92,6 +95,9 @@ impl WebRtcActor {
                 }
                 ActorCommand::HealthCheck { payload } => {
                     self.handle_health_check(payload).await;
+                }
+                ActorCommand::ComputeFlow { payload } => {
+                    self.handle_compute_flow(payload).await;
                 }
                 ActorCommand::SubscribeToTopic { topic } => {
                     self.handle_subscribe(topic).await;
@@ -132,6 +138,43 @@ impl WebRtcActor {
                 error!("Failed to send health check response.");
             }
         }
+    }
+
+    async fn handle_compute_flow(&self, payload: serde_json::Value) {
+        if let Some(value) = payload.get("flow_id") {
+            if !value.is_number() {
+                error!("Invalid flow_id in payload: {:?}", payload);
+                return;
+            }
+
+            let age_i64: i64 = value.as_i64().unwrap_or_default();
+
+
+            let versions = db::repository::get_versions_for_flow(&self.state.pool, age_i64 as i32).expect("msg");
+            if versions.is_empty() {
+                error!("Failed");
+            }
+
+            let latest_version = versions[0].clone();
+
+            
+            let json_data = latest_version.graph_json;
+
+            let graph = serde_json::from_str(&json_data).expect("Failed to parse graph JSON");
+
+
+            let engine = FlowEngine::new(graph).expect("Failed to create FlowEngine");
+
+            println!("Executing flow...");
+            engine.run(self.ws_sender.clone()).await;
+            println!("Flow execution finished.");
+        } else {
+            error!("Missing flow_id in payload: {:?}", payload);
+            return;
+            
+        }
+
+        
     }
     
     async fn handle_subscribe(&self, topic: String) {
@@ -293,6 +336,10 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                 }
                 "health_check" => {
                     let cmd = ActorCommand::HealthCheck { payload: ws_msg.payload };
+                    if cmd_tx.send(cmd).await.is_err() { break; }
+                }
+                "compute_flow" => {
+                    let cmd = ActorCommand::ComputeFlow { payload: ws_msg.payload };
                     if cmd_tx.send(cmd).await.is_err() { break; }
                 }
                 "subscribe_stream" => {

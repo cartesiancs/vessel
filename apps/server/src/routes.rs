@@ -45,7 +45,6 @@ pub async fn web_server(addr: String, app_state: Arc<AppState>) -> Result<()> {
         .route("/flows", post(flows::create_flow).get(flows::get_all_flows))
         .route("/flows/:id", put(flows::update_flow).delete(flows::delete_flow))
         .route("/flows/:id/versions", post(flows::create_flow_version).get(flows::get_flow_versions))
-        .route("/flows/:id/compute", post(flows::compute_flow_versions))
         .route("/stat", get(stat::get_stats));
 
 

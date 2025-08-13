@@ -17,7 +17,6 @@ impl Default for ExecutionResult {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct Graph {
-    // HashMap<String, Node>에서 Vec<Node>으로 변경합니다.
     pub nodes: Vec<Node>,
     pub edges: Vec<Edge>,
 }
@@ -25,7 +24,6 @@ pub struct Graph {
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Node {
-    // id 필드를 다시 추가합니다.
     pub id: String,
     pub node_type: String,
     #[serde(default)]

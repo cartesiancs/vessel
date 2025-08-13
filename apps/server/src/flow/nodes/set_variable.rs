@@ -1,8 +1,12 @@
 use async_trait::async_trait;
-use std::collections::HashMap;
+use axum::extract::ws::{Message, WebSocket};
+use futures_util::stream::SplitSink;
+use tokio::sync::Mutex;
+use std::{collections::HashMap, sync::Arc};
 use anyhow::{Result, anyhow};
 use serde::Deserialize;
-use serde_json::{Number, Value};
+use serde_json::Value;
+
 use super::{ExecutableNode, ExecutionResult, ExecutionContext};
 
 #[derive(Deserialize, Debug, Clone)]
@@ -26,7 +30,7 @@ impl SetVariableNode {
 
 #[async_trait]
 impl ExecutableNode for SetVariableNode {
-    async fn execute(&self, _context: &mut ExecutionContext, _inputs: HashMap<String, Value>) -> Result<ExecutionResult> {
+    async fn execute(&self, _context: &mut ExecutionContext, _inputs: HashMap<String, Value>, ws_sender: Arc<Mutex<SplitSink<WebSocket, Message>>>) -> Result<ExecutionResult> {
         let mut outputs = HashMap::new();
         let value = Value::from(self.data.variable.clone());
 

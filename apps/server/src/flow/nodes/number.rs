@@ -1,6 +1,9 @@
 use async_trait::async_trait;
-use std::collections::HashMap;
-use anyhow::Result;
+use axum::extract::ws::{Message, WebSocket};
+use futures_util::stream::SplitSink;
+use tokio::sync::Mutex;
+use std::{collections::HashMap, sync::Arc};
+use anyhow::{Result, anyhow};
 use serde::Deserialize;
 use serde_json::Value;
 
@@ -29,6 +32,7 @@ impl ExecutableNode for NumberNode {
         &self,
         _context: &mut ExecutionContext,
         _inputs: HashMap<String, Value>,
+        ws_sender: Arc<Mutex<SplitSink<WebSocket, Message>>>
     ) -> Result<ExecutionResult> {
         let mut outputs = HashMap::new();
         let number_value = Value::from(self.data.number);

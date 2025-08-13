@@ -97,30 +97,3 @@ pub async fn get_flow_versions(
     Ok(Json(versions))
 }
 
-pub async fn compute_flow_versions(
-    State(state): State<Arc<AppState>>,
-    JwtAuth(_): JwtAuth,
-    Path(flow_id): Path<i32>,
-) -> Result<Json<serde_json::Value>, AppError> {
-    let versions = db::repository::get_versions_for_flow(&state.pool, flow_id)?;
-    if versions.is_empty() {
-        anyhow!("Task execution error");
-    }
-
-    let latest_version = versions[0].clone();
-
-    
-    let json_data = latest_version.graph_json;
-
-    let graph = serde_json::from_str(&json_data)?;
-
-    let engine = FlowEngine::new(graph)?;
-
-    println!("Executing flow...");
-    engine.run().await?;
-    println!("Flow execution finished.");
-    
-    Ok(Json(json!({
-        "message": "Flow executed successfully"
-    })))
-}

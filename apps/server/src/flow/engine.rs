@@ -1,6 +1,11 @@
 use std::collections::{HashMap, VecDeque};
+use std::sync::Arc;
 use anyhow::{Result, anyhow};
+use axum::extract::ws::{Message, WebSocket};
+use axum::extract::State;
+use futures_util::stream::SplitSink;
 use serde_json::Value;
+use tokio::sync::Mutex;
 
 use crate::flow::types::{Graph, Node, ExecutionResult, Edge};
 use crate::flow::nodes::{
@@ -14,6 +19,7 @@ use crate::flow::nodes::{
     // button::ButtonNode,
     // title::TitleNode,
 };
+use crate::state::AppState;
 
 #[derive(Default)]
 pub struct ExecutionContext {
@@ -97,7 +103,7 @@ impl FlowEngine {
         }
     }
 
-    pub async fn run(&self) -> Result<()> {
+    pub async fn run(&self, ws_sender: Arc<Mutex<SplitSink<WebSocket, Message>>>,) -> Result<()> {
         let mut context = ExecutionContext::default();
         let mut execution_queue: VecDeque<String> = VecDeque::new();
         let mut received_input_counts: HashMap<String, usize> = HashMap::new();
@@ -118,7 +124,7 @@ impl FlowEngine {
             let node_instance = self.get_node_instance(&node_id)?;
             let inputs = node_input_data.get(&node_id).cloned().unwrap_or_default();
             
-            let result = node_instance.execute(&mut context, inputs).await?;
+            let result = node_instance.execute(&mut context, inputs, ws_sender.clone()).await?;
 
             if let Some(connections) = self.data_flow_graph.get(&node_id) {
                 for (source_connector_name, target_node_id, target_connector_name) in connections {

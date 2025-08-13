@@ -1,14 +1,20 @@
 use async_trait::async_trait;
-use std::collections::HashMap;
+use axum::extract::ws::{Message, WebSocket};
+use futures_util::stream::SplitSink;
+use tokio::sync::Mutex;
+use std::{collections::HashMap, sync::Arc};
 use anyhow::{Result, anyhow};
+use serde::Deserialize;
 use serde_json::Value;
-use super::{ExecutableNode, ExecutionResult, ExecutionContext};
+use crate::flow::engine::ExecutionContext;
+
+use super::{ExecutableNode, ExecutionResult};
 
 pub struct AddNumbersNode;
 
 #[async_trait]
 impl ExecutableNode for AddNumbersNode {
-    async fn execute(&self, _context: &mut ExecutionContext, inputs: HashMap<String, Value>) -> Result<ExecutionResult> {
+    async fn execute(&self, _context: &mut ExecutionContext, inputs: HashMap<String, Value>, ws_sender: Arc<Mutex<SplitSink<WebSocket, Message>>>) -> Result<ExecutionResult> {
         let a = inputs.get("a").and_then(Value::as_f64).ok_or_else(|| anyhow!("Input 'a' is not a valid number"))?;
         let b = inputs.get("b").and_then(Value::as_f64).ok_or_else(|| anyhow!("Input 'b' is not a valid number"))?;
 
