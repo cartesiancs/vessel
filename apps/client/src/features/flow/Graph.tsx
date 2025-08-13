@@ -23,6 +23,7 @@ import {
 import { renderNumberNode } from "./nodes/NumberNode";
 import { renderProcessingNode } from "./nodes/ProcessingNode";
 import { getDefalutNode } from "./flowUtils";
+import { renderVarNode } from "./nodes/VarNode";
 
 export function Graph({
   nodes,
@@ -58,10 +59,9 @@ export function Graph({
     BUTTON: (g, d) => renderButtonNode(g, d, () => handleClickOption(d)),
     TITLE: (g, d) => renderTitleNode(g, d),
     START: (g, d) => renderTitleNode(g, d),
-    SET_VARIABLE: (g, d) => renderProcessingNode(g, d),
+    SET_VARIABLE: (g, d) => renderVarNode(g, d, () => handleClickOption(d)),
     CONDITION: (g, d) => renderProcessingNode(g, d),
     LOG_MESSAGE: (g, d) => renderProcessingNode(g, d),
-
     NUMBER: (g, d) => renderNumberNode(g, d, () => handleClickOption(d)),
     ADD: (g, d) => renderProcessingNode(g, d),
   };

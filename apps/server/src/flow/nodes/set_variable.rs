@@ -2,13 +2,15 @@ use async_trait::async_trait;
 use std::collections::HashMap;
 use anyhow::{Result, anyhow};
 use serde::Deserialize;
-use serde_json::Value;
+use serde_json::{Number, Value};
 use super::{ExecutableNode, ExecutionResult, ExecutionContext};
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 struct SetVariableNodeData {
     variable_name: String,
+    variable: String, 
+    variable_type: Option<String>,
 }
 
 pub struct SetVariableNode {
@@ -24,15 +26,13 @@ impl SetVariableNode {
 
 #[async_trait]
 impl ExecutableNode for SetVariableNode {
-    async fn execute(&self, context: &mut ExecutionContext, inputs: HashMap<String, Value>) -> Result<ExecutionResult> {
-        if let Some(in_value) = inputs.get("in") {
-            context.set_variable(&self.data.variable_name, in_value.clone());
-            
-            let mut outputs = HashMap::new();
-            outputs.insert("out".to_string(), in_value.clone());
-            return Ok(ExecutionResult { outputs });
-        }
+    async fn execute(&self, _context: &mut ExecutionContext, _inputs: HashMap<String, Value>) -> Result<ExecutionResult> {
+        let mut outputs = HashMap::new();
+        let value = Value::from(self.data.variable.clone());
+
+        outputs.insert("out".to_string(), value);
+
+        Ok(ExecutionResult { outputs })
         
-        Err(anyhow!("'SET_VARIABLE' node requires an input on the 'in' connector"))
     }
 }

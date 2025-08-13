@@ -41,13 +41,12 @@ export const DEFINITION_NODE: {
     data: undefined,
   },
   SET_VARIABLE: {
-    connectors: [
-      { id: `id`, name: "in", type: "in" },
-      { id: `id`, name: "out", type: "out" },
-    ],
+    connectors: [{ id: `id`, name: "out", type: "out" }],
     nodeType: "SET_VARIABLE",
     data: {
       variableName: "myVar",
+      variable: "",
+      variableType: "string",
     },
   },
   CONDITION: {
