@@ -2,7 +2,7 @@ use std::sync::Arc;
 use axum::{extract::{State, Path}, Json};
 use serde::Deserialize;
 use serde_json::{json, Value};
-use crate::{db::{self, models::{EntityWithConfig, NewEntity}}, error::AppError, lib::entity_map::map_entities, state::AppState};
+use crate::{db::{self, models::{EntityWithConfig, NewEntity}}, error::AppError, lib::entity_map::remap_topics, state::AppState};
 
 
 
@@ -12,7 +12,7 @@ pub async fn get_stats(
     let entities = db::repository::get_all_entities(&state.pool)?;
     let devices = db::repository::get_all_devices(&state.pool)?;
 
-    map_entities(State(state)).await?;
+    remap_topics(State(state)).await?;
 
     Ok(Json(json!({
         "count": {

@@ -2,7 +2,7 @@ use std::sync::Arc;
 use axum::{extract::{State, Path}, Json};
 use serde::Deserialize;
 use serde_json::{json, Value};
-use crate::{db::{self, models::{EntityWithConfig, NewEntity}}, error::AppError, state::AppState};
+use crate::{db::{self, models::{EntityWithConfig, EntityWithStateAndConfig, NewEntity}}, error::AppError, state::AppState};
 
 #[derive(Deserialize)]
 pub struct EntityPayload {
@@ -48,6 +48,14 @@ pub async fn get_entities(
     let entities = db::repository::get_all_entities_with_configs(&state.pool)?;
     Ok(Json(entities))
 }
+
+pub async fn get_entities_with_states(
+    State(state): State<Arc<AppState>>,
+) -> Result<Json<Vec<EntityWithStateAndConfig>>, AppError> {
+    let entities = db::repository::get_all_entities_with_states_and_configs(&state.pool)?;
+    Ok(Json(entities))
+}
+
 
 pub async fn update_entity(
     State(state): State<Arc<AppState>>,

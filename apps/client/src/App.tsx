@@ -16,11 +16,7 @@ import LandingPage from "./pages/landing";
 const router = createBrowserRouter([
   {
     path: "/",
-    element: (
-      <TopBarWrapper hide={true}>
-        <LandingPage />
-      </TopBarWrapper>
-    ),
+    element: <LandingPage />,
   },
   {
     path: "/auth",
@@ -93,9 +89,7 @@ const router = createBrowserRouter([
 function App() {
   return (
     <>
-      <PageWrapper>
-        <RouterProvider router={router} />
-      </PageWrapper>
+      <RouterProvider router={router} />
     </>
   );
 }
@@ -107,8 +101,10 @@ interface TopBarWrapType extends PropsWithChildren {
 function TopBarWrapper(props: TopBarWrapType) {
   return (
     <>
-      <TopBar hide={props.hide} />
-      {props.children}
+      <PageWrapper>
+        <TopBar hide={props.hide} />
+        {props.children}
+      </PageWrapper>
     </>
   );
 }

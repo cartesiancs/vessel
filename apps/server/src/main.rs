@@ -1,8 +1,7 @@
 use anyhow::Result;
 use dashmap::DashMap;
-use tokio_stream::StreamMap;
 use std::{sync::Arc};
-use tokio::{net::UdpSocket, sync::broadcast};
+use tokio::{net::UdpSocket, sync::{broadcast, RwLock}};
 use tracing::{error, info, warn};
 use webrtc::{
     rtp::packet::Packet,
@@ -11,7 +10,7 @@ use webrtc::{
 use dotenvy::dotenv;
 
 
-use crate::{ db::conn::establish_connection, initial::{create_initial_admin, create_initial_configurations}, routes::web_server, state::{AppState, MqttMessage, StreamInfo, StreamManager}};
+use crate::{ db::conn::establish_connection, initial::{create_initial_admin, create_initial_configurations}, lib::entity_map::remap_topics, routes::web_server, rtp::rtp_receiver, state::{AppState, MqttMessage, StreamInfo, StreamManager}};
 
 mod state;
 mod mqtt;
@@ -19,6 +18,7 @@ mod routes;
 mod handler;
 mod hash;
 mod initial;
+mod rtp;
 
 pub mod db;
 pub mod error;
@@ -52,12 +52,16 @@ async fn main() -> Result<()> {
         mqtt_tx: mqtt_tx.clone(),
         jwt_secret: jwt_secret,
         pool: pool,
+        topic_map: Arc::new(RwLock::new(Vec::new()))
     });
+
+    remap_topics(axum::extract::State(app_state.clone()))
+        .await;
     
     let rtp_receiver_task = tokio::spawn(rtp_receiver("0.0.0.0:5004".to_string(), streams));
-    let signal_server_task = tokio::spawn(web_server("0.0.0.0:8080".to_string(), app_state));
+    let signal_server_task = tokio::spawn(web_server("0.0.0.0:8080".to_string(), app_state.clone()));
 
-    let mqtt_event_loop_task = tokio::spawn(mqtt::start_event_loop("localhost:1883".to_string(), mqtt_tx));
+    let mqtt_event_loop_task = tokio::spawn(mqtt::start_event_loop("localhost:1883".to_string(), mqtt_tx, app_state.clone()));
 
     info!("Server starting, press Ctrl-C to stop.");
     tokio::select! {
@@ -69,41 +73,3 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
-pub async fn rtp_receiver(addr: String, stream_manager: StreamManager) -> Result<()> {
-    let sock = UdpSocket::bind(&addr).await?;
-    println!("RTP Demultiplexer listening on {}", addr);
-
-    let mut buf = vec![0u8; 4096];
-
-    loop {
-        let (n, from) = match sock.recv_from(&mut buf).await {
-            Ok(result) => result,
-            Err(e) => {
-                warn!("UDP recv_from failed: {}", e);
-                continue;
-            }
-        };
-
-        match Packet::unmarshal(&mut &buf[..n]) {
-            Ok(packet) => {
-                let ssrc = packet.header.ssrc;
-            
-                if let Some(stream_info) = stream_manager.get(&ssrc) {
-      
-                    if stream_info.value().packet_tx.send(packet).is_err() {
-                        warn!(
-                            "RTP packet for SSRC {} dropped, no active subscribers on topic '{}'.",
-                            ssrc,
-                            stream_info.value().topic
-                        );
-                    }
-                } else {
-                    warn!("Received packet from {} with unknown SSRC: {}", from, ssrc);
-                }
-            }
-            Err(e) => {
-                warn!("Failed to unmarshal RTP packet from {}: {}", from, e);
-            }
-        }
-    }
-}

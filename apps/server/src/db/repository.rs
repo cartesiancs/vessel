@@ -2,7 +2,7 @@ use chrono::Utc;
 use diesel::{dsl::max, BoolExpressionMethods, Connection, ExpressionMethods, JoinOnDsl, OptionalExtension, QueryDsl, QueryResult, RunQueryDsl, SelectableHelper};
 use serde_json::Value;
 
-use crate::{db::models::{Device, DeviceToken, Entity, EntityConfiguration, EntityWithConfig, Flow, FlowVersion, NewDevice, NewDeviceToken, NewEntity, NewEntityConfiguration, NewFlow, NewFlowVersion, NewState, NewStatesMeta, NewSystemConfiguration, State, StatesMeta, SystemConfiguration, User}, state::DbPool};
+use crate::{db::models::{Device, DeviceToken, Entity, EntityConfiguration, EntityWithConfig, EntityWithStateAndConfig, Flow, FlowVersion, NewDevice, NewDeviceToken, NewEntity, NewEntityConfiguration, NewFlow, NewFlowVersion, NewState, NewStatesMeta, NewSystemConfiguration, State, StatesMeta, SystemConfiguration, User}, state::DbPool};
 
 
 pub fn get_user_by_name(pool: &DbPool, target_username: &str) -> Result<User, anyhow::Error> {
@@ -452,4 +452,60 @@ pub fn set_entity_state(
             .get_result(conn)
             .map_err(anyhow::Error::from)
     })
+}
+
+pub fn get_all_entities_with_states_and_configs(
+    pool: &DbPool,
+) -> Result<Vec<EntityWithStateAndConfig>, anyhow::Error> {
+    use crate::db::schema::entities::dsl as e;
+    use crate::db::schema::entities_configurations::dsl as ec;
+    use crate::db::schema::states::dsl as s;
+    use crate::db::schema::states_meta::dsl as sm;
+
+    let mut conn = pool.get()?;
+
+    let entities_and_configs = e::entities
+        .left_join(ec::entities_configurations.on(e::id.eq(ec::entity_id)))
+        .load::<(Entity, Option<EntityConfiguration>)>(&mut conn)?;
+
+    let states_meta_map: std::collections::HashMap<String, i32> = sm::states_meta
+        .load::<StatesMeta>(&mut conn)?
+        .into_iter()
+        .map(|meta| (meta.entity_id, meta.metadata_id))
+        .collect();
+
+ 
+    let all_states = s::states
+        .order(s::last_updated.desc())
+        .load::<State>(&mut conn)?;
+    
+    let latest_states: std::collections::HashMap<i32, State> = all_states
+        .into_iter()
+        .fold(std::collections::HashMap::new(), |mut acc, state| {
+            if let Some(mid) = state.metadata_id {
+                acc.entry(mid).or_insert(state);
+            }
+            acc
+        });
+
+    let result = entities_and_configs
+        .into_iter()
+        .map(|(entity, config_opt)| {
+            let configuration = config_opt
+                .map(|c| serde_json::from_str(&c.configuration).unwrap_or(serde_json::Value::Null))
+                .filter(|v| !v.is_null());
+
+            let state = states_meta_map
+                .get(&entity.entity_id)
+                .and_then(|metadata_id| latest_states.get(metadata_id).cloned());
+
+            EntityWithStateAndConfig {
+                entity,
+                configuration,
+                state,
+            }
+        })
+        .collect();
+
+    Ok(result)
 }

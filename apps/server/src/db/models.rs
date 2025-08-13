@@ -44,7 +44,7 @@ pub struct NewDevice<'a> {
     pub model: Option<&'a str>,
 }
 
-#[derive(Queryable, Selectable, Identifiable, Associations, Serialize, Deserialize)]
+#[derive(Queryable, Selectable, Identifiable, Associations, Serialize, Deserialize, Clone)]
 #[diesel(table_name = entities)]
 #[diesel(belongs_to(Device))]
 pub struct Entity {
@@ -84,11 +84,19 @@ pub struct NewEntityConfiguration<'a> {
 }
 
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct EntityWithConfig {
     #[serde(flatten)]
     pub entity: Entity,
     pub configuration: Option<Value>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct EntityWithStateAndConfig {
+    #[serde(flatten)]
+    pub entity: Entity,
+    pub configuration: Option<Value>,
+    pub state: Option<State>,
 }
 
 #[derive(Queryable, Selectable, Identifiable, Serialize)]
@@ -105,7 +113,7 @@ pub struct NewStatesMeta<'a> {
     pub entity_id: &'a str,
 }
 
-#[derive(Queryable, Selectable, Identifiable, Associations, Serialize)]
+#[derive(Queryable, Selectable, Identifiable, Associations, Serialize, Deserialize, Clone)]
 #[diesel(table_name = states)]
 #[diesel(primary_key(state_id))]
 #[diesel(belongs_to(StatesMeta, foreign_key = metadata_id))]

@@ -1,7 +1,7 @@
 use diesel::{ ExpressionMethods, OptionalExtension, QueryDsl, RunQueryDsl, SelectableHelper, SqliteConnection};
 
 
-use crate::{ db::models::{NewSystemConfiguration, NewUser, SystemConfiguration}, hash::hash_password, routes::web_server, state::{AppState, DbPool, MqttMessage}};
+use crate::{ db::models::{NewSystemConfiguration, NewUser, SystemConfiguration}, hash::hash_password};
 use crate::db::models::User;
 
 

@@ -1,5 +1,5 @@
 use std::sync::Arc;
-use tokio::sync::broadcast;
+use tokio::sync::{broadcast, RwLock};
 use webrtc::rtp::packet::Packet;
 use serde::Serialize;
 use bytes::Bytes;
@@ -26,9 +26,24 @@ pub struct MqttMessage {
     pub bytes: Bytes,
 }
 
+#[derive(Serialize, Clone, Debug, PartialEq, Eq)]
+pub enum Protocol {
+    MQTT,
+    Udp,
+    Lora,
+}
+
+#[derive(Serialize, Clone, Debug)]
+pub struct TopicMapping {
+    pub protocol: Protocol,
+    pub topic: String,
+    pub entity_id: String,
+}
+
 pub struct AppState {
     pub streams: StreamManager,
     pub mqtt_tx: broadcast::Sender<MqttMessage>,
     pub jwt_secret: String, 
     pub pool: DbPool,
+    pub topic_map: Arc<RwLock<Vec<TopicMapping>>>,
 }
