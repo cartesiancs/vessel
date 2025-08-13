@@ -7,3 +7,4 @@ pub mod configurations;
 pub mod streams;
 pub mod device_tokens;
 pub mod flows;
+pub mod stat;
