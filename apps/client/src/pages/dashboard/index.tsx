@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/sidebar";
 import AudioReceiver from "@/features/rtc/audio";
 import { AppSidebar } from "@/features/sidebar";
+import StatBlock from "@/features/stat";
 
 export function DashboardPage() {
   return (
@@ -39,14 +40,14 @@ export function DashboardPage() {
           </Breadcrumb>
         </header>
         <div className='overflow-scroll gap-4 p-4'>
-          <div className='flex flex-1 flex-col gap-4  overflow-scroll'>
-            <AudioReceiver />
-            <div className='bg-muted/50 min-h-[100vh] flex-1 rounded-xl md:min-h-min' />
+          <div className='flex flex-1 flex-col'>
+            <div className='@container/main flex flex-1 flex-col gap-2'>
+              <div className='flex flex-col gap-4 py-4 md:gap-6 md:py-6'>
+                <StatBlock />
+              </div>
+              <AudioReceiver />
+            </div>
           </div>
-          <div className='bg-muted/50 h-[600px] flex-1 rounded-xl' />
-          <div className='bg-muted/50 h-[600px] flex-1 rounded-xl' />
-          <div className='bg-muted/50 h-[600px] flex-1 rounded-xl' />
-          <div className='bg-muted/50 h-[600px] flex-1 rounded-xl' />
         </div>
       </SidebarInset>
     </SidebarProvider>
