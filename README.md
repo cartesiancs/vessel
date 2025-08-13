@@ -5,7 +5,7 @@
 </p>
 
 <p align='center'>
-<a href="https://map.fleet.im/">Visit Website</a> · <a href="https://github.com/cartesiancs/vessel/issues">Report Bugs</a>
+<a href="https://cartesiancs.com/">Visit Website</a> · <a href="https://github.com/cartesiancs/vessel/issues">Report Bugs</a>
 </p>
 
 ## About The Project

@@ -1,7 +1,8 @@
 import { apiClient } from "@/shared/api";
-import type { Entity, EntityPayload } from "./types";
+import type { Entity, EntityAll, EntityPayload } from "./types";
 
 export const getEntities = () => apiClient.get<Entity[]>("/entities");
+export const getAllEntities = () => apiClient.get<EntityAll[]>("/entities/all");
 
 export const createEntity = (data: EntityPayload) =>
   apiClient.post<Entity>("/entities", data);

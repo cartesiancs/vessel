@@ -51,21 +51,17 @@ pub async fn start_event_loop(
 
                 let topic_map = state.topic_map.read().await;
                 let matched_mapping = topic_map.iter().find(|m| {
-                    // 와일드카드(+)를 고려한 토픽 매칭이 필요하다면 별도 라이브러리(e.g., paho-mqtt)나 로직이 필요합니다.
-                    // 여기서는 간단한 문자열 비교로 처리합니다.
                     m.protocol == Protocol::MQTT && m.topic == topic_str
                 });
 
                 if let Some(mapping) = matched_mapping {
                     println!("Found mapping: Topic '{}' -> Entity '{}'", &topic_str, &mapping.entity_id);
                     
-                    // DB에 상태 기록 (에러 처리를 위해 spawn 사용)
                     let pool = state.pool.clone();
                     let entity_id = mapping.entity_id.clone();
                     let state_value = payload_str.to_string();
 
                     tokio::spawn(async move {
-                        // 여기서는 attributes를 None으로 처리합니다. 필요 시 JSON 파싱 로직을 추가할 수 있습니다.
                         if let Err(e) = db::repository::set_entity_state(&pool, &entity_id, &state_value, None) {
                             error!("Failed to set entity state for '{}': {}", entity_id, e);
                         }
