@@ -7,7 +7,7 @@ export const useLogout = () => {
 
   const logout = useCallback(() => {
     Cookies.remove("token");
-    navigate("/", { replace: true });
+    navigate("/auth", { replace: true });
   }, [navigate]);
 
   return { logout };

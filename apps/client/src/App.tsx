@@ -11,10 +11,19 @@ import { PageWrapper } from "./app/pageWrapper/page-wrapper";
 import { FlowPage } from "./pages/flow";
 import { AuthInterceptor } from "./features/auth/AuthInterceptor";
 import { NotFound } from "./pages/notfound";
+import LandingPage from "./pages/landing";
 
 const router = createBrowserRouter([
   {
     path: "/",
+    element: (
+      <TopBarWrapper hide={true}>
+        <LandingPage />
+      </TopBarWrapper>
+    ),
+  },
+  {
+    path: "/auth",
     element: (
       <TopBarWrapper hide={true}>
         <AuthPage />

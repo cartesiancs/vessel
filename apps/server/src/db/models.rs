@@ -44,7 +44,7 @@ pub struct NewDevice<'a> {
     pub model: Option<&'a str>,
 }
 
-#[derive(Queryable, Selectable, Identifiable, Associations, Serialize)]
+#[derive(Queryable, Selectable, Identifiable, Associations, Serialize, Deserialize)]
 #[diesel(table_name = entities)]
 #[diesel(belongs_to(Device))]
 pub struct Entity {
@@ -84,7 +84,7 @@ pub struct NewEntityConfiguration<'a> {
 }
 
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 pub struct EntityWithConfig {
     #[serde(flatten)]
     pub entity: Entity,

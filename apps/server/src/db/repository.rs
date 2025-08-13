@@ -1,6 +1,8 @@
+use chrono::Utc;
 use diesel::{dsl::max, BoolExpressionMethods, Connection, ExpressionMethods, JoinOnDsl, OptionalExtension, QueryDsl, QueryResult, RunQueryDsl, SelectableHelper};
+use serde_json::Value;
 
-use crate::{db::models::{Device, DeviceToken, Entity, EntityConfiguration, EntityWithConfig, Flow, FlowVersion, NewDevice, NewDeviceToken, NewEntity, NewEntityConfiguration, NewFlow, NewFlowVersion, NewSystemConfiguration, SystemConfiguration, User}, state::DbPool};
+use crate::{db::models::{Device, DeviceToken, Entity, EntityConfiguration, EntityWithConfig, Flow, FlowVersion, NewDevice, NewDeviceToken, NewEntity, NewEntityConfiguration, NewFlow, NewFlowVersion, NewState, NewStatesMeta, NewSystemConfiguration, State, StatesMeta, SystemConfiguration, User}, state::DbPool};
 
 
 pub fn get_user_by_name(pool: &DbPool, target_username: &str) -> Result<User, anyhow::Error> {
@@ -379,3 +381,75 @@ pub fn get_versions_for_flow(
     Ok(versions)
 }
 
+
+pub fn set_entity_state(
+    pool: &DbPool,
+    target_entity_id: &str,
+    new_state_value: &str,
+    new_attributes: Option<&Value>,
+) -> Result<State, anyhow::Error> {
+    let mut conn = pool.get()?;
+
+    conn.transaction(|conn| {
+        let meta: StatesMeta = {
+            use crate::db::schema::states_meta::dsl::*; 
+            let existing_meta = states_meta
+                .filter(entity_id.eq(target_entity_id))
+                .first::<StatesMeta>(conn)
+                .optional()?;
+
+            if let Some(meta) = existing_meta {
+                meta
+            } else {
+                use crate::db::schema::entities::dsl::{entities, entity_id as entity_id_col}; // 'self::' 제거
+                entities
+                    .filter(entity_id_col.eq(target_entity_id))
+                    .select(crate::db::schema::entities::id)
+                    .first::<i32>(conn)
+                    .map_err(|_| anyhow::anyhow!("Entity with id '{}' not found", target_entity_id))?;
+
+                let new_meta = NewStatesMeta { entity_id: target_entity_id };
+                diesel::insert_into(states_meta)
+                    .values(&new_meta)
+                    .get_result(conn)?
+            }
+        };
+        
+        use crate::db::schema::states::dsl::*; 
+        let last_state_record: Option<State> = states
+            .filter(metadata_id.eq(meta.metadata_id))
+            .order(last_updated.desc())
+            .first::<State>(conn)
+            .optional()?;
+            
+        let now_utc = Utc::now().naive_utc();
+
+        let last_changed_time = if let Some(ref last_state) = last_state_record {
+            if last_state.state.as_deref() != Some(new_state_value) {
+                Some(now_utc)
+            } else {
+                last_state.last_changed
+            }
+        } else {
+            Some(now_utc)
+        };
+        
+        let attributes_string = new_attributes
+            .map(|v| serde_json::to_string(v))
+            .transpose()?;
+
+        let new_state = NewState {
+            metadata_id: Some(meta.metadata_id),
+            state: Some(new_state_value),
+            attributes: attributes_string.as_deref(),
+            last_changed: last_changed_time,
+            last_updated: Some(now_utc),
+            created: Some(now_utc),
+        };
+
+        diesel::insert_into(states)
+            .values(&new_state)
+            .get_result(conn)
+            .map_err(anyhow::Error::from)
+    })
+}

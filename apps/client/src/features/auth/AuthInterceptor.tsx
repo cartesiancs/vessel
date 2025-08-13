@@ -8,12 +8,12 @@ export function AuthInterceptor({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!Cookies.get("token")) {
-      window.location.href = "/";
+      window.location.href = "/auth";
     }
   }, [location]);
 
   if (!token) {
-    return <Navigate to='/' replace />;
+    return <Navigate to='/auth' replace />;
   }
 
   return <>{children}</>;

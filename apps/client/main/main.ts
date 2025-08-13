@@ -18,7 +18,7 @@ const createWindow = () => {
       : {}),
   });
 
-  win.loadURL("http://localhost:5173/");
+  win.loadURL("http://localhost:5173/auth");
 
   win.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url);
