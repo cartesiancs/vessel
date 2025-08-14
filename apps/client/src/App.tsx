@@ -14,6 +14,7 @@ import { NotFound } from "./pages/notfound";
 import LandingPage from "./pages/landing";
 import { UsersPage } from "./pages/users";
 import { LogPage } from "./pages/log";
+import { MapPage } from "./pages/map";
 
 const router = createBrowserRouter([
   {
@@ -94,6 +95,16 @@ const router = createBrowserRouter([
       <TopBarWrapper>
         <AuthInterceptor>
           <LogPage />
+        </AuthInterceptor>
+      </TopBarWrapper>
+    ),
+  },
+  {
+    path: "/log",
+    element: (
+      <TopBarWrapper>
+        <AuthInterceptor>
+          <MapPage />
         </AuthInterceptor>
       </TopBarWrapper>
     ),
