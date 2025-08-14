@@ -12,6 +12,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import { Logs } from "@/features/log";
 import { AppSidebar } from "@/features/sidebar";
 
 export function LogPage() {
@@ -38,7 +39,7 @@ export function LogPage() {
           </Breadcrumb>
         </header>
         <main className='flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-6'>
-          <div className='grid auto-rows-max items-start gap-4 md:gap-8 lg:grid-cols-2'></div>
+          <Logs />
         </main>
       </SidebarInset>
     </SidebarProvider>
