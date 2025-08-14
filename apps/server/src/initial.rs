@@ -1,4 +1,5 @@
 use diesel::{ ExpressionMethods, OptionalExtension, QueryDsl, RunQueryDsl, SelectableHelper, SqliteConnection};
+use tracing::info;
 
 
 use crate::{ db::models::{NewSystemConfiguration, NewUser, SystemConfiguration}, hash::hash_password};
@@ -20,7 +21,7 @@ pub fn create_initial_admin(conn: &mut SqliteConnection) {
     if admin_exists.is_none() {
         let password = "admin"; 
    
-        println!("Admin user not found. Creating...");
+        info!("Admin user not found. Creating...");
 
         match hash_password(password) {
             Ok(hashed_password) => {
@@ -35,13 +36,13 @@ pub fn create_initial_admin(conn: &mut SqliteConnection) {
                     .execute(conn)
                     .expect("Error creating admin user");
                 
-                println!("Admin user '{}' created.", admin_username);
+                info!("Admin user '{}' created.", admin_username);
             }
             Err(e) => eprintln!("error: {}", e),
         }
 
     } else {
-        println!("Admin user already exists. Skipping creation.");
+        info!("Admin user already exists. Skipping creation.");
     }
 }
 

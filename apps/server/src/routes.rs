@@ -51,9 +51,6 @@ pub async fn web_server(addr: String, app_state: Arc<AppState>) -> Result<()> {
 
     
 
-
-        
-
     let app = Router::new()
         .route("/", get(get_server_info))
         .route("/signal", get(ws_handler))

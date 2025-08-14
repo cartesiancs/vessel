@@ -12,6 +12,7 @@ use axum_extra::{
 use jsonwebtoken::{decode, DecodingKey, Validation};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use tracing::info;
 use std::sync::Arc;
 use anyhow::anyhow;
 
@@ -149,6 +150,7 @@ pub async fn auth_with_password(
         Ok(user) => {
             let login_attempt_password = &payload.password.clone();
             let stored_hash = &user.password_hash;
+            info!("auth_with_password");
 
             match verify_password(login_attempt_password, stored_hash) {
                 Ok(is_valid) => {
@@ -164,6 +166,8 @@ pub async fn auth_with_password(
                             &jsonwebtoken::EncodingKey::from_secret(state.jwt_secret.as_ref()),
                         )
                         .map_err(|_| AuthError::TokenCreation)?;
+
+                        info!("Auth Success {}", claims.sub);
 
                         Ok(Json(json!({ "token": token })))
                     } else {

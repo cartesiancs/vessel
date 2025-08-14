@@ -1,8 +1,6 @@
 use axum::{http::StatusCode, response::{IntoResponse, Response}, Json};
 use serde::Serialize;
-use serde_json::json;
 use std::fs;
-use tracing::{error, info, warn};
 
 const LOG_FILE_PATH: &str = "log/app.log";
 
