@@ -22,7 +22,10 @@ impl ExecutableNode for LogMessageNode {
     ) -> Result<ExecutionResult> {
         println!("[LOG]: {:?}", inputs);
 
-         let ws_message = inputs;
+        let ws_message = json!({
+            "type": "log_message",
+            "payload": inputs.clone()
+        });
         if let Ok(payload_str) = serde_json::to_string(&ws_message) {
             if ws_sender.lock().await.send(Message::Text(payload_str)).await.is_err() {
                 error!("Failed to send health check response.");

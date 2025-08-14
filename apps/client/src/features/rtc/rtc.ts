@@ -1,41 +1,8 @@
-type SignalingMessage = {
-  type?:
-    | "offer"
-    | "answer"
-    | "candidate"
-    | "health_check"
-    | "subscribe_stream"
-    | "health_check_response";
-  payload:
-    | RTCSessionDescriptionInit
-    | RTCIceCandidate
-    | RTCIceCandidateInit
-    | string
-    | { topic: string };
-};
-
-class SignalingChannel {
-  private ws: WebSocket | null = null;
-  public onopen: (() => void) | null = null;
-  public onmessage: ((msg: SignalingMessage) => void) | null = null;
-
-  connect(url: string): void {
-    this.ws = new WebSocket(url);
-    this.ws.onopen = () => this.onopen?.();
-    this.ws.onmessage = (event) => this.onmessage?.(JSON.parse(event.data));
-    this.ws.onerror = (err) => console.error("WebSocket Error:", err);
-  }
-  send(message: SignalingMessage): void {
-    this.ws?.send(JSON.stringify(message));
-  }
-  close(): void {
-    this.ws?.close();
-  }
-}
+import { WebSocketChannel } from "../ws/ws";
 
 export class WebRTCManager {
   private pc: RTCPeerConnection;
-  private signaling: SignalingChannel;
+  private signaling: WebSocketChannel;
   private audioRef: React.RefObject<HTMLAudioElement | null>;
 
   constructor(audioRef: React.RefObject<HTMLAudioElement | null>) {
@@ -43,7 +10,7 @@ export class WebRTCManager {
     this.pc = new RTCPeerConnection({
       iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
     });
-    this.signaling = new SignalingChannel();
+    this.signaling = new WebSocketChannel();
     this.setupEvents();
   }
 

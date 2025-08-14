@@ -35,6 +35,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useFlowStore } from "@/entities/flow/store";
+import { RunFlowButton } from "./RunFlow";
+import { FlowLog } from "../flow-log/FlowLog";
 
 export default function FlowPage() {
   const { nodes, edges, setNodes, setEdges, flows, fetchFlows, currentFlowId } =
@@ -49,29 +51,27 @@ export default function FlowPage() {
   }, [flows]);
 
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        height: "calc(100vh - 3rem)",
-        width: "100%",
-      }}
-    >
-      <div style={{ flex: 1, position: "relative" }}>
+    <div className='flex flex-col h-[calc(100vh-3rem)] w-full bg-background'>
+      <div className='flex-1 flex flex-col relative overflow-hidden'>
         {currentFlowId ? (
-          <Graph
-            nodes={nodes}
-            edges={edges}
-            onNodesChange={setNodes}
-            onEdgesChange={setEdges}
-          />
+          <>
+            <div className='flex-1 relative min-h-0'>
+              <Graph
+                nodes={nodes}
+                edges={edges}
+                onNodesChange={setNodes}
+                onEdgesChange={setEdges}
+              />
+            </div>
+            <FlowLog />
+          </>
         ) : (
           <div
             style={{
               display: "flex",
               justifyContent: "center",
               alignItems: "center",
-              height: "100%",
+              height: "calc(100% - 34px)",
               color: "#888",
             }}
           >
@@ -101,6 +101,7 @@ export function FlowHeader() {
         alignItems: "center",
       }}
     >
+      <RunFlowButton />
       <Dialog onOpenChange={(open) => !open && setSaveComment("")}>
         <DialogTrigger asChild>
           <Button
