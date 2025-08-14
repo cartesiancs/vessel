@@ -13,6 +13,7 @@ import { AuthInterceptor } from "./features/auth/AuthInterceptor";
 import { NotFound } from "./pages/notfound";
 import LandingPage from "./pages/landing";
 import { UsersPage } from "./pages/users";
+import { LogPage } from "./pages/log";
 
 const router = createBrowserRouter([
   {
@@ -83,6 +84,16 @@ const router = createBrowserRouter([
       <TopBarWrapper>
         <AuthInterceptor>
           <UsersPage />
+        </AuthInterceptor>
+      </TopBarWrapper>
+    ),
+  },
+  {
+    path: "/log",
+    element: (
+      <TopBarWrapper>
+        <AuthInterceptor>
+          <LogPage />
         </AuthInterceptor>
       </TopBarWrapper>
     ),
