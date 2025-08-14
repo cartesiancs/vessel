@@ -17,7 +17,9 @@ struct ErrorResponse {
 
 pub async fn get_logs_handler() -> Response {
     match fs::read_to_string(LOG_FILE_PATH) {
-        Ok(logs) => {
+        Ok(contents) => {
+            let logs: String = contents.lines().rev().collect::<Vec<&str>>().join("\n");
+
             let response = LogResponse { logs };
             (StatusCode::OK, Json(response)).into_response()
         }
