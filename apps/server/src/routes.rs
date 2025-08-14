@@ -11,7 +11,7 @@ use tower_http::cors::CorsLayer;
 use tracing::{ info};
 
 use crate::{handler::{
-    auth::auth_with_password, configurations, device_tokens, devices, entities, flows, stat, streams, users, ws_handler::ws_handler
+    auth::auth_with_password, configurations, device_tokens, devices, entities, flows, stat, streams, users, log, ws_handler::ws_handler
 }, state::AppState};
 
 
@@ -46,7 +46,10 @@ pub async fn web_server(addr: String, app_state: Arc<AppState>) -> Result<()> {
         .route("/flows", post(flows::create_flow).get(flows::get_all_flows))
         .route("/flows/:id", put(flows::update_flow).delete(flows::delete_flow))
         .route("/flows/:id/versions", post(flows::create_flow_version).get(flows::get_flow_versions))
-        .route("/stat", get(stat::get_stats));
+        .route("/stat", get(stat::get_stats))
+        .route("/logs", get(log::get_logs_handler));
+
+    
 
 
         

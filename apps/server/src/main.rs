@@ -8,7 +8,9 @@ use webrtc::{
     util::Unmarshal,
 };
 use dotenvy::dotenv;
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, fmt};
 
+const LOG_FILE_PATH: &str = "log/app.log";
 
 use crate::{ db::conn::establish_connection, initial::{create_initial_admin, create_initial_configurations}, lib::entity_map::remap_topics, routes::web_server, rtp::rtp_receiver, state::{AppState, MqttMessage, StreamInfo, StreamManager}};
 
@@ -28,8 +30,22 @@ pub mod lib;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    tracing_subscriber::fmt::init();
     dotenv().ok();
+
+    let file_appender = tracing_appender::rolling::never("log", "app.log");
+    let (non_blocking_writer, _guard) = tracing_appender::non_blocking(file_appender);
+
+    let file_layer = fmt::layer()
+        .with_writer(non_blocking_writer)
+        .with_ansi(false);
+
+    let console_layer = fmt::layer();
+
+    tracing_subscriber::registry()
+        .with(EnvFilter::try_from_default_env().unwrap_or_else(|_| "info".into()))
+        .with(file_layer)
+        .with(console_layer)
+        .init();
 
 
     let pool = establish_connection();
