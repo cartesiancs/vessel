@@ -1,8 +1,8 @@
-import { useWebSocket } from "./WebSocketProvider";
 import { Button } from "@/components/ui/button";
 import { useFlowStore } from "@/entities/flow/store";
 import { Play } from "lucide-react";
 import { toast } from "sonner";
+import { useWebSocket } from "../ws/WebSocketProvider";
 
 export function RunFlowButton() {
   const { isConnected, sendMessage } = useWebSocket();

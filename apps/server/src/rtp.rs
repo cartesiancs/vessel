@@ -31,11 +31,7 @@ pub async fn rtp_receiver(addr: String, stream_manager: StreamManager) -> Result
                 if let Some(stream_info) = stream_manager.get(&ssrc) {
       
                     if stream_info.value().packet_tx.send(packet).is_err() {
-                        warn!(
-                            "RTP packet for SSRC {} dropped, no active subscribers on topic '{}'.",
-                            ssrc,
-                            stream_info.value().topic
-                        );
+
                     }
                 } else {
                     warn!("Received packet from {} with unknown SSRC: {}", from, ssrc);

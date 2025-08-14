@@ -12,8 +12,8 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import Flow, { FlowHeader, FlowSidebar } from "@/features/flow/Flow";
-import { WebSocketProvider } from "@/features/flow/WebSocketProvider";
 import { AppSidebar } from "@/features/sidebar";
+import { WebSocketProvider } from "@/features/ws/WebSocketProvider";
 import { Separator } from "@radix-ui/react-separator";
 import Cookies from "js-cookie";
 import { useState, useEffect } from "react";

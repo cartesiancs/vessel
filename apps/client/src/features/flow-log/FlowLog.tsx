@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
-import { useWebSocket } from "../flow/WebSocketProvider";
 import { X, ChevronDown, ChevronUp, Terminal } from "lucide-react";
+import { useWebSocket } from "../ws/WebSocketProvider";
 
 export function FlowLog() {
   const { wsManager } = useWebSocket();

@@ -1,9 +1,11 @@
 import { useEffect, useRef } from "react";
 import Cookies from "js-cookie";
 import { WebRTCManager } from "./rtc";
+import { useWebSocket } from "../ws/WebSocketProvider";
 
 export default function AudioReceiver() {
   const audioRef = useRef<HTMLAudioElement>(null);
+  const { wsManager, isConnected } = useWebSocket();
 
   useEffect(() => {
     const token = Cookies.get("token");
@@ -12,25 +14,21 @@ export default function AudioReceiver() {
       return;
     }
 
-    const manager = new WebRTCManager(audioRef);
+    if (wsManager && token && isConnected) {
+      const manager = new WebRTCManager(audioRef, wsManager);
 
-    const handleConnect = () => {
-      console.log("WebSocket connected.");
       manager.subscribe("go_stream_1");
       manager.createAndSendOffer();
 
       setInterval(() => {
         manager.sendHealthCheck();
       }, 10000);
-    };
 
-    manager.connect("ws://127.0.0.1:8080/signal?token=" + token, handleConnect);
-
-    return () => {
-      console.log("Cleaning up WebRTC manager.");
-      manager.close();
-    };
-  }, []);
+      return () => {
+        manager.close();
+      };
+    }
+  }, [wsManager, isConnected]);
 
   return <audio ref={audioRef} autoPlay playsInline controls />;
 }

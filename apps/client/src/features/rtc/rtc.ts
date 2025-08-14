@@ -5,12 +5,15 @@ export class WebRTCManager {
   private signaling: WebSocketChannel;
   private audioRef: React.RefObject<HTMLAudioElement | null>;
 
-  constructor(audioRef: React.RefObject<HTMLAudioElement | null>) {
+  constructor(
+    audioRef: React.RefObject<HTMLAudioElement | null>,
+    signaling: WebSocketChannel,
+  ) {
     this.audioRef = audioRef;
     this.pc = new RTCPeerConnection({
       iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
     });
-    this.signaling = new WebSocketChannel();
+    this.signaling = signaling;
     this.setupEvents();
   }
 
@@ -71,13 +74,13 @@ export class WebRTCManager {
     }
   }
 
-  public connect(url: string, onOpenCallback: () => void): void {
+  public connect(onOpenCallback: () => void): void {
     this.signaling.onopen = onOpenCallback;
-    this.signaling.connect(url);
   }
 
   public subscribe(topic: string) {
     console.log(`Subscribing to topic: ${topic}`);
+    console.log(this.signaling);
     this.signaling.send({
       type: "subscribe_stream",
       payload: { topic: topic },

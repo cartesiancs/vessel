@@ -27,26 +27,26 @@ export const WebSocketProvider: React.FC<{
   const wsManagerRef = useRef<WebSocketChannel | null>(null);
 
   useEffect(() => {
-    if (!url) return;
+    if (url) {
+      const wsManager = new WebSocketChannel();
+      wsManagerRef.current = wsManager;
 
-    const wsManager = new WebSocketChannel();
-    wsManagerRef.current = wsManager;
+      wsManager.onopen = () => {
+        console.log("Connected to WebSocket server");
+        setIsConnected(true);
+      };
 
-    wsManager.onopen = () => {
-      console.log("Connected to WebSocket server");
-      setIsConnected(true);
-    };
+      wsManager.onclose = () => {
+        console.log("Disconnected from WebSocket server");
+        setIsConnected(false);
+      };
 
-    wsManager.onclose = () => {
-      console.log("Disconnected from WebSocket server");
-      setIsConnected(false);
-    };
+      wsManager.connect(url);
 
-    wsManager.connect(url);
-
-    return () => {
-      wsManager.close();
-    };
+      return () => {
+        wsManager.close();
+      };
+    }
   }, [url]);
 
   const sendMessage = useCallback((message: WebSocketMessage) => {
