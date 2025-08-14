@@ -2,7 +2,7 @@ use chrono::Utc;
 use diesel::{dsl::max, BoolExpressionMethods, Connection, ExpressionMethods, JoinOnDsl, OptionalExtension, QueryDsl, QueryResult, RunQueryDsl, SelectableHelper};
 use serde_json::Value;
 
-use crate::{db::models::{Device, DeviceToken, Entity, EntityConfiguration, EntityWithConfig, EntityWithStateAndConfig, Flow, FlowVersion, NewDevice, NewDeviceToken, NewEntity, NewEntityConfiguration, NewFlow, NewFlowVersion, NewState, NewStatesMeta, NewSystemConfiguration, State, StatesMeta, SystemConfiguration, User}, state::DbPool};
+use crate::{db::models::{Device, DeviceToken, Entity, EntityConfiguration, EntityWithConfig, EntityWithStateAndConfig, Flow, FlowVersion, NewDevice, NewDeviceToken, NewEntity, NewEntityConfiguration, NewFlow, NewFlowVersion, NewState, NewStatesMeta, NewSystemConfiguration, NewUser, State, StatesMeta, SystemConfiguration, UpdateUser, User}, state::DbPool};
 
 
 pub fn get_user_by_name(pool: &DbPool, target_username: &str) -> Result<User, anyhow::Error> {
@@ -28,6 +28,50 @@ pub fn get_all_users(pool: &DbPool) -> Result<Vec<User>, anyhow::Error> {
         .load::<User>(&mut conn)?;
 
     Ok(all_users)
+}
+
+pub fn create_user(pool: &DbPool, new_user: NewUser) -> Result<User, anyhow::Error> {
+    use crate::db::schema::users::dsl::*;
+
+    let mut conn = pool.get()?;
+    let user = diesel::insert_into(users)
+        .values(&new_user)
+        .get_result(&mut conn)?;
+
+    Ok(user)
+}
+
+pub fn get_user_by_id(pool: &DbPool, user_id: i32) -> Result<User, anyhow::Error> {
+    use crate::db::schema::users::dsl::*;
+
+    let mut conn = pool.get()?;
+    let user = users.find(user_id).select(User::as_select()).first(&mut conn)?;
+
+    Ok(user)
+}
+
+pub fn update_user(
+    pool: &DbPool,
+    user_id: i32,
+    user_data: &UpdateUser,
+) -> Result<User, anyhow::Error> {
+    use crate::db::schema::users::dsl::*;
+
+    let mut conn = pool.get()?;
+    let user = diesel::update(users.find(user_id))
+        .set(user_data)
+        .get_result(&mut conn)?;
+
+    Ok(user)
+}
+
+pub fn delete_user(pool: &DbPool, user_id: i32) -> Result<usize, anyhow::Error> {
+    use crate::db::schema::users::dsl::*;
+
+    let mut conn = pool.get()?;
+    let num_deleted = diesel::delete(users.find(user_id)).execute(&mut conn)?;
+
+    Ok(num_deleted)
 }
 
 pub fn create_device(pool: &DbPool, new_device: NewDevice) -> Result<Device, anyhow::Error> {

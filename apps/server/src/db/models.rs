@@ -25,6 +25,14 @@ pub struct NewUser<'a> {
     pub password_hash: &'a str,
 }
 
+#[derive(AsChangeset, Deserialize, Default)]
+#[diesel(table_name = users)]
+pub struct UpdateUser {
+    pub username: Option<String>,
+    pub email: Option<String>,
+    pub password_hash: Option<String>,
+}
+
 #[derive(Queryable, Selectable, Identifiable, Serialize)]
 #[diesel(table_name = devices)]
 pub struct Device {

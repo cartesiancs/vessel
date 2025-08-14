@@ -11,7 +11,7 @@ use tower_http::cors::CorsLayer;
 use tracing::{ info};
 
 use crate::{handler::{
-    auth::auth_with_password, configurations, device_tokens, devices, entities, flows, stat, streams, users::get_users_list, ws_handler::ws_handler
+    auth::auth_with_password, configurations, device_tokens, devices, entities, flows, stat, streams, users, ws_handler::ws_handler
 }, state::AppState};
 
 
@@ -32,7 +32,8 @@ pub async fn web_server(addr: String, app_state: Arc<AppState>) -> Result<()> {
         .allow_headers([header::AUTHORIZATION, header::CONTENT_TYPE]);
 
     let api_routes = Router::new()
-        .route("/users", get(get_users_list))
+        .route("/users", get(users::get_users_list).post(users::create_user))
+        .route("/users/:id", get(users::get_user).put(users::update_user).delete(users::delete_user))
         .route("/devices", post(devices::create_device).get(devices::get_devices))
         .route("/devices/:id", put(devices::update_device).delete(devices::delete_device))
         .route("/entities", post(entities::create_entity).get(entities::get_entities))
