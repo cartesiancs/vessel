@@ -100,7 +100,7 @@ const router = createBrowserRouter([
     ),
   },
   {
-    path: "/log",
+    path: "/map",
     element: (
       <TopBarWrapper>
         <AuthInterceptor>

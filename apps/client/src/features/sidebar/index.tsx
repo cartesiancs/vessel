@@ -19,8 +19,11 @@ import {
   Key,
   LayoutDashboard,
   MonitorSmartphone,
+  ScrollText,
   Server,
+  UserCog,
   Workflow,
+  Map,
 } from "lucide-react";
 import { NavFooter } from "./footer";
 
@@ -46,10 +49,15 @@ const data = {
           url: "/flow",
           icon: <Workflow />,
         },
+        {
+          title: "Map",
+          url: "/map",
+          icon: <Map />,
+        },
       ],
     },
     {
-      title: "Auth",
+      title: "Devices",
       url: "#",
       items: [
         {
@@ -61,6 +69,22 @@ const data = {
           title: "Devices",
           url: "/devices",
           icon: <MonitorSmartphone />,
+        },
+      ],
+    },
+    {
+      title: "Setting",
+      url: "#",
+      items: [
+        {
+          title: "Users",
+          url: "/users",
+          icon: <UserCog />,
+        },
+        {
+          title: "Logs",
+          url: "/log",
+          icon: <ScrollText />,
         },
       ],
     },
