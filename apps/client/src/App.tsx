@@ -12,6 +12,7 @@ import { FlowPage } from "./pages/flow";
 import { AuthInterceptor } from "./features/auth/AuthInterceptor";
 import { NotFound } from "./pages/notfound";
 import LandingPage from "./pages/landing";
+import { UsersPage } from "./pages/users";
 
 const router = createBrowserRouter([
   {
@@ -72,6 +73,16 @@ const router = createBrowserRouter([
       <TopBarWrapper>
         <AuthInterceptor>
           <FlowPage />
+        </AuthInterceptor>
+      </TopBarWrapper>
+    ),
+  },
+  {
+    path: "/users",
+    element: (
+      <TopBarWrapper>
+        <AuthInterceptor>
+          <UsersPage />
         </AuthInterceptor>
       </TopBarWrapper>
     ),
