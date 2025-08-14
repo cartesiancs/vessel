@@ -24,3 +24,4 @@ pub mod add_numbers;
 pub mod set_variable;
 pub mod condition;
 pub mod number;
+pub mod calc;

@@ -119,6 +119,31 @@ export function Options({ open, selectedNode, setOpen }: OptionsProps) {
         );
       }
 
+      if (key === "operatorCalc") {
+        return (
+          <div key={inputId} className='grid grid-cols-4 items-center gap-4'>
+            <Label htmlFor={inputId} className='text-right'>
+              {key}
+            </Label>
+            <Select
+              value={String(value)}
+              onValueChange={(val) => handleInputChange(key, val)}
+            >
+              <SelectTrigger id={inputId} className='col-span-3'>
+                <SelectValue placeholder='Select Type' />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value='+'>+</SelectItem>
+                <SelectItem value='-'>-</SelectItem>
+                <SelectItem value='/'>/</SelectItem>
+                <SelectItem value='*'>*</SelectItem>
+                <SelectItem value='%'>%</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        );
+      }
+
       if (typeof value === "number") {
         return (
           <div key={inputId} className='grid grid-cols-4 items-center gap-4'>

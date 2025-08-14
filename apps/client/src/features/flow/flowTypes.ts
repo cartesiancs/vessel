@@ -17,7 +17,8 @@ export type NodeTypes =
   | "START"
   | "SET_VARIABLE"
   | "CONDITION"
-  | "LOG_MESSAGE";
+  | "LOG_MESSAGE"
+  | "CALCULATION";
 
 export type NumberNodeType = {
   number: number;
@@ -44,9 +45,7 @@ export type ConditionNodeType = {
 };
 
 export type CalculationNodeType = {
-  a: number;
-  b: number;
-  operator: "+" | "-" | "/" | "*";
+  operatorCalc: "+" | "-" | "/" | "*" | "%";
 };
 
 export type DataNodeType =

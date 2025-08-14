@@ -66,4 +66,15 @@ export const DEFINITION_NODE: {
     nodeType: "LOG_MESSAGE",
     data: undefined,
   },
+  CALCULATION: {
+    connectors: [
+      { id: `id`, name: "a", type: "in" },
+      { id: `id`, name: "b", type: "in" },
+      { id: `id`, name: "number", type: "out" },
+    ],
+    nodeType: "CALCULATION",
+    data: {
+      operatorCalc: "+",
+    },
+  },
 };
