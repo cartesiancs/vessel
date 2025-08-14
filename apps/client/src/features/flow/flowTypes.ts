@@ -43,12 +43,19 @@ export type ConditionNodeType = {
   operand: number;
 };
 
+export type CalculationNodeType = {
+  a: number;
+  b: number;
+  operator: "+" | "-" | "/" | "*";
+};
+
 export type DataNodeType =
   | NumberNodeType
   | TextNodeType
   | AddNodeType
   | SetVariableNodeType
-  | ConditionNodeType;
+  | ConditionNodeType
+  | CalculationNodeType;
 
 export type Node = {
   id: string;
