@@ -1,3 +1,6 @@
+import { MapContainer, TileLayer } from "react-leaflet";
+import "leaflet/dist/leaflet.css";
+
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -15,6 +18,8 @@ import {
 import { AppSidebar } from "@/features/sidebar";
 
 export function MapPage() {
+  const position: [number, number] = [36.635, 127.491];
+
   return (
     <SidebarProvider>
       <AppSidebar />
@@ -37,8 +42,18 @@ export function MapPage() {
             </BreadcrumbList>
           </Breadcrumb>
         </header>
-        <main className='flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-6'>
-          <div className='grid auto-rows-max items-start gap-4 md:gap-8 lg:grid-cols-2'></div>
+        <main className='flex-1 p-0 overflow-hidden'>
+          <MapContainer
+            center={position}
+            zoom={5}
+            scrollWheelZoom={true}
+            className='h-[calc(100vh-32px)] w-full'
+          >
+            <TileLayer
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+              url='https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+            />
+          </MapContainer>
         </main>
       </SidebarInset>
     </SidebarProvider>
