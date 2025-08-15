@@ -88,7 +88,7 @@ func main() {
 		"-flags", "low_delay",
 		"-flush_packets", "1",
 		"-muxdelay", "0",
-		"-ssrc", fmt.Sprintf("%d", regResponse.Ssrc),
+		"-ssrc",  fmt.Sprintf("%d", int32(regResponse.Ssrc)),
 		"-f", "rtp",
 		rtpURL,
 	)
