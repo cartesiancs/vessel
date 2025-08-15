@@ -13,7 +13,6 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { AllEntities } from "@/features/entity/AllEntities";
-import AudioReceiver from "@/features/rtc/audio";
 import { AppSidebar } from "@/features/sidebar";
 import StatBlock from "@/features/stat";
 import { WebSocketProvider } from "@/features/ws/WebSocketProvider";
@@ -63,8 +62,6 @@ export function DashboardPage() {
                 <div className='flex flex-col gap-4 py-6 md:gap-6 md:py-6'>
                   <AllEntities />
                 </div>
-
-                <AudioReceiver />
               </div>
             </div>
           </div>
