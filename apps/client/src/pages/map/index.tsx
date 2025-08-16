@@ -24,7 +24,7 @@ export function MapPage() {
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset>
-        <header className='flex h-12 shrink-0 items-center gap-2 border-b px-4'>
+        <header className='flex h-12 shrink-0 items-center gap-2 border-b px-4 fixed w-full bg-background/60 backdrop-blur-md z-[999999]'>
           <SidebarTrigger className='-ml-1' />
           <Separator
             orientation='vertical'
@@ -47,10 +47,11 @@ export function MapPage() {
             center={position}
             zoom={5}
             scrollWheelZoom={true}
+            zoomControl={false}
             className='h-[calc(100vh-32px)] w-full'
           >
             <TileLayer
-              attribution=''
+              attribution='&amp;copy <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
               url='https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
             />
           </MapContainer>
