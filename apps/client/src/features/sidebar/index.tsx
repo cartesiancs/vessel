@@ -26,6 +26,7 @@ import {
   Map,
 } from "lucide-react";
 import { NavFooter } from "./footer";
+import { isElectron } from "@/lib/electron";
 
 const data = {
   versions: ["main"],
@@ -97,7 +98,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const navigate = useNavigate();
 
   return (
-    <Sidebar {...props} style={{ top: "34px", height: "calc(100% - 34px)" }}>
+    <Sidebar
+      {...props}
+      style={{
+        top: isElectron() ? "34px" : "0",
+        height: isElectron() ? "calc(100% - 34px)" : "100%",
+      }}
+    >
       <SidebarHeader>
         <AccountSwitcher
           versions={data.versions}

@@ -15,6 +15,7 @@ import LandingPage from "./pages/landing";
 import { UsersPage } from "./pages/users";
 import { LogPage } from "./pages/log";
 import { MapPage } from "./pages/map";
+import { isElectron } from "./lib/electron";
 
 const router = createBrowserRouter([
   {
@@ -132,14 +133,18 @@ interface TopBarWrapType extends PropsWithChildren {
 }
 
 function TopBarWrapper(props: TopBarWrapType) {
-  return (
-    <>
-      <PageWrapper>
-        <TopBar hide={props.hide} />
-        {props.children}
-      </PageWrapper>
-    </>
-  );
+  if (isElectron()) {
+    return (
+      <>
+        <PageWrapper>
+          <TopBar hide={props.hide} />
+          {props.children}
+        </PageWrapper>
+      </>
+    );
+  } else {
+    return <PageWrapper>{props.children}</PageWrapper>;
+  }
 }
 
 export default App;
