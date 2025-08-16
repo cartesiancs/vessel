@@ -52,7 +52,7 @@ pub async fn web_server(addr: String, app_state: Arc<AppState>) -> Result<()> {
     
 
     let app = Router::new()
-        .route("/", get(get_server_info))
+        .route("/info", get(get_server_info))
         .route("/signal", get(ws_handler))
         .route("/auth", post(auth_with_password))
         .nest("/api", api_routes)

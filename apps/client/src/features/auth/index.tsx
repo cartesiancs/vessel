@@ -26,7 +26,7 @@ export function LoginForm({
     const processedUrl = url.replace(/\/$/, "");
 
     try {
-      const response = await fetch(processedUrl, {
+      const response = await fetch(`${processedUrl}/info`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
