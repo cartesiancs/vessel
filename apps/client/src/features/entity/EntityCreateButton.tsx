@@ -106,7 +106,8 @@ export function EntityCreateButton() {
                   </SelectTrigger>
                   <SelectContent className='w-full'>
                     <SelectItem value='MQTT'>MQTT</SelectItem>
-                    <SelectItem value='UDP'>UDP</SelectItem>
+                    <SelectItem value='UDP'>RTP over UDP</SelectItem>
+                    <SelectItem value='RTSP'>RTSP</SelectItem>
                   </SelectContent>
                 </Select>
               )}
