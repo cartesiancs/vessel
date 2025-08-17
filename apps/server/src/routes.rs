@@ -1,18 +1,17 @@
 use std::sync::Arc;
 
 use axum::{
-    http::{header, HeaderValue, Method},
-    routing::{get, post, put},
-    Json, Router,
+    http::{header, HeaderValue, Method, StatusCode, Uri}, response::IntoResponse, routing::{get, post, put}, Json, Router
 };
 use anyhow::Result;
 use serde_json::json;
-use tower_http::cors::CorsLayer;
+use tower_http::cors::{Any, CorsLayer};
 use tracing::{ info};
 
 use crate::{handler::{
     auth::auth_with_password, configurations, device_tokens, devices, entities, flows, stat, streams, users, log, ws_handler::ws_handler
 }, state::AppState};
+use rust_embed::Embed;
 
 
 
@@ -24,14 +23,43 @@ async fn get_server_info() -> Json<serde_json::Value> {
     }))
 }
 
+#[derive(Embed)]
+#[folder = "../../apps/client/dist/"] 
+struct ClientAsset;
+
+async fn static_handler(uri: Uri) -> impl IntoResponse {
+    let mut path = uri.path().trim_start_matches('/').to_string();
+
+    if path.is_empty() {
+        path = "index.html".to_string();
+    }
+    
+    match ClientAsset::get(&path) {
+        Some(content) => {
+            let mime = mime_guess::from_path(path).first_or_octet_stream();
+            ([(header::CONTENT_TYPE, mime.as_ref())], content.data).into_response()
+        }
+        None => {
+            match ClientAsset::get("index.html") {
+                 Some(content) => {
+                    let mime = mime_guess::from_path("index.html").first_or_octet_stream();
+                    ([(header::CONTENT_TYPE, mime.as_ref())], content.data).into_response()
+                }
+                None => (StatusCode::NOT_FOUND, "404 Not Found").into_response(),
+            }
+        }
+    }
+}
+
 
 pub async fn web_server(addr: String, app_state: Arc<AppState>) -> Result<()> {
     let cors = CorsLayer::new()
-        .allow_origin("http://localhost:5173".parse::<HeaderValue>().unwrap())
+        .allow_origin(Any)
         .allow_methods([Method::GET, Method::POST, Method::PUT, Method::DELETE])
         .allow_headers([header::AUTHORIZATION, header::CONTENT_TYPE]);
 
     let api_routes = Router::new()
+        .route("/auth", post(auth_with_password))
         .route("/users", get(users::get_users_list).post(users::create_user))
         .route("/users/:id", get(users::get_user).put(users::update_user).delete(users::delete_user))
         .route("/devices", post(devices::create_device).get(devices::get_devices))
@@ -54,11 +82,10 @@ pub async fn web_server(addr: String, app_state: Arc<AppState>) -> Result<()> {
     let app = Router::new()
         .route("/info", get(get_server_info))
         .route("/signal", get(ws_handler))
-        .route("/auth", post(auth_with_password))
         .nest("/api", api_routes)
-
         .with_state(app_state)
-        .layer(cors);
+        .layer(cors)
+        .fallback(static_handler);
     info!("Signal server listening on {}", addr);
     let listener = tokio::net::TcpListener::bind(addr).await?;
     axum::serve(listener, app.into_make_service()).await?;

@@ -69,7 +69,7 @@ export function LoginForm({
     const processedUrl = url.replace(/\/$/, "");
 
     try {
-      const response = await fetch(`${processedUrl}/auth`, {
+      const response = await fetch(`${processedUrl}/api/auth`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

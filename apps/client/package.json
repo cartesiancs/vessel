@@ -10,6 +10,8 @@
     "dev:electron": "wait-on tcp:5173 && electron .",
     "build:main": "tsc -p ./configs/electron",
     "build:app": "tsc -b && vite build",
+    "build:vite": "tsc -b && vite build",
+    "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview"
   },
