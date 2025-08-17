@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -20,16 +20,15 @@ import { SystemConfigurationPayload } from "@/entities/configurations/types";
 export function ConfigurationCreateButton() {
   const [isOpen, setIsOpen] = useState(false);
   const createConfig = useConfigStore((state) => state.createConfig);
-  const { register, handleSubmit, reset } = useForm<SystemConfigurationPayload>(
-    {
+  const { register, handleSubmit, reset, control } =
+    useForm<SystemConfigurationPayload>({
       defaultValues: {
         key: "",
         value: "",
         description: "",
         enabled: 1,
       },
-    },
-  );
+    });
 
   const onSubmit = async (data: SystemConfigurationPayload) => {
     await createConfig(data);
@@ -63,10 +62,16 @@ export function ConfigurationCreateButton() {
             <Input id='description' {...register("description")} />
           </div>
           <div className='flex items-center space-x-2'>
-            <Switch
-              id='enabled'
-              {...register("enabled")}
-              defaultChecked={true}
+            <Controller
+              name='enabled'
+              control={control}
+              render={({ field }) => (
+                <Switch
+                  id='enabled'
+                  checked={field.value === 1}
+                  onCheckedChange={(checked) => field.onChange(checked ? 1 : 0)}
+                />
+              )}
             />
             <Label htmlFor='enabled'>Enabled</Label>
           </div>

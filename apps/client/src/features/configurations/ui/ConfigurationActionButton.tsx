@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -45,14 +45,15 @@ export function ConfigurationActionButton({ config }: Props) {
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const { updateConfig, deleteConfig } = useConfigStore();
 
-  const { register, handleSubmit } = useForm<SystemConfigurationPayload>({
-    defaultValues: {
-      key: config.key,
-      value: config.value,
-      description: config.description ?? "",
-      enabled: config.enabled,
-    },
-  });
+  const { register, handleSubmit, control } =
+    useForm<SystemConfigurationPayload>({
+      defaultValues: {
+        key: config.key,
+        value: config.value,
+        description: config.description ?? "",
+        enabled: config.enabled,
+      },
+    });
 
   const onUpdate = async (data: SystemConfigurationPayload) => {
     await updateConfig(config.id, data);
@@ -110,10 +111,18 @@ export function ConfigurationActionButton({ config }: Props) {
               <Input id='description' {...register("description")} />
             </div>
             <div className='flex items-center space-x-2'>
-              <Switch
-                id='enabled'
-                {...register("enabled")}
-                defaultChecked={config.enabled ? true : false}
+              <Controller
+                name='enabled'
+                control={control}
+                render={({ field }) => (
+                  <Switch
+                    id='enabled'
+                    checked={field.value === 1}
+                    onCheckedChange={(checked) =>
+                      field.onChange(checked ? 1 : 0)
+                    }
+                  />
+                )}
               />
               <Label htmlFor='enabled'>Enabled</Label>
             </div>
