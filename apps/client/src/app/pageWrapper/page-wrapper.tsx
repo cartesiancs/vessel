@@ -9,6 +9,8 @@ export function PageWrapper(props: PropsWithChildren) {
       </div>
     );
   } else {
-    return <div className='relative overflow-scroll'>{props.children}</div>;
+    return (
+      <div className='relative overflow-scroll h-full'>{props.children}</div>
+    );
   }
 }

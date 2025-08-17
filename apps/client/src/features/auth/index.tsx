@@ -122,7 +122,7 @@ export function LoginForm({
               className='flex flex-col items-center gap-2 font-medium'
             >
               <div className='flex size-12 items-center justify-center rounded-md'>
-                <img src='/public/icon.png' />
+                <img src='/icon.png' />
               </div>
             </a>
             <h1 className='text-xl font-bold'>Vessel</h1>
