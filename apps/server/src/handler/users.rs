@@ -65,7 +65,11 @@ pub async fn update_user(
     Path(user_id): Path<i32>,
     Json(payload): Json<UpdateUserPayload>,
 ) -> Result<Json<crate::db::models::User>, AppError> {
-    let password_hash = payload.password.map(|p| format!("hashed_{}", p));
+    let password_hash = if let Some(password) = payload.password {
+        Some(hash_password(&password)?)
+    } else {
+        None
+    };
 
     let user_data = UpdateUser {
         username: payload.username,
