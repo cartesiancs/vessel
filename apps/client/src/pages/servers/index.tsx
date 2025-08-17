@@ -13,7 +13,6 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/features/sidebar";
-import { useConfigStore } from "@/features/configurations/store";
 import {
   Table,
   TableBody,
@@ -26,6 +25,7 @@ import { Badge } from "@/components/ui/badge";
 import { ConfigurationCreateButton } from "@/features/configurations/ui/ConfigurationCreateButton";
 import { ConfigurationActionButton } from "@/features/configurations/ui/ConfigurationActionButton";
 import { Separator } from "@/components/ui/separator";
+import { useConfigStore } from "@/entities/configurations/store";
 
 export function ServersPage() {
   const { configurations, fetchConfigs, isLoading, error } = useConfigStore();

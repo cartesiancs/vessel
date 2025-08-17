@@ -27,8 +27,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { useDeviceTokenStore } from "../store";
 import { Badge } from "@/components/ui/badge";
+import { useDeviceTokenStore } from "@/entities/device-token/store";
 
 interface Props {
   deviceId: number;

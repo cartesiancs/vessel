@@ -9,6 +9,7 @@
     "test": "jest",
     "client": "cd ./apps/client && npm run dev",
     "server": "cargo run -p server",
+    "build": "cd ./apps/server && cargo build --release",
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
     "docs:preview": "vitepress preview docs"

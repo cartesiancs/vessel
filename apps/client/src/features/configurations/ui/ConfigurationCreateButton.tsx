@@ -14,8 +14,8 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { PlusCircle } from "lucide-react";
-import { useConfigStore } from "../store";
-import { SystemConfigurationPayload } from "../types";
+import { useConfigStore } from "@/entities/configurations/store";
+import { SystemConfigurationPayload } from "@/entities/configurations/types";
 
 export function ConfigurationCreateButton() {
   const [isOpen, setIsOpen] = useState(false);
