@@ -166,7 +166,7 @@ pub struct NewEvent<'a> {
     pub time_fired: Option<NaiveDateTime>,
 }
 
-#[derive(Queryable, Selectable, Identifiable, Serialize, Clone)]
+#[derive(Queryable, Selectable, Identifiable, Serialize, Clone, Debug)]
 #[diesel(table_name = system_configurations)]
 pub struct SystemConfiguration {
     pub id: i32,

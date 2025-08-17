@@ -2,7 +2,7 @@ use anyhow::Result;
 use dashmap::DashMap;
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 use std::{sync::Arc};
-use tokio::{net::UdpSocket, sync::{broadcast, RwLock}};
+use tokio::{net::UdpSocket, sync::{broadcast, RwLock}, task::JoinSet};
 use tracing::{error, info, warn};
 use webrtc::{
     rtp::packet::Packet,
@@ -40,6 +40,10 @@ fn run_migrations(connection: &mut impl MigrationHarness<diesel::sqlite::Sqlite>
 async fn main() -> Result<()> {
     dotenv().ok();
 
+    let is_debug_mode = dotenvy::var("DEBUG_MODE")
+        .map(|val| val.eq_ignore_ascii_case("true") || val == "1")
+        .unwrap_or(false);
+
     let file_appender = tracing_appender::rolling::never("log", "app.log");
     let (non_blocking_writer, _guard) = tracing_appender::non_blocking(file_appender);
 
@@ -55,6 +59,9 @@ async fn main() -> Result<()> {
         .with(console_layer)
         .init();
 
+    if is_debug_mode {
+        warn!("APPLICATION IS RUNNING IN DEBUG MODE. ONLY THE WEB SERVER WILL BE ACTIVATED.");
+    }
 
     let pool = establish_connection();
 
@@ -83,21 +90,58 @@ async fn main() -> Result<()> {
         topic_map: Arc::new(RwLock::new(Vec::new()))
     });
 
+    let configs = db::repository::get_all_system_configs(&app_state.clone().pool)?;
+
+    let mut set = JoinSet::new();
+
+
     remap_topics(axum::extract::State(app_state.clone()))
         .await;
     
-    let rtp_receiver_task = tokio::spawn(rtp_receiver("0.0.0.0:5004".to_string(), streams));
-    let signal_server_task = tokio::spawn(web_server("0.0.0.0:8080".to_string(), app_state.clone()));
+    let server_task = tokio::spawn(web_server("0.0.0.0:8080".to_string(), app_state.clone()));
 
-    let mqtt_event_loop_task = tokio::spawn(mqtt::start_event_loop("localhost:1883".to_string(), mqtt_tx, app_state.clone()));
+    
+    if !is_debug_mode {
+        if let Some(rtp_config) = configs.iter().find(|c| c.key == "rtp_broker_port") {
+            if rtp_config.enabled == 1 {
+                info!("RTP Receiver is enabled. Starting on {}.", &rtp_config.value);
+                let rtp_listen_address = rtp_config.value.clone();
+                set.spawn(rtp_receiver(rtp_listen_address, streams));
+            } else {
+                warn!("RTP Receiver is disabled by configuration.");
+            }
+        } else {
+            warn!("RTP Receiver configuration ('rtp_broker_port') not found.");
+        }
+
+        if let Some(mqtt_config) = configs.iter().find(|c| c.key == "mqtt_broker_url") {
+            if mqtt_config.enabled == 1 {
+                info!("MQTT Broker is enabled. Connecting to {}.", &mqtt_config.value);
+                let mqtt_broker_url = mqtt_config.value.clone();
+                set.spawn(mqtt::start_event_loop(mqtt_broker_url, mqtt_tx, app_state.clone()));
+            } else {
+                warn!("MQTT Broker is disabled by configuration.");
+            }
+        } else {
+            warn!("MQTT Broker configuration ('mqtt_broker_url') not found.");
+        }
+    }
 
     info!("Server starting, press Ctrl-C to stop.");
+
     tokio::select! {
-        res = rtp_receiver_task => { if let Err(e) = res? { error!("RTP receiver failed: {}", e); } }
-        res = signal_server_task => { if let Err(e) = res? { error!("Signal server failed: {}", e); } }
-        res = mqtt_event_loop_task => { if let Err(e) = res? { error!("MQTT event loop failed: {}", e); } }
-        _ = tokio::signal::ctrl_c() => { info!("Ctrl-C received, shutting down."); }
+        res = set.join_next(), if !set.is_empty() => {
+            if let Some(Ok(Err(e))) = res {
+                error!("A task exited with an error: {}", e);
+            }
+        }
+        _ = tokio::signal::ctrl_c() => {
+            info!("Ctrl-C received, shutting down.");
+        }
     }
+
+    set.abort_all();
+
     Ok(())
 }
 

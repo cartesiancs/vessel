@@ -53,8 +53,13 @@ pub fn create_initial_configurations(conn: &mut SqliteConnection) {
     let default_configs = vec![
         (
             "mqtt_broker_url",
-            "tcp://localhost:1883",
-            "Default MQTT Broker URL. Format: tcp://host:port",
+            "localhost:1883",
+            "Default MQTT Broker URL. Format: host:port",
+        ),
+        (
+            "rtp_broker_port",
+            "0.0.0.0:5004",
+            "RTP port",
         ),
         (
             "turn_server_config",
@@ -76,7 +81,7 @@ pub fn create_initial_configurations(conn: &mut SqliteConnection) {
             let new_config = NewSystemConfiguration {
                 key: k,
                 value: v,
-                enabled: Some(1), 
+                enabled: Some(0), 
                 description: Some(d),
             };
 

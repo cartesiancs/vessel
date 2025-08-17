@@ -61,10 +61,17 @@ export function ServersPage() {
         </header>
 
         <main className='flex-1 overflow-y-auto p-4 md:p-6'>
-          <div className='flex items-center mb-4'>
-            <h1 className='font-semibold text-lg md:text-2xl'>
-              Configurations
-            </h1>
+          <div className='flex flex-col mb-4'>
+            <div className='flex items-center mb-1'>
+              <h1 className='font-semibold text-lg md:text-2xl'>
+                Configurations
+              </h1>
+            </div>
+            <b className='text-neutral-500 font-light text-sm'>
+              If you change the configurations, you must restart the server.
+              **If a problem occurs due to an incorrect value, you will need to
+              activate debug mode to forcibly change the setting.**
+            </b>
           </div>
 
           {isLoading && <div>Loading configurations...</div>}
