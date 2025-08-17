@@ -5,15 +5,20 @@
   "directories": {
     "doc": "docs"
   },
+  "private": true,
   "scripts": {
     "test": "jest",
-    "client": "cd ./apps/client && npm run dev",
+    "client": "npm run dev --workspace=client",
+    "landing": "npm run dev --workspace=landing",
     "server": "cargo run -p server",
     "build": "cd ./apps/server && cargo build --release",
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
     "docs:preview": "vitepress preview docs"
   },
+  "workspaces": [
+    "apps/*"
+  ],
   "author": "",
   "license": "ISC",
   "dependencies": {
