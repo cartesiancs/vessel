@@ -1,5 +1,6 @@
 use anyhow::Result;
 use dashmap::DashMap;
+use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 use std::{sync::Arc};
 use tokio::{net::UdpSocket, sync::{broadcast, RwLock}};
 use tracing::{error, info, warn};
@@ -27,6 +28,13 @@ pub mod error;
 pub mod flow;
 pub mod lib;
 
+pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("./migrations");
+
+fn run_migrations(connection: &mut impl MigrationHarness<diesel::sqlite::Sqlite>) -> Result<()> {
+    connection.run_pending_migrations(MIGRATIONS)
+        .map_err(|e| anyhow::anyhow!(e))?;
+    Ok(())
+}
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -52,6 +60,10 @@ async fn main() -> Result<()> {
 
     {
         let mut conn = pool.get().expect("Failed to get a connection from the pool");
+        println!("Running database migrations...");
+        run_migrations(&mut conn)?;
+        println!("✅ Migrations completed successfully.");
+        
         create_initial_admin(&mut conn);
         create_initial_configurations(&mut conn); 
     }

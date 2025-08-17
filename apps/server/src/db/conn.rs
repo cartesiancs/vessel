@@ -9,7 +9,7 @@ use crate::{ db::models::{NewSystemConfiguration, NewUser, SystemConfiguration},
 pub fn establish_connection() -> DbPool {
     dotenv().ok();
 
-    let database_url = env::var("DATABASE_URL_PATH").expect("DATABASE_URL must be set");
+    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
     let manager = ConnectionManager::<SqliteConnection>::new(database_url);
     r2d2::Pool::builder()
         .build(manager)

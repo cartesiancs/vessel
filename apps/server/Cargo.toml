@@ -27,6 +27,7 @@ chrono = { version = "0.4.41", features = ["serde"] }
 async-trait = "0.1.88"
 dotenvy = "0.15.7"
 diesel = { version = "2.2.0", features = ["sqlite", "chrono", "r2d2", "returning_clauses_for_sqlite_3_35"] }
+diesel_migrations = "2.2.0"
 bcrypt = "0.17.0"
 r2d2 = "0.8"
 dashmap = "6.1.0"
