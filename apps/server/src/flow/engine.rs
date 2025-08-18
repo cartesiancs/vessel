@@ -16,7 +16,8 @@ use crate::flow::nodes::{
     set_variable::SetVariableNode,
     condition::ConditionNode,
     number::NumberNode,
-    calc::CalcNode
+    calc::CalcNode,
+    http::HttpNode
     // button::ButtonNode,
     // title::TitleNode,
 };
@@ -101,6 +102,7 @@ impl FlowEngine {
             "CONDITION" => Ok(Box::new(ConditionNode::new(&node.data)?)),
             "LOG_MESSAGE" => Ok(Box::new(LogMessageNode)),
             "CALCULATION" => Ok(Box::new(CalcNode::new(&node.data)?)),
+            "HTTP_REQUEST" => Ok(Box::new(HttpNode::new(&node.data)?)),
             _ => Err(anyhow!("Unknown or unimplemented node type: {}", node.node_type)),
         }
     }

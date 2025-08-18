@@ -77,4 +77,15 @@ export const DEFINITION_NODE: {
       operatorCalc: "+",
     },
   },
+  HTTP_REQUEST: {
+    connectors: [
+      { id: `id`, name: "execution", type: "in" },
+      { id: `id`, name: "result", type: "out" },
+    ],
+    nodeType: "HTTP_REQUEST",
+    data: {
+      url: "",
+      httpMethod: "GET",
+    },
+  },
 };

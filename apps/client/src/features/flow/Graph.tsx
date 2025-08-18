@@ -25,6 +25,7 @@ import { renderProcessingNode } from "./nodes/ProcessingNode";
 import { getDefalutNode } from "./flowUtils";
 import { renderVarNode } from "./nodes/VarNode";
 import { renderCalcNode } from "./nodes/CalcNode";
+import { renderHttpNode } from "./nodes/HttpNode";
 
 export function Graph({
   nodes,
@@ -66,6 +67,7 @@ export function Graph({
     NUMBER: (g, d) => renderNumberNode(g, d, () => handleClickOption(d)),
     ADD: (g, d) => renderProcessingNode(g, d),
     CALCULATION: (g, d) => renderCalcNode(g, d, () => handleClickOption(d)),
+    HTTP_REQUEST: (g, d) => renderHttpNode(g, d, () => handleClickOption(d)),
   };
 
   const handleClickOption = (node: Node) => {
@@ -625,16 +627,19 @@ export function Graph({
               Start
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => handleAddNode("SET_VARIABLE")}>
-              SET_VARIABLE
+              Variable
             </DropdownMenuItem>
             {/* <DropdownMenuItem onClick={() => handleAddNode("CONDITION")}>
               CONDITION
             </DropdownMenuItem> */}
             <DropdownMenuItem onClick={() => handleAddNode("LOG_MESSAGE")}>
-              LOG_MESSAGE
+              Log Message
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => handleAddNode("CALCULATION")}>
               Calculation
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleAddNode("HTTP_REQUEST")}>
+              HTTP Request
             </DropdownMenuItem>
 
             <DropdownMenuItem>Text</DropdownMenuItem>

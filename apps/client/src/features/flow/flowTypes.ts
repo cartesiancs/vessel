@@ -18,7 +18,8 @@ export type NodeTypes =
   | "SET_VARIABLE"
   | "CONDITION"
   | "LOG_MESSAGE"
-  | "CALCULATION";
+  | "CALCULATION"
+  | "HTTP_REQUEST";
 
 export type NumberNodeType = {
   number: number;
@@ -48,12 +49,18 @@ export type CalculationNodeType = {
   operatorCalc: "+" | "-" | "/" | "*" | "%";
 };
 
+export type HTTPRequestNodeType = {
+  url: string;
+  httpMethod: "POST" | "GET" | "DELETE" | "PUT";
+};
+
 export type DataNodeType =
   | NumberNodeType
   | TextNodeType
   | AddNodeType
   | SetVariableNodeType
   | ConditionNodeType
+  | HTTPRequestNodeType
   | CalculationNodeType;
 
 export type Node = {

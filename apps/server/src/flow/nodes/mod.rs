@@ -25,3 +25,4 @@ pub mod set_variable;
 pub mod condition;
 pub mod number;
 pub mod calc;
+pub mod http;
