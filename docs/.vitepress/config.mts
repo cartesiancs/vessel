@@ -4,6 +4,7 @@ import { defineConfig } from "vitepress";
 export default defineConfig({
   title: "Vessel",
   description: "Physical Device Orchestration Platform",
+  base: "/docs/",
   outDir: "../apps/landing/dist/docs",
   themeConfig: {
     // https://vitepress.dev/reference/default-theme-config
