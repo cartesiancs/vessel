@@ -1,7 +1,7 @@
 use anyhow::Result;
 use dashmap::DashMap;
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
-use std::{sync::Arc};
+use std::{env, sync::Arc};
 use tokio::{net::UdpSocket, sync::{broadcast, RwLock}, task::JoinSet};
 use tracing::{error, info, warn};
 use webrtc::{
@@ -40,9 +40,7 @@ fn run_migrations(connection: &mut impl MigrationHarness<diesel::sqlite::Sqlite>
 async fn main() -> Result<()> {
     dotenv().ok();
 
-    let is_debug_mode = dotenvy::var("DEBUG_MODE")
-        .map(|val| val.eq_ignore_ascii_case("true") || val == "1")
-        .unwrap_or(false);
+    let is_debug_mode = env::args().any(|arg| arg == "--debug");
 
     let file_appender = tracing_appender::rolling::never("log", "app.log");
     let (non_blocking_writer, _guard) = tracing_appender::non_blocking(file_appender);
