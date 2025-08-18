@@ -4,20 +4,21 @@ import { defineConfig } from "vitepress";
 export default defineConfig({
   title: "Vessel",
   description: "Physical Device Orchestration Platform",
+  outDir: "../apps/landing/dist/docs",
   themeConfig: {
     // https://vitepress.dev/reference/default-theme-config
     nav: [
       { text: "Home", link: "/" },
-      { text: "Installation", link: "/installation" },
+      { text: "Installation", link: "/docs/installation" },
     ],
 
     sidebar: [
       {
         text: "Getting Started",
         items: [
-          { text: "Introduction", link: "/introduction" },
-          { text: "Installation", link: "/installation" },
-          { text: "Concept", link: "/concepts" },
+          { text: "Introduction", link: "/docs/introduction" },
+          { text: "Installation", link: "/docs/installation" },
+          { text: "Concept", link: "/docs/concepts" },
         ],
       },
     ],

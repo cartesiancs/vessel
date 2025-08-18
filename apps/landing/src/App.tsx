@@ -21,7 +21,7 @@ function LandingPage() {
             The open source <br /> alternative of Anduril
           </h1>
           <div className='flex items-center gap-x-4 pt-2'>
-            <Button variant='default'>
+            <Button variant='default' onClick={() => (location.href = "/docs")}>
               <BookText /> Docs
             </Button>
             <Button
@@ -78,15 +78,6 @@ export function Navbar() {
                 style={{ cursor: "pointer" }}
               >
                 GitHub
-              </NavigationMenuLink>
-            </NavigationMenuItem>
-            <NavigationMenuItem>
-              <NavigationMenuLink
-                className={navigationMenuTriggerStyle()}
-                onClick={() => openInNewTab("/docs")}
-                style={{ cursor: "pointer" }}
-              >
-                Blog
               </NavigationMenuLink>
             </NavigationMenuItem>
           </NavigationMenuList>
