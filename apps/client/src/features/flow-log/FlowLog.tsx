@@ -43,7 +43,7 @@ export function FlowLog() {
 
   return (
     <div
-      className={`bg-neutral-900 text-white border-t-2 border-neutral-700 shadow-lg transition-all duration-300 ease-in-out z-10 ${
+      className={`absolute bottom-0 left-0 right-0  bg-neutral-900 text-white border-t-2 border-neutral-700 shadow-lg transition-all duration-300 ease-in-out z-10 ${
         isCollapsed ? "h-12" : "h-64"
       }`}
     >
@@ -86,7 +86,7 @@ export function FlowLog() {
           ref={logContainerRef}
           className='h-[calc(100%-3rem)] overflow-y-auto p-4'
         >
-          <pre className='text-sm font-mono whitespace-pre-wrap'>
+          <pre className='text-sm font-mono whitespace-pre-wrap break-words'>
             {logMessages.map((message, index) => (
               <div key={index} className='text-gray-300'>
                 {message}
