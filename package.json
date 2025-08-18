@@ -19,8 +19,6 @@
   "workspaces": [
     "apps/*"
   ],
-  "author": "",
-  "license": "ISC",
   "dependencies": {
     "concurrently": "^9.1.2"
   },
