@@ -9,8 +9,8 @@ hero:
   actions:
     - theme: brand
       text: Introduction
-      link: /docs/introduction
+      link: /introduction
     - theme: alt
       text: Concepts
-      link: /docs/concepts
+      link: /concepts
 ---
