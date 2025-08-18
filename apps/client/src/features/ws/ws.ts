@@ -7,14 +7,16 @@ export type WebSocketMessage = {
     | "subscribe_stream"
     | "health_check_response"
     | "compute_flow"
-    | "log_message";
+    | "log_message"
+    | "get_server";
   payload:
     | RTCSessionDescriptionInit
     | RTCIceCandidate
     | RTCIceCandidateInit
     | string
     | { topic: string }
-    | { flow_id: number };
+    | { flow_id: number }
+    | { cpu_usage: number; memory_usage: number };
 };
 
 export class WebSocketChannel {

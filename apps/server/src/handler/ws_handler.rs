@@ -8,7 +8,8 @@ use axum::{
 };
 use futures_util::{stream::SplitSink, SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
+use sysinfo::System;
+use std::{sync::Arc, thread, time::Duration};
 use tokio::sync::{mpsc, oneshot, Mutex};
 use tracing::{error, info, warn};
 use webrtc::{
@@ -44,6 +45,13 @@ struct WsMessageIn {
     payload: serde_json::Value,
 }
 
+
+#[derive(Serialize)]
+struct ServerStats {
+    cpu_usage: f32,
+    memory_usage: f32,
+}
+
 #[derive(Deserialize)]
 struct SubscribeStreamPayload {
     topic: String,
@@ -65,6 +73,9 @@ enum ActorCommand {
     },
     SubscribeToTopic {
         topic: String,
+    },
+    GetServer {
+        responder: oneshot::Sender<Result<ServerStats>>,
     },
 }
 
@@ -102,11 +113,35 @@ impl WebRtcActor {
                 ActorCommand::SubscribeToTopic { topic } => {
                     self.handle_subscribe(topic).await;
                 }
+                ActorCommand::GetServer { responder } => {
+                    let res = self.handle_get_server().await;
+                    if responder.send(res).is_err() {
+                        error!("Failed to send server stats back to handler.");
+                    }
+                }
             }
         }
         info!("WebRTC Actor finished.");
     }
 
+    async fn handle_get_server(&self) -> Result<ServerStats> {
+        tokio::task::spawn_blocking(|| {
+            let mut sys = System::new();
+            
+            sys.refresh_cpu_all();
+            thread::sleep(Duration::from_millis(200));
+            let cpu_usage = sys.cpus().iter().map(|cpu| cpu.cpu_usage()).sum::<f32>() / sys.cpus().len() as f32;
+            
+            sys.refresh_memory();
+            let memory_usage = (sys.used_memory() as f32 / sys.total_memory() as f32) * 100.0;
+            
+            Ok(ServerStats {
+                cpu_usage,
+                memory_usage,
+            })
+        }).await?
+    }
+    
     async fn handle_offer(
         pc: Arc<RTCPeerConnection>,
         offer: RTCSessionDescription,
@@ -347,6 +382,19 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                         println!("Actor subscribing to topic: {}", payload.topic);
                         let cmd = ActorCommand::SubscribeToTopic { topic: payload.topic };
                         if cmd_tx.send(cmd).await.is_err() { break; }
+                    }
+                }
+                "get_server" => {
+                    let (responder_tx, responder_rx) = oneshot::channel();
+                    let cmd = ActorCommand::GetServer { responder: responder_tx };
+                    if cmd_tx.send(cmd).await.is_err() { break; }
+                    if let Ok(Ok(stats)) = responder_rx.await {
+                        let ws_response = WsMessageOut { msg_type: "get_server", payload: &stats };
+                        if let Ok(payload_str) = serde_json::to_string(&ws_response) {
+                            if ws_sender.lock().await.send(Message::Text(payload_str)).await.is_err() {
+                                break;
+                            }
+                        }
                     }
                 }
                 _ => {
