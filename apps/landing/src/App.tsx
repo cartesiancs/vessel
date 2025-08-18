@@ -1,7 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { BookText } from "lucide-react";
 import { FaGithub } from "react-icons/fa";
-import * as React from "react";
 
 import {
   NavigationMenu,
