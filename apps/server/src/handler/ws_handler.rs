@@ -8,6 +8,7 @@ use axum::{
 };
 use futures_util::{stream::SplitSink, SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use sysinfo::System;
 use std::{sync::Arc, thread, time::Duration};
 use tokio::sync::{mpsc, oneshot, Mutex};
@@ -191,18 +192,35 @@ impl WebRtcActor {
             }
 
             let latest_version = versions[0].clone();
-
-            
             let json_data = latest_version.graph_json;
-
             let graph = serde_json::from_str(&json_data).expect("Failed to parse graph JSON");
-
-
             let engine = FlowEngine::new(graph).expect("Failed to create FlowEngine");
 
+            let ws_message = json!({
+                "type": "log_message",
+                "payload": "Executing flow..."
+            });
+            
+            if let Ok(payload_str) = serde_json::to_string(&ws_message) {
+                if self.ws_sender.lock().await.send(Message::Text(payload_str)).await.is_err() {
+                    error!("Failed to send health check response.");
+                }
+            }
+
+        
             println!("Executing flow...");
             engine.run(self.ws_sender.clone()).await;
             println!("Flow execution finished.");
+            
+            if let Ok(payload_str) = serde_json::to_string(&json!({
+                "type": "log_message",
+                "payload": "Flow execution finished."
+            })) {
+                if self.ws_sender.lock().await.send(Message::Text(payload_str)).await.is_err() {
+                    error!("Failed to send health check response.");
+                }
+            }
+
         } else {
             error!("Missing flow_id in payload: {:?}", payload);
             return;

@@ -35,7 +35,6 @@ export type AddNodeType = {
 };
 
 export type SetVariableNodeType = {
-  variableName?: string;
   variable: string | number | boolean;
   variableType?: "string" | "number" | "boolean";
 };
