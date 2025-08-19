@@ -44,7 +44,6 @@ export const DEFINITION_NODE: {
     connectors: [{ id: `id`, name: "out", type: "out" }],
     nodeType: "SET_VARIABLE",
     data: {
-      variableName: "myVar",
       variable: "",
       variableType: "string",
     },

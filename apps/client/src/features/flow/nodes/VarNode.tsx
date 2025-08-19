@@ -27,9 +27,7 @@ export function renderVarNode(
     .attr("dominant-baseline", "middle")
     .attr("font-size", 8)
     .attr("fill", "#fff")
-    .text(
-      `Edit Variable ${(d.data as SetVariableNodeType).variableName ?? ""}`,
-    );
+    .text(`Edit Variable ${(d.data as SetVariableNodeType).variable ?? ""}`);
   group.on("click", (e) => {
     e.stopPropagation();
     onOpen();
