@@ -17,13 +17,13 @@ function LandingPage() {
       <Navbar />
       <main className='flex h-screen w-screen flex-col items-center justify-center bg-background text-foreground'>
         <div className='flex flex-col items-center gap-y-6'>
-          <h1 className='text-4xl md:text-6xl lg:text-6xl md:leading-17 leading-10 font-bold tracking-tight text-center'>
-            The open source <br /> alternative of Anduril
+          <h1 className='text-4xl md:text-6xl lg:text-6xl md:leading-17 leading-10 md:font-bold font-semibold tracking-tight text-center'>
+            The open source <br /> alternative to Anduril
           </h1>
           <div className='flex items-center gap-x-4 pt-2'>
             <Button
               variant='default'
-              onClick={() => (location.href = "/docs/introduction")}
+              onClick={() => window.open("/docs/introduction")}
             >
               <BookText /> Docs
             </Button>
@@ -50,18 +50,17 @@ export function Navbar() {
 
   return (
     <header className='absolute flex items-center justify-center top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60'>
-      <div className='container h-14 flex items-center justify-between w-full'>
+      <div className='h-12 flex items-center justify-between w-full'>
         <div className='flex items-center'>
-          <Link
-            to='/'
-            className='mr-6 flex items-center space-x-2 pl-4 sm:pl-8 gap-1'
-          >
+          <Link to='/' className='mr-6 flex items-center space-x-2 pl-6 gap-1'>
             <img src='/icon.png' alt='Logo' className='w-8' />
-            <span className='hidden font-medium sm:inline-block'>Vessel</span>
+            <span className='hidden font-medium text-sm sm:inline-block'>
+              Vessel
+            </span>
           </Link>
         </div>
 
-        <NavigationMenu>
+        <NavigationMenu className='pr-2'>
           <NavigationMenuList>
             <NavigationMenuItem>
               <NavigationMenuLink
