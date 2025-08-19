@@ -63,6 +63,8 @@ export type DataNodeType =
   | HTTPRequestNodeType
   | CalculationNodeType;
 
+export type DataNodeTypeType = Record<string, string>;
+
 export type Node = {
   id: string;
   title: string;
@@ -73,6 +75,7 @@ export type Node = {
   connectors: Connector[];
   nodeType?: NodeTypes;
   data?: DataNodeType;
+  dataType?: DataNodeTypeType;
 };
 
 export type Edge = {

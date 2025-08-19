@@ -4,6 +4,7 @@ type DefaultValueType = {
   connectors: Node["connectors"];
   nodeType: Node["nodeType"];
   data: Node["data"];
+  dataType: Node["dataType"];
 };
 
 export const DEFINITION_NODE: {
@@ -13,22 +14,28 @@ export const DEFINITION_NODE: {
     connectors: [{ id: `id`, name: "out", type: "out" }],
     nodeType: "START",
     data: undefined,
+    dataType: undefined,
   },
   TITLE: {
     connectors: [{ id: `id`, name: "out", type: "out" }],
     nodeType: "TITLE",
     data: undefined,
+    dataType: undefined,
   },
   BUTTON: {
     connectors: [{ id: `id`, name: "out", type: "out" }],
     nodeType: "BUTTON",
     data: undefined,
+    dataType: undefined,
   },
   NUMBER: {
     connectors: [{ id: `id`, name: "number", type: "out" }],
     nodeType: "NUMBER",
     data: {
       number: 0,
+    },
+    dataType: {
+      number: "NUMBER",
     },
   },
   ADD: {
@@ -39,6 +46,7 @@ export const DEFINITION_NODE: {
     ],
     nodeType: "ADD",
     data: undefined,
+    dataType: undefined,
   },
   SET_VARIABLE: {
     connectors: [{ id: `id`, name: "out", type: "out" }],
@@ -46,6 +54,10 @@ export const DEFINITION_NODE: {
     data: {
       variable: "",
       variableType: "string",
+    },
+    dataType: {
+      variable: "ANY",
+      variableType: "SELECT[string,number,boolean]",
     },
   },
   CONDITION: {
@@ -59,11 +71,16 @@ export const DEFINITION_NODE: {
       operator: "GreaterThan",
       operand: 0,
     },
+    dataType: {
+      operator: "SELECT[GreaterThan,LessThan,EqualTo]",
+      operand: "NUMBER",
+    },
   },
   LOG_MESSAGE: {
     connectors: [{ id: `id`, name: "message", type: "in" }],
     nodeType: "LOG_MESSAGE",
     data: undefined,
+    dataType: undefined,
   },
   CALCULATION: {
     connectors: [
@@ -75,6 +92,9 @@ export const DEFINITION_NODE: {
     data: {
       operatorCalc: "+",
     },
+    dataType: {
+      operatorCalc: "SELECT[+,-,/,*,%]",
+    },
   },
   HTTP_REQUEST: {
     connectors: [
@@ -85,6 +105,10 @@ export const DEFINITION_NODE: {
     data: {
       url: "",
       httpMethod: "GET",
+    },
+    dataType: {
+      url: "STRING",
+      httpMethod: "SELECT[GET,POST,DELETE,PUT]",
     },
   },
 };
