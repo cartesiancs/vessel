@@ -632,19 +632,15 @@ export function Graph({
             {/* <DropdownMenuItem onClick={() => handleAddNode("CONDITION")}>
               CONDITION
             </DropdownMenuItem> */}
-            <DropdownMenuItem onClick={() => handleAddNode("LOG_MESSAGE")}>
-              Log Message
-            </DropdownMenuItem>
             <DropdownMenuItem onClick={() => handleAddNode("CALCULATION")}>
               Calculation
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleAddNode("LOG_MESSAGE")}>
+              Log Message
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => handleAddNode("HTTP_REQUEST")}>
               HTTP Request
             </DropdownMenuItem>
-
-            <DropdownMenuItem>Text</DropdownMenuItem>
-            <DropdownMenuItem>Bool</DropdownMenuItem>
-            <DropdownMenuItem>Array</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
 
