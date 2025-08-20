@@ -17,19 +17,21 @@ export default function ResourceUsage() {
   });
 
   useEffect(() => {
-    if (wsManager) {
+    if (!wsManager) return;
+
+    const requestServerInfo = () => {
       wsManager.send({
         type: "get_server",
         payload: {},
       });
+    };
 
-      setInterval(() => {
-        wsManager.send({
-          type: "get_server",
-          payload: {},
-        });
-      }, 2000);
-    }
+    requestServerInfo();
+    const intervalId = setInterval(requestServerInfo, 2000);
+
+    return () => {
+      clearInterval(intervalId);
+    };
   }, [wsManager]);
 
   const handleMessage = useCallback((msg: WebSocketMessage) => {

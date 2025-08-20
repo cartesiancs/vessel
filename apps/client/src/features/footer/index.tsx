@@ -14,7 +14,7 @@ export function Footer() {
         type: "ping",
         payload: { timestamp: Date.now() },
       });
-    }, 2200);
+    }, 10200);
 
     return () => {
       console.log("CLEARING INTERVAL");
