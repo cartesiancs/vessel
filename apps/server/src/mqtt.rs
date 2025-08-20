@@ -13,7 +13,7 @@ pub async fn start_event_loop(
     state: Arc<AppState>,
 ) -> Result<()> {
 
-  let parts: Vec<&str> = broker_address.split(':').collect();
+    let parts: Vec<&str> = broker_address.split(':').collect();
     if parts.len() != 2 {
         return Err(anyhow::anyhow!(
             "Invalid broker address format. Expected 'host:port', got '{}'",

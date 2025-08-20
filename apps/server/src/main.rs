@@ -27,6 +27,7 @@ pub mod db;
 pub mod error;
 pub mod flow;
 pub mod lib;
+pub mod rtsp;
 
 pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("./migrations");
 
@@ -123,6 +124,11 @@ async fn main() -> Result<()> {
         } else {
             warn!("MQTT Broker configuration ('mqtt_broker_url') not found.");
         }
+
+        let (rtsp_manager, frame_tx) = rtsp::RtspManager::new();
+        let app_state_clone = app_state.clone();
+        rtsp::start_rtsp_pipelines(app_state_clone, frame_tx).await;
+    
     }
 
     info!("Server starting, press Ctrl-C to stop.");
