@@ -7,14 +7,19 @@ export function Footer() {
   const [latency, setLatency] = useState(0);
 
   useEffect(() => {
-    if (wsManager) {
-      setInterval(() => {
-        wsManager.send({
-          type: "ping",
-          payload: { timestamp: Date.now() },
-        });
-      }, 5000);
-    }
+    if (!wsManager) return;
+
+    const intervalId = setInterval(() => {
+      wsManager.send({
+        type: "ping",
+        payload: { timestamp: Date.now() },
+      });
+    }, 2200);
+
+    return () => {
+      console.log("CLEARING INTERVAL");
+      clearInterval(intervalId);
+    };
   }, [wsManager]);
 
   const handleMessage = useCallback((msg: WebSocketMessage) => {
