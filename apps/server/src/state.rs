@@ -31,6 +31,7 @@ pub enum Protocol {
     MQTT,
     Udp,
     Lora,
+    RTSP
 }
 
 #[derive(Serialize, Clone, Debug)]
