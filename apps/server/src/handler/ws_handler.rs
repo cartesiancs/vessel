@@ -8,7 +8,7 @@ use axum::{
 };
 use futures_util::{stream::SplitSink, SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
-use serde_json::json;
+use serde_json::{json, Number};
 use sysinfo::System;
 use std::{sync::Arc, thread, time::Duration};
 use tokio::sync::{mpsc, oneshot, Mutex};
@@ -75,6 +75,9 @@ enum ActorCommand {
     SubscribeToTopic {
         topic: String,
     },
+    Ping {
+        payload: serde_json::Value,
+    },
     GetServer {
         responder: oneshot::Sender<Result<ServerStats>>,
     },
@@ -113,6 +116,9 @@ impl WebRtcActor {
                 }
                 ActorCommand::SubscribeToTopic { topic } => {
                     self.handle_subscribe(topic).await;
+                }
+                ActorCommand::Ping { payload } => {
+                    self.handle_ping(payload).await;
                 }
                 ActorCommand::GetServer { responder } => {
                     let res = self.handle_get_server().await;
@@ -168,6 +174,18 @@ impl WebRtcActor {
         let ws_message = WsMessageOut {
             msg_type: "health_check_response",
             payload: response_payload,
+        };
+        if let Ok(payload_str) = serde_json::to_string(&ws_message) {
+            if self.ws_sender.lock().await.send(Message::Text(payload_str)).await.is_err() {
+                error!("Failed to send health check response.");
+            }
+        }
+    }
+
+    async fn handle_ping(&self, payload: serde_json::Value) {
+        let ws_message = WsMessageOut {
+            msg_type: "pong",
+            payload: payload
         };
         if let Ok(payload_str) = serde_json::to_string(&ws_message) {
             if self.ws_sender.lock().await.send(Message::Text(payload_str)).await.is_err() {
@@ -393,6 +411,10 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                 }
                 "compute_flow" => {
                     let cmd = ActorCommand::ComputeFlow { payload: ws_msg.payload };
+                    if cmd_tx.send(cmd).await.is_err() { break; }
+                }
+                "ping" => {
+                    let cmd = ActorCommand::Ping { payload: ws_msg.payload };
                     if cmd_tx.send(cmd).await.is_err() { break; }
                 }
                 "subscribe_stream" => {

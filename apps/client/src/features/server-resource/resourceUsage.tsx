@@ -5,8 +5,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { useEffect, useState } from "react";
-import { useWebSocket } from "../ws/WebSocketProvider";
+import { useCallback, useEffect, useState } from "react";
+import { useWebSocket, useWebSocketMessage } from "../ws/WebSocketProvider";
 import { WebSocketMessage } from "../ws/ws";
 
 export default function ResourceUsage() {
@@ -18,18 +18,6 @@ export default function ResourceUsage() {
 
   useEffect(() => {
     if (wsManager) {
-      wsManager.onmessage = async (msg: WebSocketMessage) => {
-        try {
-          if (msg.type === "get_server") {
-            setInfo({
-              ...(msg.payload as { cpu_usage: number; memory_usage: number }),
-            });
-          }
-        } catch (err) {
-          console.error("Error handling signaling message:", err);
-        }
-      };
-
       wsManager.send({
         type: "get_server",
         payload: {},
@@ -43,6 +31,20 @@ export default function ResourceUsage() {
       }, 2000);
     }
   }, [wsManager]);
+
+  const handleMessage = useCallback((msg: WebSocketMessage) => {
+    try {
+      if (msg.type === "get_server") {
+        setInfo({
+          ...(msg.payload as { cpu_usage: number; memory_usage: number }),
+        });
+      }
+    } catch (err) {
+      console.error("Error handling signaling message:", err);
+    }
+  }, []);
+
+  useWebSocketMessage(handleMessage);
 
   return (
     <>

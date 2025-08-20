@@ -1,35 +1,33 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { X, ChevronDown, ChevronUp, Terminal } from "lucide-react";
-import { useWebSocket } from "../ws/WebSocketProvider";
+import { useWebSocketMessage } from "../ws/WebSocketProvider";
+import { WebSocketMessage } from "../ws/ws";
 
 export function FlowLog() {
-  const { wsManager } = useWebSocket();
   const [logMessages, setLogMessages] = useState<string[]>([]);
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const logContainerRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (wsManager) {
-      wsManager.onmessage = async (msg) => {
-        setIsPanelOpen(true);
-        setIsCollapsed(false);
-        try {
-          if (msg.type === "log_message") {
-            const timestamp = new Date().toLocaleTimeString("en-US", {
-              hour12: false,
-            });
-            setLogMessages((prev) => [
-              ...prev,
-              `[${timestamp}] ${JSON.stringify(msg.payload)}`,
-            ]);
-          }
-        } catch (err) {
-          console.error("Error handling signaling message:", err);
-        }
-      };
+  const handleMessage = useCallback((msg: WebSocketMessage) => {
+    setIsPanelOpen(true);
+    setIsCollapsed(false);
+    try {
+      if (msg.type === "log_message") {
+        const timestamp = new Date().toLocaleTimeString("en-US", {
+          hour12: false,
+        });
+        setLogMessages((prev) => [
+          ...prev,
+          `[${timestamp}] ${JSON.stringify(msg.payload)}`,
+        ]);
+      }
+    } catch (err) {
+      console.error("Error handling signaling message:", err);
     }
-  }, [wsManager]);
+  }, []);
+
+  useWebSocketMessage(handleMessage);
 
   useEffect(() => {
     if (logContainerRef.current) {

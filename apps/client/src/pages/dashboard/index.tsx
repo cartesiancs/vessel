@@ -19,6 +19,7 @@ import { WebSocketProvider } from "@/features/ws/WebSocketProvider";
 import { useEffect, useState } from "react";
 import Cookies from "js-cookie";
 import ResourceUsage from "@/features/server-resource/resourceUsage";
+import { Footer } from "@/features/footer";
 
 export function DashboardPage() {
   const [wsUrl, setWsUrl] = useState<string | null>(null);
@@ -69,6 +70,7 @@ export function DashboardPage() {
               </div>
             </div>
           </div>
+          <Footer />
         </SidebarInset>
       </SidebarProvider>
     </WebSocketProvider>
