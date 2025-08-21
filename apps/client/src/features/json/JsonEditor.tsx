@@ -1,4 +1,7 @@
-import CodeMirror, { ReactCodeMirrorProps } from "@uiw/react-codemirror";
+import CodeMirror, {
+  EditorView,
+  ReactCodeMirrorProps,
+} from "@uiw/react-codemirror";
 import { json } from "@codemirror/lang-json";
 
 interface JsonCodeEditorProps extends ReactCodeMirrorProps {
@@ -17,7 +20,7 @@ export const JsonCodeEditor: React.FC<JsonCodeEditorProps> = ({
         value={value}
         onChange={onChange}
         height='240px'
-        extensions={[json()]}
+        extensions={[json(), EditorView.lineWrapping]}
         theme='dark'
         style={{
           fontSize: "0.875rem",
