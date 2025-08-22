@@ -24,6 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { JsonCodeEditor } from "../json/JsonEditor";
+import { EntityTypeList } from "./EntityTypeList";
 
 export function EntityCreateButton() {
   const [isOpen, setIsOpen] = useState(false);
@@ -128,10 +129,7 @@ export function EntityCreateButton() {
                     <SelectValue placeholder='Select a platform' />
                   </SelectTrigger>
                   <SelectContent className='w-full'>
-                    <SelectItem value='NONE'>NONE</SelectItem>
-                    <SelectItem value='AUDIO'>AUDIO</SelectItem>
-                    <SelectItem value='GPS'>GPS</SelectItem>
-                    <SelectItem value='TEXT'>TEXT</SelectItem>
+                    <EntityTypeList />
                   </SelectContent>
                 </Select>
               )}

@@ -23,6 +23,7 @@ import { useEntityStore } from "@/entities/entity/store";
 import { Entity, EntityPayload } from "@/entities/entity/types";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { JsonCodeEditor } from "../json/JsonEditor";
+import { EntityTypeList } from "./EntityTypeList";
 
 interface Props {
   entity: Entity;
@@ -133,10 +134,7 @@ export function EntityUpdateButton({ entity }: Props) {
                     <SelectValue placeholder='Select a type' />
                   </SelectTrigger>
                   <SelectContent className='w-full'>
-                    <SelectItem value='NONE'>NONE</SelectItem>
-                    <SelectItem value='AUDIO'>AUDIO</SelectItem>
-                    <SelectItem value='GPS'>GPS</SelectItem>
-                    <SelectItem value='TEXT'>TEXT</SelectItem>
+                    <EntityTypeList />
                   </SelectContent>
                 </Select>
               )}
