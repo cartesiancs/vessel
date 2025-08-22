@@ -17,7 +17,7 @@ function LandingPage() {
     <>
       <main className='flex h-screen w-screen flex-col items-center justify-center bg-background text-foreground'>
         <div className='flex flex-col items-center gap-y-6'>
-          <h1 className='text-4xl md:text-6xl lg:text-6xl leading-17 font-bold tracking-tight text-center'>
+          <h1 className='text-3xl md:text-5xl lg:text-5xl leading-17 font-bold tracking-tight text-center'>
             Vessel
           </h1>
           <div className='flex items-center gap-x-3 pt-2'>
@@ -27,7 +27,12 @@ function LandingPage() {
             >
               <LogIn /> Auth
             </Button>
-            <Button variant='outline'>
+            <Button
+              variant='outline'
+              onClick={() =>
+                window.open("https://vessel.cartesiancs.com/docs/introduction")
+              }
+            >
               <BookText /> Docs
             </Button>
             <Button

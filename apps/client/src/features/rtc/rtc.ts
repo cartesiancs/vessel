@@ -1,4 +1,4 @@
-import { WebSocketChannel } from "../ws/ws";
+import { WebSocketChannel, WebSocketMessage } from "../ws/ws";
 
 export class WebRTCManager {
   private pc: RTCPeerConnection;
@@ -17,6 +17,24 @@ export class WebRTCManager {
     this.setupEvents();
   }
 
+  private handleSignalingMessage = async (msg: WebSocketMessage) => {
+    try {
+      if (msg.type === "answer") {
+        await this.pc.setRemoteDescription(
+          new RTCSessionDescription(msg.payload as RTCSessionDescriptionInit),
+        );
+      } else if (msg.type === "candidate") {
+        await this.pc.addIceCandidate(
+          new RTCIceCandidate(msg.payload as RTCIceCandidateInit),
+        );
+      } else if (msg.type === "health_check_response") {
+        console.log("Health check response:", msg.payload);
+      }
+    } catch (err) {
+      console.error("Error handling signaling message:", err);
+    }
+  };
+
   private setupEvents(): void {
     this.pc.ontrack = (event) => {
       console.log("Track received:", event.track);
@@ -28,24 +46,7 @@ export class WebRTCManager {
       }
     };
 
-    this.signaling.onmessage = async (msg) => {
-      console.log("Received signaling message:", msg);
-      try {
-        if (msg.type === "answer") {
-          await this.pc.setRemoteDescription(
-            new RTCSessionDescription(msg.payload as RTCSessionDescriptionInit),
-          );
-        } else if (msg.type === "candidate") {
-          await this.pc.addIceCandidate(
-            new RTCIceCandidate(msg.payload as RTCIceCandidateInit),
-          );
-        } else if (msg.type === "health_check_response") {
-          console.log("Health check response:", msg.payload);
-        }
-      } catch (err) {
-        console.error("Error handling signaling message:", err);
-      }
-    };
+    this.signaling.addMessageListener(this.handleSignalingMessage);
   }
 
   public async createAndSendOffer(): Promise<void> {
@@ -95,7 +96,7 @@ export class WebRTCManager {
   }
 
   public close(): void {
+    this.signaling.removeMessageListener(this.handleSignalingMessage);
     this.pc.close();
-    this.signaling.close();
   }
 }

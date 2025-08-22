@@ -2,7 +2,7 @@ use std::sync::Arc;
 use axum::{extract::{State, Path}, Json};
 use serde::Deserialize;
 use serde_json::{json, Value};
-use crate::{db::{self, models::{EntityWithConfig, EntityWithStateAndConfig, NewEntity}}, error::AppError, state::AppState};
+use crate::{db::{self, models::{EntityWithConfig, EntityWithStateAndConfig, NewEntity}}, error::AppError, lib::entity_map::remap_topics, state::AppState};
 
 #[derive(Deserialize)]
 pub struct EntityPayload {
@@ -38,6 +38,9 @@ pub async fn create_entity(
         entity,
         configuration: config_opt.map(|c| serde_json::from_str(&c.configuration).unwrap_or_default())
     };
+
+    remap_topics(State(state)).await?;
+
     
     Ok(Json(response))
 }
@@ -84,6 +87,8 @@ pub async fn update_entity(
         configuration: config_opt.map(|c| serde_json::from_str(&c.configuration).unwrap_or_default())
     };
 
+    remap_topics(State(state)).await?;
+
     Ok(Json(response))
 }
 
@@ -93,5 +98,7 @@ pub async fn delete_entity(
     Path(id): Path<i32>,
 ) -> Result<Json<Value>, AppError> {
     db::repository::delete_entity(&state.pool, id)?;
+    remap_topics(State(state)).await?;
+
     Ok(Json(json!({ "status": "success", "message": "Entity deleted" })))
 }

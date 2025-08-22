@@ -16,9 +16,26 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/features/sidebar";
+import { useState, useEffect } from "react";
 
 export function MapPage() {
-  const position: [number, number] = [36.635, 127.491];
+  const [position, setPosition] = useState<[number, number] | null>(null);
+
+  useEffect(() => {
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords;
+        setPosition([latitude, longitude]);
+      },
+      (err) => {
+        console.error("Error getting location:", err);
+        setPosition([39.8283, -98.5795]);
+      },
+      {
+        enableHighAccuracy: true,
+      },
+    );
+  }, []);
 
   return (
     <SidebarProvider>
@@ -43,18 +60,24 @@ export function MapPage() {
           </Breadcrumb>
         </header>
         <main className='flex-1 p-0 overflow-hidden'>
-          <MapContainer
-            center={position}
-            zoom={5}
-            scrollWheelZoom={true}
-            zoomControl={false}
-            className='h-[calc(100vh-32px)] w-full'
-          >
-            <TileLayer
-              attribution='&amp;copy <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
-              url='https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-            />
-          </MapContainer>
+          {!position ? (
+            <div className='flex items-center justify-center h-full'>
+              <span>Loading...</span>
+            </div>
+          ) : (
+            <MapContainer
+              center={position}
+              zoom={5}
+              scrollWheelZoom={true}
+              zoomControl={false}
+              className='h-full w-full'
+            >
+              <TileLayer
+                attribution='&amp;copy <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+                url='https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+              />
+            </MapContainer>
+          )}
         </main>
       </SidebarInset>
     </SidebarProvider>

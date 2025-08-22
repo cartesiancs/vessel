@@ -6,15 +6,16 @@ import { useWebSocket } from "../ws/WebSocketProvider";
 
 export function RunFlowButton() {
   const { isConnected, sendMessage } = useWebSocket();
-  const { currentFlowId } = useFlowStore();
+  const { currentFlowId, saveGraph } = useFlowStore();
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!isConnected || !currentFlowId) {
       toast.error("WebSocket is not connected or no flow is selected.");
       return;
     }
 
     if (currentFlowId) {
+      await saveGraph();
       sendMessage({
         type: "compute_flow",
         payload: {

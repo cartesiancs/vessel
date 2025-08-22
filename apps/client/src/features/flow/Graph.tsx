@@ -26,6 +26,7 @@ import { getDefalutNode } from "./flowUtils";
 import { renderVarNode } from "./nodes/VarNode";
 import { renderCalcNode } from "./nodes/CalcNode";
 import { renderHttpNode } from "./nodes/HttpNode";
+import { formatConstantCase } from "@/lib/string";
 
 export function Graph({
   nodes,
@@ -60,12 +61,12 @@ export function Graph({
   const nodeRenderers: Record<string, NodeRenderer> = {
     BUTTON: (g, d) => renderButtonNode(g, d, () => handleClickOption(d)),
     TITLE: (g, d) => renderTitleNode(g, d),
+    ADD: (g, d) => renderProcessingNode(g, d),
     START: (g, d) => renderTitleNode(g, d),
     SET_VARIABLE: (g, d) => renderVarNode(g, d, () => handleClickOption(d)),
     CONDITION: (g, d) => renderProcessingNode(g, d),
     LOG_MESSAGE: (g, d) => renderProcessingNode(g, d),
     NUMBER: (g, d) => renderNumberNode(g, d, () => handleClickOption(d)),
-    ADD: (g, d) => renderProcessingNode(g, d),
     CALCULATION: (g, d) => renderCalcNode(g, d, () => handleClickOption(d)),
     HTTP_REQUEST: (g, d) => renderHttpNode(g, d, () => handleClickOption(d)),
   };
@@ -617,34 +618,13 @@ export function Graph({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent>
-            <DropdownMenuItem onClick={() => handleAddNode("NUMBER")}>
-              Number
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleAddNode("ADD")}>
-              Add
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleAddNode("START")}>
-              Start
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleAddNode("SET_VARIABLE")}>
-              Variable
-            </DropdownMenuItem>
-            {/* <DropdownMenuItem onClick={() => handleAddNode("CONDITION")}>
-              CONDITION
-            </DropdownMenuItem> */}
-            <DropdownMenuItem onClick={() => handleAddNode("LOG_MESSAGE")}>
-              Log Message
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleAddNode("CALCULATION")}>
-              Calculation
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleAddNode("HTTP_REQUEST")}>
-              HTTP Request
-            </DropdownMenuItem>
-
-            <DropdownMenuItem>Text</DropdownMenuItem>
-            <DropdownMenuItem>Bool</DropdownMenuItem>
-            <DropdownMenuItem>Array</DropdownMenuItem>
+            {Object.keys(nodeRenderers).map((item) => (
+              <DropdownMenuItem
+                onClick={() => handleAddNode(item as NodeTypes)}
+              >
+                {formatConstantCase(item)}
+              </DropdownMenuItem>
+            ))}
           </DropdownMenuContent>
         </DropdownMenu>
 

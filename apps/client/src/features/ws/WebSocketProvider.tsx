@@ -66,6 +66,22 @@ export const WebSocketProvider: React.FC<{
   );
 };
 
+export const useWebSocketMessage = (
+  callback: (msg: WebSocketMessage) => void,
+) => {
+  const { wsManager } = useWebSocket();
+
+  useEffect(() => {
+    if (wsManager && callback) {
+      wsManager.addMessageListener(callback);
+
+      return () => {
+        wsManager.removeMessageListener(callback);
+      };
+    }
+  }, [wsManager, callback]);
+};
+
 export const useWebSocket = (): WebSocketContextState => {
   const context = useContext(WebSocketContext);
   if (context === undefined) {

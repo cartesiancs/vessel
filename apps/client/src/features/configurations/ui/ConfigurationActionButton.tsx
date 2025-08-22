@@ -85,9 +85,9 @@ export function ConfigurationActionButton({ config }: Props) {
             </DialogTrigger>
             <DropdownMenuItem
               onClick={() => setIsDeleteOpen(true)}
-              className='text-red-600'
+              className='text-red-500 focus:text-red-500'
             >
-              <Trash2 className='mr-2 h-4 w-4 text-red-600' />
+              <Trash2 className='mr-2 h-4 w-4 text-red-500' />
               <span>Delete</span>
             </DropdownMenuItem>
           </DropdownMenuContent>

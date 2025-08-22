@@ -39,11 +39,24 @@ import { RunFlowButton } from "./RunFlow";
 import { FlowLog } from "../flow-log/FlowLog";
 
 export default function FlowPage() {
-  const { nodes, edges, setNodes, setEdges, flows, fetchFlows, currentFlowId } =
-    useFlowStore();
+  const {
+    nodes,
+    edges,
+    setNodes,
+    setEdges,
+    flows,
+    fetchFlows,
+    currentFlowId,
+    saveGraph,
+  } = useFlowStore();
+
+  const saveAndRunFlow = async () => {
+    await saveGraph();
+    await fetchFlows();
+  };
 
   useEffect(() => {
-    fetchFlows();
+    saveAndRunFlow();
   }, [fetchFlows]);
 
   useEffect(() => {
@@ -84,14 +97,14 @@ export default function FlowPage() {
 }
 
 export function FlowHeader() {
-  const { currentFlowId, saveGraph, isLoading, error } = useFlowStore();
+  const { error } = useFlowStore();
 
-  const [saveComment, setSaveComment] = useState("");
+  // const [saveComment, setSaveComment] = useState("");
 
-  const handleSave = () => {
-    saveGraph(saveComment || undefined);
-    setSaveComment("");
-  };
+  // const handleSave = () => {
+  //   saveGraph(saveComment || undefined);
+  //   setSaveComment("");
+  // };
 
   return (
     <header
@@ -102,7 +115,7 @@ export function FlowHeader() {
       }}
     >
       <RunFlowButton />
-      <Dialog onOpenChange={(open) => !open && setSaveComment("")}>
+      {/* <Dialog onOpenChange={(open) => !open && setSaveComment("")}>
         <DialogTrigger asChild>
           <Button
             size={"sm"}
@@ -141,7 +154,7 @@ export function FlowHeader() {
             </DialogClose>
           </DialogFooter>
         </DialogContent>
-      </Dialog>
+      </Dialog> */}
 
       {error && (
         <p style={{ color: "red", marginLeft: "auto" }}>Error: {error}</p>

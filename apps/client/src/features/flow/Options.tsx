@@ -17,7 +17,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { DataNodeType, Node } from "./flowTypes";
+import { DataNodeType, DataNodeTypeType, Node } from "./flowTypes";
 import { useFlowStore } from "@/entities/flow/store";
 
 interface OptionsProps {
@@ -30,12 +30,17 @@ export function Options({ open, selectedNode, setOpen }: OptionsProps) {
   const { updateNode, addRefresh } = useFlowStore();
 
   const [formData, setFormData] = useState<DataNodeType | object>({});
+  const [formTypeData, setFormTypeData] = useState<DataNodeTypeType>({});
 
   useEffect(() => {
     if (selectedNode?.data) {
       setFormData(selectedNode.data);
     } else {
       setFormData({});
+    }
+
+    if (selectedNode?.dataType) {
+      setFormTypeData(selectedNode.dataType);
     }
   }, [selectedNode]);
 
@@ -72,8 +77,17 @@ export function Options({ open, selectedNode, setOpen }: OptionsProps) {
 
     return Object.entries(formData).map(([key, value]) => {
       const inputId = `${selectedNode.id}-${key}`;
+      const ifExist = key in formTypeData;
 
-      if (key === "operator") {
+      if (!ifExist) {
+        return null;
+      }
+
+      const selectRegex = /^SELECT\[(.*)\]$/;
+      const match = formTypeData[key].match(selectRegex);
+
+      if (match && match[1]) {
+        console.log(match[1].split(","));
         return (
           <div key={inputId} className='grid grid-cols-4 items-center gap-4'>
             <Label htmlFor={inputId} className='text-right'>
@@ -84,90 +98,21 @@ export function Options({ open, selectedNode, setOpen }: OptionsProps) {
               onValueChange={(val) => handleInputChange(key, val)}
             >
               <SelectTrigger id={inputId} className='col-span-3'>
-                <SelectValue placeholder='Select operator' />
+                <SelectValue placeholder={`Select ${key}`} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value='GreaterThan'>Greater Than</SelectItem>
-                <SelectItem value='LessThan'>Less Than</SelectItem>
-                <SelectItem value='EqualTo'>Equal To</SelectItem>
+                <>
+                  {match[1].split(",").map((item) => (
+                    <SelectItem value={item}>{item}</SelectItem>
+                  ))}
+                </>
               </SelectContent>
             </Select>
           </div>
         );
       }
 
-      if (key === "variableType") {
-        return (
-          <div key={inputId} className='grid grid-cols-4 items-center gap-4'>
-            <Label htmlFor={inputId} className='text-right'>
-              {key}
-            </Label>
-            <Select
-              value={String(value)}
-              onValueChange={(val) => handleInputChange(key, val)}
-            >
-              <SelectTrigger id={inputId} className='col-span-3'>
-                <SelectValue placeholder='Select Type' />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value='string'>string</SelectItem>
-                <SelectItem value='number'>number</SelectItem>
-                <SelectItem value='boolean'>boolean</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        );
-      }
-
-      if (key === "operatorCalc") {
-        return (
-          <div key={inputId} className='grid grid-cols-4 items-center gap-4'>
-            <Label htmlFor={inputId} className='text-right'>
-              {key}
-            </Label>
-            <Select
-              value={String(value)}
-              onValueChange={(val) => handleInputChange(key, val)}
-            >
-              <SelectTrigger id={inputId} className='col-span-3'>
-                <SelectValue placeholder='Select Type' />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value='+'>+</SelectItem>
-                <SelectItem value='-'>-</SelectItem>
-                <SelectItem value='/'>/</SelectItem>
-                <SelectItem value='*'>*</SelectItem>
-                <SelectItem value='%'>%</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        );
-      }
-      if (key === "httpMethod") {
-        return (
-          <div key={inputId} className='grid grid-cols-4 items-center gap-4'>
-            <Label htmlFor={inputId} className='text-right'>
-              {key}
-            </Label>
-            <Select
-              value={String(value)}
-              onValueChange={(val) => handleInputChange(key, val)}
-            >
-              <SelectTrigger id={inputId} className='col-span-3'>
-                <SelectValue placeholder='Select Method' />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value='GET'>GET</SelectItem>
-                <SelectItem value='POST'>POST</SelectItem>
-                <SelectItem value='DELETE'>DELETE</SelectItem>
-                <SelectItem value='PUT'>PUT</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        );
-      }
-
-      if (typeof value === "number") {
+      if (formTypeData[key] == "NUMBER") {
         return (
           <div key={inputId} className='grid grid-cols-4 items-center gap-4'>
             <Label htmlFor={inputId} className='text-right'>
@@ -184,7 +129,23 @@ export function Options({ open, selectedNode, setOpen }: OptionsProps) {
         );
       }
 
-      if (typeof value === "string") {
+      if (formTypeData[key] == "STRING") {
+        return (
+          <div key={inputId} className='grid grid-cols-4 items-center gap-4'>
+            <Label htmlFor={inputId} className='text-right'>
+              {key}
+            </Label>
+            <Input
+              id={inputId}
+              value={String(value)}
+              onChange={(e) => handleInputChange(key, e.target.value)}
+              className='col-span-3'
+            />
+          </div>
+        );
+      }
+
+      if (formTypeData[key] == "ANY") {
         return (
           <div key={inputId} className='grid grid-cols-4 items-center gap-4'>
             <Label htmlFor={inputId} className='text-right'>

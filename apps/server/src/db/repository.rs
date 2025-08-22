@@ -401,6 +401,24 @@ pub fn create_flow_version(
     Ok(version_insert)
 }
 
+pub fn overwrite_flow_version(
+    pool: &DbPool,
+    target_flow_id: i32,
+    new_version_data: NewFlowVersion,
+) -> Result<FlowVersion, anyhow::Error> {
+    use crate::db::schema::flow_versions;
+    use crate::db::schema::flow_versions::dsl::*;
+    let mut conn = pool.get()?;
+    conn.transaction(|conn| {
+        diesel::delete(flow_versions.filter(flow_id.eq(target_flow_id)))
+            .execute(conn)?;
+        let version_insert = diesel::insert_into(flow_versions::table)
+            .values(&new_version_data)
+            .get_result(conn)?;
+        Ok(version_insert)
+    })
+}
+
 pub fn get_latest_version_number(pool: &DbPool, target_flow_id: i32) -> Result<Option<i32>, anyhow::Error> {
     use crate::db::schema::flow_versions::dsl::*;
     let mut conn = pool.get()?;

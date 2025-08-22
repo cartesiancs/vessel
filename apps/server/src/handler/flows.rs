@@ -68,26 +68,23 @@ pub async fn delete_flow(
 
 
 
+
 pub async fn create_flow_version(
     State(state): State<Arc<AppState>>,
     JwtAuth(_): JwtAuth,
     Path(flow_id): Path<i32>,
     Json(payload): Json<FlowVersionPayload>,
 ) -> Result<Json<FlowVersion>, AppError> {
-    let latest_version = db::repository::get_latest_version_number(&state.pool, flow_id)?
-        .unwrap_or(0);
-
     let new_version_data = NewFlowVersion {
         flow_id,
-        version: latest_version + 1,
+        version: 1, 
         graph_json: &payload.graph_json,
         comment: payload.comment.as_deref(),
     };
 
-    let version = db::repository::create_flow_version(&state.pool, new_version_data)?;
+    let version = db::repository::overwrite_flow_version(&state.pool, flow_id, new_version_data)?;
     Ok(Json(version))
 }
-
 pub async fn get_flow_versions(
     State(state): State<Arc<AppState>>,
     JwtAuth(_): JwtAuth,
