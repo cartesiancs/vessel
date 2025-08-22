@@ -7,6 +7,7 @@ import { EntityAll } from "@/entities/entity/types";
 
 import icon from "leaflet/dist/images/marker-icon.png";
 import iconShadow from "leaflet/dist/images/marker-shadow.png";
+import { useMapStore } from "./store";
 
 const DefaultIcon = L.icon({
   iconUrl: icon,
@@ -40,6 +41,7 @@ const parseGpsState = (
 export function MapView() {
   const [position, setPosition] = useState<[number, number] | null>(null);
   const [entities, setEntities] = useState<EntityAll[]>([]);
+  const setSelectedEntity = useMapStore((state) => state.setSelectedEntity);
 
   const fetchEntities = async () => {
     try {
@@ -92,7 +94,15 @@ export function MapView() {
             if (!markerPosition) return null;
 
             return (
-              <Marker key={entity.id} position={markerPosition}>
+              <Marker
+                key={entity.id}
+                position={markerPosition}
+                eventHandlers={{
+                  click: () => {
+                    setSelectedEntity(entity);
+                  },
+                }}
+              >
                 <Popup>
                   <b>{entity.friendly_name || entity.entity_id}</b>
                   <br />

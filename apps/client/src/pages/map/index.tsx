@@ -13,6 +13,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { MapView } from "@/features/map";
+import { EntityDetailsPanel } from "@/features/map/Details";
 import { AppSidebar } from "@/features/sidebar";
 
 export function MapPage() {
@@ -40,6 +41,7 @@ export function MapPage() {
         </header>
         <main className='flex-1 p-0 overflow-hidden'>
           <MapView />
+          <EntityDetailsPanel />
         </main>
       </SidebarInset>
     </SidebarProvider>
