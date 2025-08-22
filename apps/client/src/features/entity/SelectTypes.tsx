@@ -1,7 +1,7 @@
 import { SelectItem } from "@/components/ui/select";
 import { Baseline, Database, Locate, Play } from "lucide-react";
 
-export function EntityTypeList() {
+export function EntitySelectTypes() {
   return (
     <>
       <SelectItem value='NONE'>

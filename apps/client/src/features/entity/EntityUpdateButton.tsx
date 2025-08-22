@@ -14,7 +14,6 @@ import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
-  SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -23,7 +22,8 @@ import { useEntityStore } from "@/entities/entity/store";
 import { Entity, EntityPayload } from "@/entities/entity/types";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { JsonCodeEditor } from "../json/JsonEditor";
-import { EntityTypeList } from "./EntityTypeList";
+import { EntitySelectTypes } from "./SelectTypes";
+import { EntitySelectPlatforms } from "./SelectPlatforms";
 
 interface Props {
   entity: Entity;
@@ -111,9 +111,7 @@ export function EntityUpdateButton({ entity }: Props) {
                     <SelectValue placeholder='Select a platform' />
                   </SelectTrigger>
                   <SelectContent className='w-full'>
-                    <SelectItem value='MQTT'>MQTT</SelectItem>
-                    <SelectItem value='UDP'>RTP over UDP</SelectItem>
-                    <SelectItem value='RTSP'>RTSP</SelectItem>
+                    <EntitySelectPlatforms />
                   </SelectContent>
                 </Select>
               )}
@@ -134,7 +132,7 @@ export function EntityUpdateButton({ entity }: Props) {
                     <SelectValue placeholder='Select a type' />
                   </SelectTrigger>
                   <SelectContent className='w-full'>
-                    <EntityTypeList />
+                    <EntitySelectTypes />
                   </SelectContent>
                 </Select>
               )}

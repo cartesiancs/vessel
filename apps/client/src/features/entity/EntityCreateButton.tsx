@@ -19,12 +19,12 @@ import { EntityPayload } from "@/entities/entity/types";
 import {
   Select,
   SelectContent,
-  SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
 import { JsonCodeEditor } from "../json/JsonEditor";
-import { EntityTypeList } from "./EntityTypeList";
+import { EntitySelectTypes } from "./SelectTypes";
+import { EntitySelectPlatforms } from "./SelectPlatforms";
 
 export function EntityCreateButton() {
   const [isOpen, setIsOpen] = useState(false);
@@ -107,9 +107,7 @@ export function EntityCreateButton() {
                     <SelectValue placeholder='Select a platform' />
                   </SelectTrigger>
                   <SelectContent className='w-full'>
-                    <SelectItem value='MQTT'>MQTT</SelectItem>
-                    <SelectItem value='UDP'>RTP over UDP</SelectItem>
-                    <SelectItem value='RTSP'>RTSP</SelectItem>
+                    <EntitySelectPlatforms />
                   </SelectContent>
                 </Select>
               )}
@@ -129,7 +127,7 @@ export function EntityCreateButton() {
                     <SelectValue placeholder='Select a platform' />
                   </SelectTrigger>
                   <SelectContent className='w-full'>
-                    <EntityTypeList />
+                    <EntitySelectTypes />
                   </SelectContent>
                 </Select>
               )}
