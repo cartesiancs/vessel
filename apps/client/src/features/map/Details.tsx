@@ -6,7 +6,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { X, MapPin, TabletSmartphone, Server, Database } from "lucide-react";
+import { X, MapPin, TabletSmartphone, Server } from "lucide-react";
 import { useMapStore } from "./store";
 import { useEffect, useState } from "react";
 import { getDeviceById } from "@/entities/device/api";
@@ -16,6 +16,8 @@ export function EntityDetailsPanel() {
   const { selectedEntity, setSelectedEntity } = useMapStore();
   const [device, setDevice] = useState({
     name: "",
+    model: "",
+    manufacturer: "",
   });
   const [entities, setEntities] = useState<Entity[]>([]);
 
@@ -28,6 +30,8 @@ export function EntityDetailsPanel() {
 
     setDevice({
       name: get.data.name as string,
+      model: get.data.model as string,
+      manufacturer: get.data.manufacturer as string,
     });
     setEntities(get.data.entities);
   };
@@ -121,6 +125,14 @@ export function EntityDetailsPanel() {
                 <li className='flex items-center'>
                   <strong>Name:</strong>{" "}
                   <span className='ml-2'>{device.name || "N/A"}</span>
+                </li>
+                <li className='flex items-center'>
+                  <strong>Model:</strong>{" "}
+                  <span className='ml-2'>{device.model || "N/A"}</span>
+                </li>
+                <li className='flex items-center'>
+                  <strong>Manufacturer:</strong>{" "}
+                  <span className='ml-2'>{device.manufacturer || "N/A"}</span>
                 </li>
               </ul>
             </div>

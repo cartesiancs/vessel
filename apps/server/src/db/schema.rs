@@ -75,6 +75,42 @@ diesel::table! {
 }
 
 diesel::table! {
+    map_features (id) {
+        id -> Integer,
+        layer_id -> Integer,
+        feature_type -> Text,
+        name -> Nullable<Text>,
+        style_properties -> Nullable<Text>,
+        created_by_user_id -> Integer,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
+    }
+}
+
+diesel::table! {
+    map_layers (id) {
+        id -> Integer,
+        name -> Text,
+        description -> Nullable<Text>,
+        owner_user_id -> Integer,
+        is_visible -> Integer,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
+    }
+}
+
+diesel::table! {
+    map_vertices (id) {
+        id -> Integer,
+        feature_id -> Integer,
+        latitude -> Float,
+        longitude -> Float,
+        altitude -> Nullable<Float>,
+        sequence -> Integer,
+    }
+}
+
+diesel::table! {
     states (state_id) {
         state_id -> Integer,
         metadata_id -> Nullable<Integer>,
@@ -120,6 +156,10 @@ diesel::joinable!(device_tokens -> devices (device_id));
 diesel::joinable!(entities -> devices (device_id));
 diesel::joinable!(entities_configurations -> entities (entity_id));
 diesel::joinable!(flow_versions -> flows (flow_id));
+diesel::joinable!(map_features -> map_layers (layer_id));
+diesel::joinable!(map_features -> users (created_by_user_id));
+diesel::joinable!(map_layers -> users (owner_user_id));
+diesel::joinable!(map_vertices -> map_features (feature_id));
 diesel::joinable!(states -> states_meta (metadata_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
@@ -130,6 +170,9 @@ diesel::allow_tables_to_appear_in_same_query!(
     events,
     flow_versions,
     flows,
+    map_features,
+    map_layers,
+    map_vertices,
     states,
     states_meta,
     system_configurations,
