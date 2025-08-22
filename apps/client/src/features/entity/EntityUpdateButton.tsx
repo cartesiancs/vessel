@@ -42,6 +42,7 @@ export function EntityUpdateButton({ entity }: Props) {
       device_id: entity.device_id,
       friendly_name: entity.friendly_name ?? "",
       platform: entity.platform ?? "",
+      entity_type: entity.entity_type ?? "",
       configuration: entity.configuration
         ? JSON.stringify(entity.configuration, null, 2)
         : "",
@@ -112,6 +113,29 @@ export function EntityUpdateButton({ entity }: Props) {
                     <SelectItem value='MQTT'>MQTT</SelectItem>
                     <SelectItem value='UDP'>RTP over UDP</SelectItem>
                     <SelectItem value='RTSP'>RTSP</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            />
+          </div>
+
+          <div className='space-y-2'>
+            <Label htmlFor='entity_type'>Type</Label>
+            <Controller
+              control={control}
+              name='entity_type'
+              render={({ field }) => (
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value ?? ""}
+                >
+                  <SelectTrigger id='entity_type' className='w-full'>
+                    <SelectValue placeholder='Select a platform' />
+                  </SelectTrigger>
+                  <SelectContent className='w-full'>
+                    <SelectItem value='AUDIO'>AUDIO</SelectItem>
+                    <SelectItem value='GPS'>GPS</SelectItem>
+                    <SelectItem value='TEXT'>TEXT</SelectItem>
                   </SelectContent>
                 </Select>
               )}

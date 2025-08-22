@@ -31,6 +31,7 @@ CREATE TABLE entities (
     device_id INTEGER,
     friendly_name VARCHAR(255),
     platform VARCHAR(255),
+    entity_type VARCHAR(255),
     FOREIGN KEY(device_id) REFERENCES devices(id) ON DELETE CASCADE
 );
 

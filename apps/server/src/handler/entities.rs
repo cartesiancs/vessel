@@ -10,6 +10,7 @@ pub struct EntityPayload {
     pub device_id: Option<i32>,
     pub friendly_name: Option<String>,
     pub platform: Option<String>,
+    pub entity_type: Option<String>,
     pub configuration: Option<Value>,
 }
 
@@ -22,6 +23,7 @@ pub async fn create_entity(
         device_id: payload.device_id,
         friendly_name: payload.friendly_name.as_deref(),
         platform: payload.platform.as_deref(),
+        entity_type: payload.entity_type.as_deref(),
     };
     
     let config_str = payload.configuration
@@ -70,6 +72,7 @@ pub async fn update_entity(
         device_id: payload.device_id,
         friendly_name: payload.friendly_name.as_deref(),
         platform: payload.platform.as_deref(),
+        entity_type: payload.entity_type.as_deref(),
     };
 
     let config_str = payload.configuration

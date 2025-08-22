@@ -30,7 +30,7 @@ export function AllEntities() {
     if (
       item.platform == "UDP" &&
       item.configuration &&
-      item.configuration.type == "AUDIO"
+      item.entity_type == "AUDIO"
     ) {
       return (
         <Card key={item.id}>
@@ -58,7 +58,7 @@ export function AllEntities() {
       <Card key={item.id}>
         <CardHeader className='px-4'>
           <CardDescription>Entity : {item.friendly_name}</CardDescription>
-          <CardTitle className='text-2xl font-semibold tabular-nums'>
+          <CardTitle className='text-2xl font-semibold tabular-nums truncate'>
             {item.state?.state || "N/A"}
           </CardTitle>
         </CardHeader>

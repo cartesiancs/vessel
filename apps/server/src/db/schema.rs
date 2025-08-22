@@ -28,6 +28,7 @@ diesel::table! {
         device_id -> Nullable<Integer>,
         friendly_name -> Nullable<Text>,
         platform -> Nullable<Text>,
+        entity_type -> Nullable<Text>,
     }
 }
 

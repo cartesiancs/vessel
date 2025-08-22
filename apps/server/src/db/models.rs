@@ -61,6 +61,7 @@ pub struct Entity {
     pub device_id: Option<i32>,
     pub friendly_name: Option<String>,
     pub platform: Option<String>,
+    pub entity_type: Option<String>,
 }
 
 #[derive(Insertable)]
@@ -70,6 +71,7 @@ pub struct NewEntity<'a> {
     pub device_id: Option<i32>,
     pub friendly_name: Option<&'a str>,
     pub platform: Option<&'a str>,
+    pub entity_type: Option<&'a str>,
 }
 
 #[derive(Queryable, Selectable, Identifiable, Associations, Serialize, Deserialize, Clone)]

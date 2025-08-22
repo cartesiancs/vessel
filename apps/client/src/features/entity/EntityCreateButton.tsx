@@ -113,6 +113,28 @@ export function EntityCreateButton() {
               )}
             />
           </div>
+          <div className='space-y-2'>
+            <Label htmlFor='entity_type'>Type</Label>
+            <Controller
+              control={control}
+              name='entity_type'
+              render={({ field }) => (
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value ?? ""}
+                >
+                  <SelectTrigger id='entity_type' className='w-full'>
+                    <SelectValue placeholder='Select a platform' />
+                  </SelectTrigger>
+                  <SelectContent className='w-full'>
+                    <SelectItem value='AUDIO'>AUDIO</SelectItem>
+                    <SelectItem value='GPS'>GPS</SelectItem>
+                    <SelectItem value='TEXT'>TEXT</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            />
+          </div>
 
           <div className='space-y-2'>
             <Label htmlFor='configuration_update'>Configuration (JSON)</Label>
