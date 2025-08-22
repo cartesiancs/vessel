@@ -1,5 +1,5 @@
 use std::sync::Arc;
-use axum::{extract::{State, Path}, Json};
+use axum::{extract::{Path, Query, State}, Json};
 use serde::Deserialize;
 use serde_json::{json, Value};
 use crate::{db::{self, models::{EntityWithConfig, EntityWithStateAndConfig, NewEntity}}, error::AppError, lib::entity_map::remap_topics, state::AppState};
@@ -12,6 +12,11 @@ pub struct EntityPayload {
     pub platform: Option<String>,
     pub entity_type: Option<String>,
     pub configuration: Option<Value>,
+}
+
+#[derive(Deserialize)]
+pub struct GetEntitiesParams {
+    pub entity_type: Option<String>,
 }
 
 pub async fn create_entity(
@@ -49,15 +54,17 @@ pub async fn create_entity(
 
 pub async fn get_entities(
     State(state): State<Arc<AppState>>,
+    Query(params): Query<GetEntitiesParams>,
 ) -> Result<Json<Vec<EntityWithConfig>>, AppError> {
-    let entities = db::repository::get_all_entities_with_configs(&state.pool)?;
+    let entities = db::repository::get_all_entities_with_configs_filter(&state.pool, params.entity_type)?;
     Ok(Json(entities))
 }
 
 pub async fn get_entities_with_states(
     State(state): State<Arc<AppState>>,
+    Query(params): Query<GetEntitiesParams>,
 ) -> Result<Json<Vec<EntityWithStateAndConfig>>, AppError> {
-    let entities = db::repository::get_all_entities_with_states_and_configs(&state.pool)?;
+    let entities = db::repository::get_all_entities_with_states_and_configs_filter(&state.pool, params.entity_type)?;
     Ok(Json(entities))
 }
 

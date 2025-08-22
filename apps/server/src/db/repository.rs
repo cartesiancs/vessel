@@ -202,6 +202,39 @@ pub fn get_all_entities_with_configs(
     Ok(entities_with_configs)
 }
 
+pub fn get_all_entities_with_configs_filter(
+    pool: &DbPool,
+    entity_type_filter: Option<String>,
+) -> Result<Vec<EntityWithConfig>, anyhow::Error> {
+    use crate::db::schema::entities::dsl as e;
+    use crate::db::schema::entities_configurations::dsl as ec;
+
+    let mut conn = pool.get()?;
+
+    let mut query = e::entities
+        .left_join(ec::entities_configurations.on(e::id.eq(ec::entity_id)))
+        .into_boxed();
+
+    if let Some(e_type) = entity_type_filter {
+        query = query.filter(e::entity_type.eq(e_type));
+    }
+
+    let results = query.load::<(Entity, Option<EntityConfiguration>)>(&mut conn)?;
+
+    let entities_with_configs = results
+        .into_iter()
+        .map(|(entity, config_opt)| {
+            let configuration = config_opt
+                .map(|c| serde_json::from_str(&c.configuration).unwrap_or(serde_json::Value::Null))
+                .filter(|v| !v.is_null());
+            EntityWithConfig { entity, configuration }
+        })
+        .collect();
+
+    Ok(entities_with_configs)
+}
+
+
 pub fn update_entity_with_config(
     pool: &DbPool,
     target_id: i32,
@@ -538,6 +571,68 @@ pub fn get_all_entities_with_states_and_configs(
         .collect();
 
  
+    let all_states = s::states
+        .order(s::last_updated.desc())
+        .load::<State>(&mut conn)?;
+    
+    let latest_states: std::collections::HashMap<i32, State> = all_states
+        .into_iter()
+        .fold(std::collections::HashMap::new(), |mut acc, state| {
+            if let Some(mid) = state.metadata_id {
+                acc.entry(mid).or_insert(state);
+            }
+            acc
+        });
+
+    let result = entities_and_configs
+        .into_iter()
+        .map(|(entity, config_opt)| {
+            let configuration = config_opt
+                .map(|c| serde_json::from_str(&c.configuration).unwrap_or(serde_json::Value::Null))
+                .filter(|v| !v.is_null());
+
+            let state = states_meta_map
+                .get(&entity.entity_id)
+                .and_then(|metadata_id| latest_states.get(metadata_id).cloned());
+
+            EntityWithStateAndConfig {
+                entity,
+                configuration,
+                state,
+            }
+        })
+        .collect();
+
+    Ok(result)
+}
+
+pub fn get_all_entities_with_states_and_configs_filter(
+    pool: &DbPool,
+    entity_type_filter: Option<String>,
+) -> Result<Vec<EntityWithStateAndConfig>, anyhow::Error> {
+    use crate::db::schema::entities::dsl as e;
+    use crate::db::schema::entities_configurations::dsl as ec;
+    use crate::db::schema::states::dsl as s;
+    use crate::db::schema::states_meta::dsl as sm;
+
+    let mut conn = pool.get()?;
+
+    let mut entities_query = e::entities
+        .left_join(ec::entities_configurations.on(e::id.eq(ec::entity_id)))
+        .into_boxed();
+    
+    if let Some(e_type) = entity_type_filter {
+        entities_query = entities_query.filter(e::entity_type.eq(e_type));
+    }
+
+    let entities_and_configs = entities_query.load::<(Entity, Option<EntityConfiguration>)>(&mut conn)?;
+
+    let states_meta_map: std::collections::HashMap<String, i32> = sm::states_meta
+        .load::<StatesMeta>(&mut conn)?
+        .into_iter()
+        .map(|meta| (meta.entity_id, meta.metadata_id))
+        .collect();
+
     let all_states = s::states
         .order(s::last_updated.desc())
         .load::<State>(&mut conn)?;
