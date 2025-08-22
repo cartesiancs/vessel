@@ -24,6 +24,7 @@ import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { JsonCodeEditor } from "../json/JsonEditor";
 import { EntitySelectTypes } from "./SelectTypes";
 import { EntitySelectPlatforms } from "./SelectPlatforms";
+import { toast } from "sonner";
 
 interface Props {
   entity: Entity;
@@ -60,6 +61,7 @@ export function EntityUpdateButton({ entity }: Props) {
       }
     } catch (error) {
       console.error("Invalid JSON format:", error);
+      toast("Invalid JSON format. Please check the syntax.");
       setJsonError("Invalid JSON format. Please check the syntax.");
       return;
     }
@@ -98,7 +100,7 @@ export function EntityUpdateButton({ entity }: Props) {
             <Input id='friendly_name_update' {...register("friendly_name")} />
           </div>
           <div className='space-y-2'>
-            <Label htmlFor='platform_update'>Platform</Label>
+            <Label htmlFor='platform_update'>Platform (Protocol)</Label>
             <Controller
               control={control}
               name='platform'

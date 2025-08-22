@@ -25,6 +25,7 @@ import {
 import { JsonCodeEditor } from "../json/JsonEditor";
 import { EntitySelectTypes } from "./SelectTypes";
 import { EntitySelectPlatforms } from "./SelectPlatforms";
+import { toast } from "sonner";
 
 export function EntityCreateButton() {
   const [isOpen, setIsOpen] = useState(false);
@@ -54,6 +55,8 @@ export function EntityCreateButton() {
       }
     } catch (error) {
       console.error("Invalid JSON format:", error);
+      toast("Invalid JSON format. Please check the syntax.");
+
       return;
     }
 
@@ -94,7 +97,7 @@ export function EntityCreateButton() {
             <Input id='friendly_name_create' {...register("friendly_name")} />
           </div>
           <div className='space-y-2'>
-            <Label htmlFor='platform_update'>Platform</Label>
+            <Label htmlFor='platform_update'>Platform (Protocol)</Label>
             <Controller
               control={control}
               name='platform'

@@ -86,9 +86,6 @@ export function ServersPage() {
                       Key
                     </TableHead>
                     <TableHead className='min-w-[250px]'>Value</TableHead>
-                    <TableHead className='w-[200px] min-w-[200px]'>
-                      Description
-                    </TableHead>
                     <TableHead className='w-[100px] min-w-[100px]'>
                       Status
                     </TableHead>
@@ -104,7 +101,6 @@ export function ServersPage() {
                       <TableCell className='font-mono max-w-xs truncate'>
                         {config.value}
                       </TableCell>
-                      <TableCell>{config.description}</TableCell>
                       <TableCell>
                         <Badge variant={config.enabled ? "default" : "outline"}>
                           {config.enabled ? "Enabled" : "Disabled"}
