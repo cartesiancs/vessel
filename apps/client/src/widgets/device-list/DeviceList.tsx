@@ -62,7 +62,9 @@ export function DeviceList() {
               <TableHead className='hidden sm:table-cell'>
                 Manufacturer
               </TableHead>
-              <TableHead className='text-right'>Actions</TableHead>
+              <TableHead className='sticky right-0 bg-background w-[40px] min-w-[40px] text-right'>
+                Actions
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -82,7 +84,7 @@ export function DeviceList() {
                   {device.manufacturer ?? "N/A"}
                 </TableCell>
                 <TableCell
-                  className='text-right space-x-1'
+                  className='sticky right-0 bg-background text-right space-x-1'
                   onClick={(e) => e.stopPropagation()}
                 >
                   <DropdownMenu>

@@ -80,7 +80,9 @@ export function EntityList() {
               <TableRow>
                 <TableHead>Entity ID</TableHead>
                 <TableHead>Name</TableHead>
-                <TableHead className='text-right'>Actions</TableHead>
+                <TableHead className='sticky right-0 bg-background w-[40px] min-w-[40px] text-right'>
+                  Actions
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -90,7 +92,7 @@ export function EntityList() {
                     {entity.entity_id}
                   </TableCell>
                   <TableCell>{entity.friendly_name ?? "N/A"}</TableCell>
-                  <TableCell className='text-right space-x-1'>
+                  <TableCell className='sticky right-0 bg-background text-right'>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant='ghost' className='h-8 w-8 p-0'>
