@@ -34,6 +34,14 @@ pub async fn get_devices(
     Ok(Json(devices))
 }
 
+pub async fn get_device(
+    State(state): State<Arc<AppState>>,
+    Path(device_id): Path<i32>,
+) -> Result<Json<crate::db::models::Device>, AppError> {
+    let device = db::repository::get_device_by_id(&state.pool, device_id)?;
+    Ok(Json(device))
+}
+
 pub async fn update_device(
     State(state): State<Arc<AppState>>,
     Path(id): Path<i32>,

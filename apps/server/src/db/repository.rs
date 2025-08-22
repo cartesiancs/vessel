@@ -84,6 +84,7 @@ pub fn create_device(pool: &DbPool, new_device: NewDevice) -> Result<Device, any
     Ok(device)
 }
 
+
 pub fn get_all_devices(pool: &DbPool) -> Result<Vec<Device>, anyhow::Error> {
     use crate::db::schema::devices::dsl::*;
     let mut conn = pool.get()?;
@@ -382,6 +383,15 @@ pub fn get_device_by_device_id(pool: &DbPool, target_device_id: &str) -> Result<
     Ok(device_result)
 }
 
+pub fn get_device_by_id(pool: &DbPool, target_id: i32) -> Result<Device, anyhow::Error> {
+    use crate::db::schema::devices::dsl::*;
+    let mut conn = pool.get()?;
+    let device_result = devices
+        .filter(id.eq(target_id))
+        .select(Device::as_select())
+        .first::<Device>(&mut conn)?;
+    Ok(device_result)
+}
 
 
 pub fn create_flow(pool: &DbPool, new_flow: NewFlow) -> Result<Flow, anyhow::Error> {
