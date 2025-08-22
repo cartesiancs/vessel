@@ -120,7 +120,7 @@ export function EntityUpdateButton({ entity }: Props) {
           </div>
 
           <div className='space-y-2'>
-            <Label htmlFor='entity_type'>Type</Label>
+            <Label htmlFor='entity_type_update'>Type</Label>
             <Controller
               control={control}
               name='entity_type'
@@ -129,10 +129,11 @@ export function EntityUpdateButton({ entity }: Props) {
                   onValueChange={field.onChange}
                   defaultValue={field.value ?? ""}
                 >
-                  <SelectTrigger id='entity_type' className='w-full'>
-                    <SelectValue placeholder='Select a platform' />
+                  <SelectTrigger id='entity_type_update' className='w-full'>
+                    <SelectValue placeholder='Select a type' />
                   </SelectTrigger>
                   <SelectContent className='w-full'>
+                    <SelectItem value='NONE'>NONE</SelectItem>
                     <SelectItem value='AUDIO'>AUDIO</SelectItem>
                     <SelectItem value='GPS'>GPS</SelectItem>
                     <SelectItem value='TEXT'>TEXT</SelectItem>
@@ -141,6 +142,7 @@ export function EntityUpdateButton({ entity }: Props) {
               )}
             />
           </div>
+
           <div className='space-y-2'>
             <Label htmlFor='configuration_update'>Configuration (JSON)</Label>
             <Controller

@@ -220,6 +220,7 @@ pub fn update_entity_with_config(
                 entities::device_id.eq(updated_entity.device_id),
                 entities::friendly_name.eq(&updated_entity.friendly_name),
                 entities::platform.eq(&updated_entity.platform),
+                entities::entity_type.eq(&updated_entity.entity_type),
             ))
             .get_result(conn)?;
         

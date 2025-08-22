@@ -38,6 +38,7 @@ export function EntityCreateButton() {
         friendly_name: "",
         platform: "",
         configuration: "",
+        entity_type: "",
       });
     }
   }, [isOpen, selectedDevice, reset]);
@@ -127,6 +128,7 @@ export function EntityCreateButton() {
                     <SelectValue placeholder='Select a platform' />
                   </SelectTrigger>
                   <SelectContent className='w-full'>
+                    <SelectItem value='NONE'>NONE</SelectItem>
                     <SelectItem value='AUDIO'>AUDIO</SelectItem>
                     <SelectItem value='GPS'>GPS</SelectItem>
                     <SelectItem value='TEXT'>TEXT</SelectItem>
