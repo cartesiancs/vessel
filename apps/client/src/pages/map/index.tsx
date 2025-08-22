@@ -14,6 +14,8 @@ import {
 } from "@/components/ui/sidebar";
 import { MapView } from "@/features/map";
 import { EntityDetailsPanel } from "@/features/map/Details";
+import { LayerSidebar } from "@/features/map/LayerSidebar";
+import { MapToolbar } from "@/features/map/MapToolbar";
 import { AppSidebar } from "@/features/sidebar";
 
 export function MapPage() {
@@ -40,6 +42,8 @@ export function MapPage() {
           </Breadcrumb>
         </header>
         <main className='flex-1 p-0 overflow-hidden'>
+          <LayerSidebar />
+          <MapToolbar />
           <MapView />
           <EntityDetailsPanel />
         </main>

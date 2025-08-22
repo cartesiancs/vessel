@@ -9,6 +9,10 @@ import icon from "leaflet/dist/images/marker-icon.png";
 import iconShadow from "leaflet/dist/images/marker-shadow.png";
 import { useMapStore } from "./store";
 import "./style.css";
+import { useMapDataStore } from "@/entities/map/store";
+import { MapEvents } from "./MapEvents";
+import { DrawingPreview } from "./DrawingPreview";
+import { FeatureRenderer } from "./FeatureRenderer";
 
 const DefaultIcon = L.icon({
   iconUrl: icon,
@@ -43,6 +47,7 @@ export function MapView() {
   const [position, setPosition] = useState<[number, number] | null>(null);
   const [entities, setEntities] = useState<EntityAll[]>([]);
   const setSelectedEntity = useMapStore((state) => state.setSelectedEntity);
+  const { layer, fetchAllLayers } = useMapDataStore();
 
   const fetchEntities = async () => {
     try {
@@ -55,6 +60,7 @@ export function MapView() {
 
   useEffect(() => {
     fetchEntities();
+    fetchAllLayers();
 
     navigator.geolocation.getCurrentPosition(
       (pos) => {
@@ -89,6 +95,12 @@ export function MapView() {
             attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
             url='https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
           />
+
+          {layer?.features.map((feature) => (
+            <FeatureRenderer key={`feature-${feature.id}`} feature={feature} />
+          ))}
+          <MapEvents />
+          <DrawingPreview />
 
           {entities.map((entity) => {
             const markerPosition = parseGpsState(entity.state?.state);
