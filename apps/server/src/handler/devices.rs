@@ -2,7 +2,7 @@ use std::sync::Arc;
 use axum::{extract::{State, Path}, Json};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-use crate::{db::{self, models::{Device, NewDevice}}, error::AppError, handler::auth::AuthUser, state::AppState};
+use crate::{db::{self, models::{Device, Entity, NewDevice}}, error::AppError, handler::auth::AuthUser, state::AppState};
 
 #[derive(Deserialize)]
 pub struct DevicePayload {
@@ -10,6 +10,13 @@ pub struct DevicePayload {
     pub name: Option<String>,
     pub manufacturer: Option<String>,
     pub model: Option<String>,
+}
+
+#[derive(Serialize)]
+pub struct DeviceWithEntities {
+    #[serde(flatten)]
+    device: Device,
+    entities: Vec<Entity>,
 }
 
 pub async fn create_device(
@@ -36,10 +43,17 @@ pub async fn get_devices(
 
 pub async fn get_device(
     State(state): State<Arc<AppState>>,
-    Path(device_id): Path<i32>,
-) -> Result<Json<crate::db::models::Device>, AppError> {
-    let device = db::repository::get_device_by_id(&state.pool, device_id)?;
-    Ok(Json(device))
+    Path(device_pk_id): Path<i32>, 
+) -> Result<Json<DeviceWithEntities>, AppError> {
+    let device = db::repository::get_device_by_id(&state.pool, device_pk_id)?;
+    let entities = db::repository::get_entities_by_device_id(&state.pool, device.id)?;
+
+    let response = DeviceWithEntities {
+        device,
+        entities,
+    };
+
+    Ok(Json(response))
 }
 
 pub async fn update_device(

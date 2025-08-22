@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import { MapContainer, TileLayer, Marker } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import { getAllEntitiesFilter } from "@/entities/entity/api";
@@ -8,6 +8,7 @@ import { EntityAll } from "@/entities/entity/types";
 import icon from "leaflet/dist/images/marker-icon.png";
 import iconShadow from "leaflet/dist/images/marker-shadow.png";
 import { useMapStore } from "./store";
+import "./style.css";
 
 const DefaultIcon = L.icon({
   iconUrl: icon,
@@ -102,13 +103,7 @@ export function MapView() {
                     setSelectedEntity(entity);
                   },
                 }}
-              >
-                <Popup>
-                  <b>{entity.friendly_name || entity.entity_id}</b>
-                  <br />
-                  {`Lat: ${markerPosition[0]}, Lng: ${markerPosition[1]}`}
-                </Popup>
-              </Marker>
+              ></Marker>
             );
           })}
         </MapContainer>

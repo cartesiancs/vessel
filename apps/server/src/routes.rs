@@ -64,7 +64,7 @@ pub async fn web_server(addr: String, app_state: Arc<AppState>) -> Result<()> {
         .route("/users/:id", get(users::get_user).put(users::update_user).delete(users::delete_user))
         .route("/devices", post(devices::create_device).get(devices::get_devices))
         .route("/devices/:id", put(devices::update_device).delete(devices::delete_device))
-        .route("/devices/id/:device_id", get(devices::get_device))
+        .route("/devices/id/:device_pk_id", get(devices::get_device))
         .route("/entities", post(entities::create_entity).get(entities::get_entities))
         .route("/entities/all", get(entities::get_entities_with_states))
         .route("/entities/:id", put(entities::update_entity).delete(entities::delete_entity))

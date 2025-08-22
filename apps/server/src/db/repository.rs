@@ -235,6 +235,15 @@ pub fn get_all_entities_with_configs_filter(
     Ok(entities_with_configs)
 }
 
+pub fn get_entities_by_device_id(pool: &DbPool, target_device_id: i32) -> Result<Vec<Entity>, anyhow::Error> {
+    use crate::db::schema::entities::dsl::*;
+    let mut conn = pool.get()?;
+    let results = entities
+        .filter(device_id.eq(target_device_id))
+        .select(Entity::as_select())
+        .load::<Entity>(&mut conn)?;
+    Ok(results)
+}
 
 pub fn update_entity_with_config(
     pool: &DbPool,
