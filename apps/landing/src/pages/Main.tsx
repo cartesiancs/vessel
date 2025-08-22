@@ -3,6 +3,7 @@ import { BookText } from "lucide-react";
 import { FaGithub } from "react-icons/fa";
 
 import { Navbar } from "@/components/Navbar";
+import { Footer } from "@/components/Footer";
 
 function LandingPage() {
   return (
@@ -32,6 +33,7 @@ function LandingPage() {
           </div>
         </div>
       </main>
+      <Footer />
     </>
   );
 }

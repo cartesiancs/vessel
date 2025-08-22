@@ -7,6 +7,7 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
+import { Footer } from "@/components/Footer";
 
 const roadmapData = [
   {
@@ -105,6 +106,7 @@ function RoadmapPage() {
           </div>
         </div>
       </main>
+      <Footer />
     </>
   );
 }
