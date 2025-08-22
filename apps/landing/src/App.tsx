@@ -1,6 +1,7 @@
 import { createBrowserRouter, RouterProvider } from "react-router";
 import LandingPage from "./pages/Main";
 import RoadmapPage from "./pages/Roadmap";
+import UsecasePage from "./pages/UseCase";
 
 const router = createBrowserRouter([
   {
@@ -10,6 +11,10 @@ const router = createBrowserRouter([
   {
     path: "/roadmap",
     element: <RoadmapPage />,
+  },
+  {
+    path: "/usecase",
+    element: <UsecasePage />,
   },
 ]);
 

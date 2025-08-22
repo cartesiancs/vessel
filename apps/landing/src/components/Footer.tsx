@@ -1,6 +1,8 @@
 const footerNav = {
   resources: [
     { name: "Roadmap", href: "/roadmap" },
+    { name: "Usecase", href: "/usecase" },
+
     { name: "GitHub", href: "https://github.com/cartesiancs/vessel" },
   ],
   company: [
@@ -27,13 +29,11 @@ export function Footer() {
                 <h3 className='text-sm font-semibold leading-6 text-foreground'>
                   Contents
                 </h3>
-                <ul role='list' className='mt-4 space-y-4'>
+                <ul role='list' className='mt-4 space-y-1'>
                   {footerNav.resources.map((item) => (
                     <li key={item.name}>
                       <a
                         href={item.href}
-                        target='_blank'
-                        rel='noopener noreferrer'
                         className='text-sm leading-6 text-muted-foreground hover:text-foreground'
                       >
                         {item.name}
@@ -48,7 +48,7 @@ export function Footer() {
                 <h3 className='text-sm font-semibold leading-6 text-foreground'>
                   Company
                 </h3>
-                <ul role='list' className='mt-4 space-y-4'>
+                <ul role='list' className='mt-4 space-y-1'>
                   {footerNav.company.map((item) => (
                     <li key={item.name}>
                       <a
