@@ -42,6 +42,10 @@ reqwest = "0.12.23"
 gstreamer = "0.24"
 gstreamer-app = "0.24"
 crossbeam-channel = "0.5.15"
+ort = "=2.0.0-rc.10"
+ndarray = "0.15"
+image = "0.25"
+once_cell = "1.19"
 
 [[bin]]
 name = "server"
