@@ -127,7 +127,7 @@ export function EntityCreateButton() {
                   defaultValue={field.value ?? ""}
                 >
                   <SelectTrigger id='entity_type' className='w-full'>
-                    <SelectValue placeholder='Select a platform' />
+                    <SelectValue placeholder='Select a type' />
                   </SelectTrigger>
                   <SelectContent className='w-full'>
                     <EntitySelectTypes />
