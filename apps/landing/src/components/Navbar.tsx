@@ -14,7 +14,7 @@ export function Navbar() {
   };
 
   return (
-    <header className='fixed flex items-center justify-center top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60'>
+    <header className='fixed flex items-center justify-center top-0 z-50 w-full border-b bg-background/95 backdrop-blur-sm supports-[backdrop-filter]:bg-background/70'>
       <div className='h-12 flex items-center justify-between w-full'>
         <div className='flex items-center'>
           <Link to='/' className='mr-6 flex items-center space-x-2 pl-6 gap-1'>
@@ -29,7 +29,7 @@ export function Navbar() {
           <NavigationMenuList>
             <NavigationMenuItem>
               <NavigationMenuLink
-                className={navigationMenuTriggerStyle()}
+                className={`${navigationMenuTriggerStyle()} bg-transparent`}
                 onClick={() => openInNewTab("/docs/introduction")}
                 style={{ cursor: "pointer" }}
               >
@@ -38,7 +38,7 @@ export function Navbar() {
             </NavigationMenuItem>
             <NavigationMenuItem>
               <NavigationMenuLink
-                className={navigationMenuTriggerStyle()}
+                className={`${navigationMenuTriggerStyle()} bg-transparent`}
                 onClick={() =>
                   openInNewTab("https://github.com/cartesiancs/vessel")
                 }
@@ -49,7 +49,7 @@ export function Navbar() {
             </NavigationMenuItem>
             <NavigationMenuItem>
               <NavigationMenuLink
-                className={navigationMenuTriggerStyle()}
+                className={`${navigationMenuTriggerStyle()} bg-transparent`}
                 onClick={() => navigate("/roadmap")}
                 style={{ cursor: "pointer" }}
               >

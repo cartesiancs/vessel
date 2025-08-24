@@ -5,6 +5,7 @@ export interface Entity {
   friendly_name: string | null;
   platform: string | null;
   configuration: string | null;
+  entity_type: string | null;
 }
 
 interface DynamicConfig {
@@ -29,6 +30,7 @@ export interface EntityAll {
   platform: string;
   configuration: DynamicConfig | null;
   state: State | null;
+  entity_type: string | null;
 }
 
 export type EntityPayload = Omit<Entity, "id">;

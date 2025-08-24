@@ -1,9 +1,13 @@
 use chrono::Utc;
-use diesel::{dsl::max, BoolExpressionMethods, Connection, ExpressionMethods, JoinOnDsl, OptionalExtension, QueryDsl, QueryResult, RunQueryDsl, SelectableHelper};
+use diesel::{dsl::max, BelongingToDsl, BoolExpressionMethods, Connection, ExpressionMethods, JoinOnDsl, OptionalExtension, QueryDsl, QueryResult, RunQueryDsl, SelectableHelper};
 use serde_json::Value;
 
 use crate::{db::models::{Device, DeviceToken, Entity, EntityConfiguration, EntityWithConfig, EntityWithStateAndConfig, Flow, FlowVersion, NewDevice, NewDeviceToken, NewEntity, NewEntityConfiguration, NewFlow, NewFlowVersion, NewState, NewStatesMeta, NewSystemConfiguration, NewUser, State, StatesMeta, SystemConfiguration, UpdateUser, User}, state::DbPool};
-
+use crate::db::models::{
+    MapLayer, NewMapLayer, UpdateMapLayer,
+    MapFeature, NewMapFeature, UpdateMapFeature, FeatureWithVertices,
+    MapVertex, NewMapVertex, LayerWithFeatures,
+};
 
 pub fn get_user_by_name(pool: &DbPool, target_username: &str) -> Result<User, anyhow::Error> {
     use crate::db::schema::users::dsl::*;
@@ -83,6 +87,7 @@ pub fn create_device(pool: &DbPool, new_device: NewDevice) -> Result<Device, any
 
     Ok(device)
 }
+
 
 pub fn get_all_devices(pool: &DbPool) -> Result<Vec<Device>, anyhow::Error> {
     use crate::db::schema::devices::dsl::*;
@@ -202,6 +207,48 @@ pub fn get_all_entities_with_configs(
     Ok(entities_with_configs)
 }
 
+pub fn get_all_entities_with_configs_filter(
+    pool: &DbPool,
+    entity_type_filter: Option<String>,
+) -> Result<Vec<EntityWithConfig>, anyhow::Error> {
+    use crate::db::schema::entities::dsl as e;
+    use crate::db::schema::entities_configurations::dsl as ec;
+
+    let mut conn = pool.get()?;
+
+    let mut query = e::entities
+        .left_join(ec::entities_configurations.on(e::id.eq(ec::entity_id)))
+        .into_boxed();
+
+    if let Some(e_type) = entity_type_filter {
+        query = query.filter(e::entity_type.eq(e_type));
+    }
+
+    let results = query.load::<(Entity, Option<EntityConfiguration>)>(&mut conn)?;
+
+    let entities_with_configs = results
+        .into_iter()
+        .map(|(entity, config_opt)| {
+            let configuration = config_opt
+                .map(|c| serde_json::from_str(&c.configuration).unwrap_or(serde_json::Value::Null))
+                .filter(|v| !v.is_null());
+            EntityWithConfig { entity, configuration }
+        })
+        .collect();
+
+    Ok(entities_with_configs)
+}
+
+pub fn get_entities_by_device_id(pool: &DbPool, target_device_id: i32) -> Result<Vec<Entity>, anyhow::Error> {
+    use crate::db::schema::entities::dsl::*;
+    let mut conn = pool.get()?;
+    let results = entities
+        .filter(device_id.eq(target_device_id))
+        .select(Entity::as_select())
+        .load::<Entity>(&mut conn)?;
+    Ok(results)
+}
+
 pub fn update_entity_with_config(
     pool: &DbPool,
     target_id: i32,
@@ -220,6 +267,7 @@ pub fn update_entity_with_config(
                 entities::device_id.eq(updated_entity.device_id),
                 entities::friendly_name.eq(&updated_entity.friendly_name),
                 entities::platform.eq(&updated_entity.platform),
+                entities::entity_type.eq(&updated_entity.entity_type),
             ))
             .get_result(conn)?;
         
@@ -348,6 +396,15 @@ pub fn get_device_by_device_id(pool: &DbPool, target_device_id: &str) -> Result<
     Ok(device_result)
 }
 
+pub fn get_device_by_id(pool: &DbPool, target_id: i32) -> Result<Device, anyhow::Error> {
+    use crate::db::schema::devices::dsl::*;
+    let mut conn = pool.get()?;
+    let device_result = devices
+        .filter(id.eq(target_id))
+        .select(Device::as_select())
+        .first::<Device>(&mut conn)?;
+    Ok(device_result)
+}
 
 
 pub fn create_flow(pool: &DbPool, new_flow: NewFlow) -> Result<Flow, anyhow::Error> {
@@ -570,4 +627,234 @@ pub fn get_all_entities_with_states_and_configs(
         .collect();
 
     Ok(result)
+}
+
+pub fn get_all_entities_with_states_and_configs_filter(
+    pool: &DbPool,
+    entity_type_filter: Option<String>,
+) -> Result<Vec<EntityWithStateAndConfig>, anyhow::Error> {
+    use crate::db::schema::entities::dsl as e;
+    use crate::db::schema::entities_configurations::dsl as ec;
+    use crate::db::schema::states::dsl as s;
+    use crate::db::schema::states_meta::dsl as sm;
+
+    let mut conn = pool.get()?;
+
+    let mut entities_query = e::entities
+        .left_join(ec::entities_configurations.on(e::id.eq(ec::entity_id)))
+        .into_boxed();
+    
+    if let Some(e_type) = entity_type_filter {
+        entities_query = entities_query.filter(e::entity_type.eq(e_type));
+    }
+
+    let entities_and_configs = entities_query.load::<(Entity, Option<EntityConfiguration>)>(&mut conn)?;
+
+    let states_meta_map: std::collections::HashMap<String, i32> = sm::states_meta
+        .load::<StatesMeta>(&mut conn)?
+        .into_iter()
+        .map(|meta| (meta.entity_id, meta.metadata_id))
+        .collect();
+
+    let all_states = s::states
+        .order(s::last_updated.desc())
+        .load::<State>(&mut conn)?;
+    
+    let latest_states: std::collections::HashMap<i32, State> = all_states
+        .into_iter()
+        .fold(std::collections::HashMap::new(), |mut acc, state| {
+            if let Some(mid) = state.metadata_id {
+                acc.entry(mid).or_insert(state);
+            }
+            acc
+        });
+
+    let result = entities_and_configs
+        .into_iter()
+        .map(|(entity, config_opt)| {
+            let configuration = config_opt
+                .map(|c| serde_json::from_str(&c.configuration).unwrap_or(serde_json::Value::Null))
+                .filter(|v| !v.is_null());
+
+            let state = states_meta_map
+                .get(&entity.entity_id)
+                .and_then(|metadata_id| latest_states.get(metadata_id).cloned());
+
+            EntityWithStateAndConfig {
+                entity,
+                configuration,
+                state,
+            }
+        })
+        .collect();
+
+    Ok(result)
+}
+
+pub fn create_map_layer(pool: &DbPool, new_layer: NewMapLayer) -> Result<MapLayer, anyhow::Error> {
+    use crate::db::schema::map_layers::dsl::*;
+
+    let mut conn = pool.get()?;
+    let layer = diesel::insert_into(map_layers)
+        .values(&new_layer)
+        .get_result(&mut conn)?;
+    Ok(layer)
+}
+
+pub fn get_all_map_layers(pool: &DbPool) -> Result<Vec<MapLayer>, anyhow::Error> {
+    use crate::db::schema::map_layers::dsl::*;
+
+    let mut conn = pool.get()?;
+    let layers = map_layers.select(MapLayer::as_select()).load(&mut conn)?;
+    Ok(layers)
+}
+
+pub fn get_map_layer_with_features(pool: &DbPool, target_layer_id: i32) -> Result<LayerWithFeatures, anyhow::Error> {
+    use crate::db::schema::{map_layers, map_features, map_vertices};
+
+    let mut conn = pool.get()?;
+
+    let layer: MapLayer = map_layers::table
+        .find(target_layer_id)
+        .first(&mut conn)?;
+
+    let features: Vec<MapFeature> = MapFeature::belonging_to(&layer)
+        .select(MapFeature::as_select())
+        .load(&mut conn)?;
+
+    let vertices: Vec<MapVertex> = MapVertex::belonging_to(&features)
+        .select(MapVertex::as_select())
+        .load(&mut conn)?;
+
+    let features_with_vertices = features.into_iter().map(|f| {
+        let feature_vertices = vertices.iter()
+            .filter(|v| v.feature_id == f.id)
+            .cloned()
+            .collect();
+        FeatureWithVertices { feature: f, vertices: feature_vertices }
+    }).collect();
+
+    Ok(LayerWithFeatures { layer, features: features_with_vertices })
+}
+
+pub fn update_map_layer(pool: &DbPool, target_layer_id: i32, update_data: &UpdateMapLayer) -> Result<MapLayer, anyhow::Error> {
+    use crate::db::schema::map_layers::dsl::*;
+
+    let mut conn = pool.get()?;
+    let layer = diesel::update(map_layers.find(target_layer_id))
+        .set(update_data)
+        .get_result(&mut conn)?;
+    Ok(layer)
+}
+
+pub fn delete_map_layer(pool: &DbPool, target_layer_id: i32) -> Result<usize, anyhow::Error> {
+    use crate::db::schema::{map_layers, map_features, map_vertices};
+
+    let mut conn = pool.get()?;
+    conn.transaction::<_, anyhow::Error, _>(|conn| {
+        let features_to_delete: Vec<MapFeature> = map_features::table
+            .filter(map_features::layer_id.eq(target_layer_id))
+            .load(conn)?;
+        
+        if !features_to_delete.is_empty() {
+            let feature_ids: Vec<i32> = features_to_delete.iter().map(|f| f.id).collect();
+
+            diesel::delete(map_vertices::table.filter(map_vertices::feature_id.eq_any(feature_ids)))
+                .execute(conn)?;
+            
+            diesel::delete(map_features::table.filter(map_features::layer_id.eq(target_layer_id)))
+                .execute(conn)?;
+        }
+        
+        let num_deleted = diesel::delete(map_layers::table.find(target_layer_id)).execute(conn)?;
+        Ok(num_deleted)
+    })
+}
+
+pub fn create_map_feature(pool: &DbPool, new_feature: NewMapFeature, vertices_data: Vec<NewMapVertex>) -> Result<MapFeature, anyhow::Error> {
+    use crate::db::schema::{map_features, map_vertices};
+
+    let mut conn = pool.get()?;
+
+    let feature = conn.transaction::<_, diesel::result::Error, _>(|conn| {
+        let feature: MapFeature = diesel::insert_into(map_features::table)
+            .values(&new_feature)
+            .get_result(conn)?;
+
+        let vertices_with_id: Vec<NewMapVertex> = vertices_data
+            .into_iter()
+            .map(|mut v| {
+                v.feature_id = feature.id;
+                v
+            })
+            .collect();
+        
+        diesel::insert_into(map_vertices::table)
+            .values(&vertices_with_id)
+            .execute(conn)?;
+
+        Ok(feature)
+    })?;
+
+    Ok(feature)
+}
+
+pub fn get_map_feature_with_vertices(pool: &DbPool, target_feature_id: i32) -> Result<FeatureWithVertices, anyhow::Error> {
+    use crate::db::schema::{map_features, map_vertices};
+    let mut conn = pool.get()?;
+
+    let feature: MapFeature = map_features::table.find(target_feature_id).first(&mut conn)?;
+    let vertices: Vec<MapVertex> = MapVertex::belonging_to(&feature).load(&mut conn)?;
+    
+    Ok(FeatureWithVertices { feature, vertices })
+}
+
+pub fn update_map_feature(
+    pool: &DbPool,
+    target_feature_id: i32,
+    feature_data: &UpdateMapFeature,
+    new_vertices_data: Option<Vec<NewMapVertex>>,
+) -> Result<MapFeature, anyhow::Error> {
+    use crate::db::schema::{map_features, map_vertices};
+
+    let mut conn = pool.get()?;
+
+    let feature = conn.transaction::<_, diesel::result::Error, _>(|conn| {
+        let updated_feature: MapFeature = diesel::update(map_features::table.find(target_feature_id))
+            .set(feature_data)
+            .get_result(conn)?;
+        
+        if let Some(vertices_data) = new_vertices_data {
+            diesel::delete(map_vertices::table.filter(map_vertices::feature_id.eq(target_feature_id))).execute(conn)?;
+            
+            let vertices_with_id: Vec<NewMapVertex> = vertices_data
+                .into_iter()
+                .map(|mut v| {
+                    v.feature_id = target_feature_id;
+                    v
+                })
+                .collect();
+            
+            diesel::insert_into(map_vertices::table)
+                .values(&vertices_with_id)
+                .execute(conn)?;
+        }
+
+        Ok(updated_feature)
+    })?;
+
+    Ok(feature)
+}
+
+pub fn delete_map_feature(pool: &DbPool, target_feature_id: i32) -> Result<usize, anyhow::Error> {
+    use crate::db::schema::{map_features, map_vertices};
+
+    let mut conn = pool.get()?;
+    conn.transaction::<_, anyhow::Error, _>(|conn| {
+        diesel::delete(map_vertices::table.filter(map_vertices::feature_id.eq(target_feature_id)))
+            .execute(conn)?;
+        
+        let num_deleted = diesel::delete(map_features::table.find(target_feature_id)).execute(conn)?;
+        Ok(num_deleted)
+    })
 }

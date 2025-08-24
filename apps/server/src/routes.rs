@@ -9,7 +9,7 @@ use tower_http::cors::{Any, CorsLayer};
 use tracing::{ info};
 
 use crate::{handler::{
-    auth::auth_with_password, configurations, device_tokens, devices, entities, flows, stat, streams, users, log, ws_handler::ws_handler
+    auth::auth_with_password, configurations, device_tokens, devices, entities, flows, log, map, stat, streams, users, ws_handler::ws_handler
 }, state::AppState};
 use rust_embed::Embed;
 
@@ -64,6 +64,7 @@ pub async fn web_server(addr: String, app_state: Arc<AppState>) -> Result<()> {
         .route("/users/:id", get(users::get_user).put(users::update_user).delete(users::delete_user))
         .route("/devices", post(devices::create_device).get(devices::get_devices))
         .route("/devices/:id", put(devices::update_device).delete(devices::delete_device))
+        .route("/devices/id/:device_pk_id", get(devices::get_device))
         .route("/entities", post(entities::create_entity).get(entities::get_entities))
         .route("/entities/all", get(entities::get_entities_with_states))
         .route("/entities/:id", put(entities::update_entity).delete(entities::delete_entity))
@@ -75,8 +76,11 @@ pub async fn web_server(addr: String, app_state: Arc<AppState>) -> Result<()> {
         .route("/flows/:id", put(flows::update_flow).delete(flows::delete_flow))
         .route("/flows/:id/versions", post(flows::create_flow_version).get(flows::get_flow_versions))
         .route("/stat", get(stat::get_stats))
-        .route("/logs", get(log::get_logs_handler));
-
+        .route("/logs", get(log::get_logs_handler))
+        .route("/map/layers", post(map::create_layer).get(map::get_layers))
+        .route("/map/layers/:id", get(map::get_layer).put(map::update_layer).delete(map::delete_layer))
+        .route("/map/features", post(map::create_feature))
+        .route("/map/features/:id", get(map::get_feature).put(map::update_feature).delete(map::delete_feature));
     
 
     let app = Router::new()

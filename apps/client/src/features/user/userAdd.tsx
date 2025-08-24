@@ -35,13 +35,13 @@ export const AddUser: FC = () => {
         <PlusCircle className='mr-2 h-4 w-4' /> Add User
       </Button>
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <DialogHeader className='p-6 pb-0'>
+          <DialogTitle>Add New User</DialogTitle>
+          <DialogDescription>
+            Fill in the details below to create a new user.
+          </DialogDescription>
+        </DialogHeader>
         <DialogContent>
-          <DialogHeader className='p-6 pb-0'>
-            <DialogTitle>Add New User</DialogTitle>
-            <DialogDescription>
-              Fill in the details below to create a new user.
-            </DialogDescription>
-          </DialogHeader>
           <UserForm
             onSubmit={handleSubmit}
             onCancel={() => setIsOpen(false)}
@@ -75,6 +75,9 @@ export const AddUserDialog: FC<{
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Add New User</DialogTitle>
+        </DialogHeader>
         <UserForm
           onSubmit={handleSubmit}
           onCancel={() => onOpenChange(false)}

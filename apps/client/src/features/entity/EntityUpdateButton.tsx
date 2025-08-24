@@ -14,7 +14,6 @@ import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
-  SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -23,6 +22,9 @@ import { useEntityStore } from "@/entities/entity/store";
 import { Entity, EntityPayload } from "@/entities/entity/types";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { JsonCodeEditor } from "../json/JsonEditor";
+import { EntitySelectTypes } from "./SelectTypes";
+import { EntitySelectPlatforms } from "./SelectPlatforms";
+import { toast } from "sonner";
 
 interface Props {
   entity: Entity;
@@ -42,6 +44,7 @@ export function EntityUpdateButton({ entity }: Props) {
       device_id: entity.device_id,
       friendly_name: entity.friendly_name ?? "",
       platform: entity.platform ?? "",
+      entity_type: entity.entity_type ?? "",
       configuration: entity.configuration
         ? JSON.stringify(entity.configuration, null, 2)
         : "",
@@ -58,6 +61,7 @@ export function EntityUpdateButton({ entity }: Props) {
       }
     } catch (error) {
       console.error("Invalid JSON format:", error);
+      toast("Invalid JSON format. Please check the syntax.");
       setJsonError("Invalid JSON format. Please check the syntax.");
       return;
     }
@@ -96,7 +100,7 @@ export function EntityUpdateButton({ entity }: Props) {
             <Input id='friendly_name_update' {...register("friendly_name")} />
           </div>
           <div className='space-y-2'>
-            <Label htmlFor='platform_update'>Platform</Label>
+            <Label htmlFor='platform_update'>Platform (Protocol)</Label>
             <Controller
               control={control}
               name='platform'
@@ -109,14 +113,34 @@ export function EntityUpdateButton({ entity }: Props) {
                     <SelectValue placeholder='Select a platform' />
                   </SelectTrigger>
                   <SelectContent className='w-full'>
-                    <SelectItem value='MQTT'>MQTT</SelectItem>
-                    <SelectItem value='UDP'>RTP over UDP</SelectItem>
-                    <SelectItem value='RTSP'>RTSP</SelectItem>
+                    <EntitySelectPlatforms />
                   </SelectContent>
                 </Select>
               )}
             />
           </div>
+
+          <div className='space-y-2'>
+            <Label htmlFor='entity_type_update'>Type</Label>
+            <Controller
+              control={control}
+              name='entity_type'
+              render={({ field }) => (
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value ?? ""}
+                >
+                  <SelectTrigger id='entity_type_update' className='w-full'>
+                    <SelectValue placeholder='Select a type' />
+                  </SelectTrigger>
+                  <SelectContent className='w-full'>
+                    <EntitySelectTypes />
+                  </SelectContent>
+                </Select>
+              )}
+            />
+          </div>
+
           <div className='space-y-2'>
             <Label htmlFor='configuration_update'>Configuration (JSON)</Label>
             <Controller

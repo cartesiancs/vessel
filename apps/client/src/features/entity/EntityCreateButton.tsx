@@ -19,11 +19,13 @@ import { EntityPayload } from "@/entities/entity/types";
 import {
   Select,
   SelectContent,
-  SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
 import { JsonCodeEditor } from "../json/JsonEditor";
+import { EntitySelectTypes } from "./SelectTypes";
+import { EntitySelectPlatforms } from "./SelectPlatforms";
+import { toast } from "sonner";
 
 export function EntityCreateButton() {
   const [isOpen, setIsOpen] = useState(false);
@@ -38,6 +40,7 @@ export function EntityCreateButton() {
         friendly_name: "",
         platform: "",
         configuration: "",
+        entity_type: "",
       });
     }
   }, [isOpen, selectedDevice, reset]);
@@ -52,6 +55,8 @@ export function EntityCreateButton() {
       }
     } catch (error) {
       console.error("Invalid JSON format:", error);
+      toast("Invalid JSON format. Please check the syntax.");
+
       return;
     }
 
@@ -92,7 +97,7 @@ export function EntityCreateButton() {
             <Input id='friendly_name_create' {...register("friendly_name")} />
           </div>
           <div className='space-y-2'>
-            <Label htmlFor='platform_update'>Platform</Label>
+            <Label htmlFor='platform_update'>Platform (Protocol)</Label>
             <Controller
               control={control}
               name='platform'
@@ -105,9 +110,27 @@ export function EntityCreateButton() {
                     <SelectValue placeholder='Select a platform' />
                   </SelectTrigger>
                   <SelectContent className='w-full'>
-                    <SelectItem value='MQTT'>MQTT</SelectItem>
-                    <SelectItem value='UDP'>RTP over UDP</SelectItem>
-                    <SelectItem value='RTSP'>RTSP</SelectItem>
+                    <EntitySelectPlatforms />
+                  </SelectContent>
+                </Select>
+              )}
+            />
+          </div>
+          <div className='space-y-2'>
+            <Label htmlFor='entity_type'>Type</Label>
+            <Controller
+              control={control}
+              name='entity_type'
+              render={({ field }) => (
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value ?? ""}
+                >
+                  <SelectTrigger id='entity_type' className='w-full'>
+                    <SelectValue placeholder='Select a type' />
+                  </SelectTrigger>
+                  <SelectContent className='w-full'>
+                    <EntitySelectTypes />
                   </SelectContent>
                 </Select>
               )}

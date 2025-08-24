@@ -39,24 +39,16 @@ import { RunFlowButton } from "./RunFlow";
 import { FlowLog } from "../flow-log/FlowLog";
 
 export default function FlowPage() {
-  const {
-    nodes,
-    edges,
-    setNodes,
-    setEdges,
-    flows,
-    fetchFlows,
-    currentFlowId,
-    saveGraph,
-  } = useFlowStore();
+  const { nodes, edges, setNodes, setEdges, flows, fetchFlows, currentFlowId } =
+    useFlowStore();
 
-  const saveAndRunFlow = async () => {
-    await saveGraph();
-    await fetchFlows();
-  };
+  // const saveAndRunFlow = async () => {
+  //   await saveGraph();
+  //   await fetchFlows();
+  // };
 
   useEffect(() => {
-    saveAndRunFlow();
+    fetchFlows();
   }, [fetchFlows]);
 
   useEffect(() => {

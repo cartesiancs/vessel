@@ -40,9 +40,15 @@ const roadmapData = [
   },
   {
     status: "pending",
-    title: "Phase 5: Standalone Hardware Release",
+    title: "Phase 5: Launch of Watchtower",
     description:
       "Announcing a new, all-in-one hardware solution for instrumentation, security, and detection, featuring a full suite of integrated sensors including a 360° camera, audio, GPS, thermal imaging, and various environmental sensors.",
+    icon: <Circle className='h-6 w-6 text-gray-400' />,
+  },
+  {
+    status: "pending",
+    title: "Phase 6: Launch of Self-Operating Drone",
+    description: "Launching a drone that can contain multiple payloads.",
     icon: <Circle className='h-6 w-6 text-gray-400' />,
   },
 ];

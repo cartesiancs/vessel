@@ -6,9 +6,11 @@ describe("Vessel API E2E Test", () => {
   let authToken;
   let newDeviceId;
   let newEntityId;
+  let newLayerId;
+  let newFeatureId;
 
   beforeAll(async () => {
-    const response = await request(API_BASE_URL).post("/auth").send({
+    const response = await request(API_BASE_URL).post("/api/auth").send({
       id: "admin",
       password: "admin",
     });
@@ -73,22 +75,110 @@ describe("Vessel API E2E Test", () => {
     });
   });
 
-  describe("Entities API", () => {
-    it("should create a new entity for the device", async () => {
+  describe("Map API", () => {
+    it("should create a new map layer", async () => {
       const response = await request(API_BASE_URL)
-        .post("/api/entities")
+        .post("/api/map/layers")
         .set("Authorization", `Bearer ${authToken}`)
         .send({
-          entity_id: "sensor.jest_test_temperature",
-          device_id: newDeviceId,
-          friendly_name: "Jest 온도 센서",
-          platform: "jest",
+          name: "Test Layer",
+          description: "A layer created by Jest",
+          is_visible: true,
         });
 
       expect(response.status).toBe(200);
       expect(response.body).toHaveProperty("id");
-      expect(response.body.entity_id).toBe("sensor.jest_test_temperature");
-      newEntityId = response.body.id;
+      expect(response.body.name).toBe("Test Layer");
+      newLayerId = response.body.id;
+    });
+
+    it("should get a list of all map layers", async () => {
+      const response = await request(API_BASE_URL)
+        .get("/api/map/layers")
+        .set("Authorization", `Bearer ${authToken}`);
+
+      expect(response.status).toBe(200);
+      expect(Array.isArray(response.body)).toBe(true);
+      expect(response.body.length).toBeGreaterThan(0);
+    });
+
+    it("should get a specific map layer by ID", async () => {
+      const response = await request(API_BASE_URL)
+        .get(`/api/map/layers/${newLayerId}`)
+        .set("Authorization", `Bearer ${authToken}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body.id).toBe(newLayerId);
+      expect(response.body.features).toEqual([]);
+    });
+
+    it("should create a new point feature in the layer", async () => {
+      const response = await request(API_BASE_URL)
+        .post("/api/map/features")
+        .set("Authorization", `Bearer ${authToken}`)
+        .send({
+          layer_id: newLayerId,
+          feature_type: "POINT",
+          name: "Test Point 1",
+          style_properties: JSON.stringify({ color: "red" }),
+          vertices: [{ latitude: 36.635, longitude: 127.456 }],
+        });
+
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveProperty("id");
+      expect(response.body.name).toBe("Test Point 1");
+      expect(response.body.feature_type).toBe("POINT");
+      newFeatureId = response.body.id;
+    });
+
+    it("should get the layer again with the new feature", async () => {
+      const response = await request(API_BASE_URL)
+        .get(`/api/map/layers/${newLayerId}`)
+        .set("Authorization", `Bearer ${authToken}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body.features.length).toBe(1);
+    });
+
+    it("should get a specific feature by ID", async () => {
+      const response = await request(API_BASE_URL)
+        .get(`/api/map/features/${newFeatureId}`)
+        .set("Authorization", `Bearer ${authToken}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body.vertices.length).toBe(1);
+      expect(response.body.vertices[0].latitude).toBe(36.635);
+    });
+
+    it("should update an existing feature", async () => {
+      const response = await request(API_BASE_URL)
+        .put(`/api/map/features/${newFeatureId}`)
+        .set("Authorization", `Bearer ${authToken}`)
+        .send({
+          name: "Updated Test Point",
+          vertices: [{ latitude: 37.5665, longitude: 126.978 }],
+        });
+
+      expect(response.status).toBe(200);
+      expect(response.body.name).toBe("Updated Test Point");
+    });
+
+    it("should delete the created feature", async () => {
+      const response = await request(API_BASE_URL)
+        .delete(`/api/map/features/${newFeatureId}`)
+        .set("Authorization", `Bearer ${authToken}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body.message).toBe("Feature deleted");
+    });
+
+    it("should delete the created layer", async () => {
+      const response = await request(API_BASE_URL)
+        .delete(`/api/map/layers/${newLayerId}`)
+        .set("Authorization", `Bearer ${authToken}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body.message).toBe("Layer deleted");
     });
   });
 });

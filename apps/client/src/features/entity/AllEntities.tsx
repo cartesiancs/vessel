@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import * as api from "../../entities/entity/api";
 import { EntityAll } from "@/entities/entity/types";
 import {
@@ -30,7 +30,7 @@ export function AllEntities() {
     if (
       item.platform == "UDP" &&
       item.configuration &&
-      item.configuration.type == "AUDIO"
+      item.entity_type == "AUDIO"
     ) {
       return (
         <Card key={item.id}>
@@ -58,7 +58,7 @@ export function AllEntities() {
       <Card key={item.id}>
         <CardHeader className='px-4'>
           <CardDescription>Entity : {item.friendly_name}</CardDescription>
-          <CardTitle className='text-2xl font-semibold tabular-nums'>
+          <CardTitle className='text-2xl font-semibold tabular-nums truncate'>
             {item.state?.state || "N/A"}
           </CardTitle>
         </CardHeader>
@@ -76,7 +76,7 @@ export function AllEntities() {
     <>
       <div className='grid grid-cols-1 gap-4 px-0 sm:grid-cols-2 lg:grid-cols-4 lg:px-6'>
         {entities.map((item) => (
-          <>{getCard(item)}</>
+          <Fragment key={item.id}>{getCard(item)}</Fragment>
         ))}
       </div>
     </>
