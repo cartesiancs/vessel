@@ -20,7 +20,14 @@ We believe in a future where you are not dependent on large corporations for you
 ## Key Features
 
 - **Visual Flow Editor**: Easily design complex automation workflows using a drag-and-drop interface powered by React Flow. Connect sensors to processors and actions to create custom logic (e.g., "If the microphone detects a sound louder than 80dB, turn on the porch light via Home Assistant").
+  <img src="/images/flow.png" alt="My Image">
+
+- **Map**
+  <img src="/images/map.png" alt="My Image">
+
 - **Device Management**: Register and manage your sensor devices. Monitor real-time data streams from each device.
+  <img src="/images/dashboard.png" alt="My Image">
+
 - **Broad Sensor Compatibility**: Vessel is designed to support a wide range of sensors, from simple temperature and motion detectors to complex devices like GPS, IMU, cameras, and microphones.
 - **Real-time Communication**: Utilizes UDP, SRTP, MQTT, and WebRTC for low-latency communication between Devices, the server, and the client.
 - **Extensible Architecture**: Built with a modular structure, allowing for the future integration of new devices (like drones and LoRaWAN), AI analysis servers, and custom actions.
@@ -43,10 +50,6 @@ Vessel is for the **proactive problem-solver** who is comfortable with DIY proje
 
 We are currently in the Proof of Concept (POC) phase and have completed the core flow engine, device management, and real-time data transfer.
 
-### Next Steps
+Check out our roadmap page.
 
-1.  **Home Assistant (HA) Integration**: Connect Vessel flows to control HA entities.
-2.  **Package Distribution**: Publish packages for easier deployment.
-3.  **Video Stream Support**: Add support for RTSP video streams from IP cameras.
-4.  **Agentic AI Missions**: Implement a higher-level AI to manage and execute complex tasks.
-5.  **Hardware Prototypes**: Develop custom hardware.
+[vessel.cartesiancs.com/roadmap](https://vessel.cartesiancs.com/roadmap)
