@@ -5,13 +5,34 @@ import { LayerDialog } from "./LayerDialog";
 import { useMapDataStore } from "@/entities/map/store";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export function LayerSidebar() {
   const { layers, activeLayerId, setActiveLayer, removeLayer } =
     useMapDataStore();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [layerToDelete, setLayerToDelete] = useState<number | null>(null);
 
   const toggleSidebar = () => setIsCollapsed(!isCollapsed);
+
+  const handleDeleteConfirm = () => {
+    if (layerToDelete) {
+      removeLayer(layerToDelete);
+      setLayerToDelete(null);
+    }
+  };
+
+  const selectedLayerName =
+    layers.find((l) => l.id === layerToDelete)?.name || "";
 
   return (
     <>
@@ -61,7 +82,7 @@ export function LayerSidebar() {
                     size='icon'
                     onClick={(e) => {
                       e.stopPropagation();
-                      removeLayer(layer.id);
+                      setLayerToDelete(layer.id);
                     }}
                   >
                     <Trash2 className='h-4 w-4 text-destructive' />
@@ -83,6 +104,27 @@ export function LayerSidebar() {
           <ChevronRight className='h-5 w-5' />
         </Button>
       )}
+
+      <AlertDialog
+        open={!!layerToDelete}
+        onOpenChange={() => setLayerToDelete(null)}
+      >
+        <AlertDialogContent className='z-[999999]'>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the '
+              {selectedLayerName}' layer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConfirm}>
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
