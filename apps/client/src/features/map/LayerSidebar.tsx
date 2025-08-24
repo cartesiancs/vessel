@@ -38,7 +38,7 @@ export function LayerSidebar() {
     <>
       <div
         className={cn(
-          "absolute top-[48px] left-0 border-r h-full w-64 bg-background/80 z-[1000] p-4 flex flex-col shadow-lg backdrop-blur-sm transition-all duration-300 ease-in-out overflow-hidden",
+          "absolute top-[48px] left-0 border-r h-[calc(100%-48px)] w-64 bg-background/80 z-[1000] p-4 flex flex-col shadow-lg backdrop-blur-sm transition-all duration-300 ease-in-out overflow-hidden",
           isCollapsed && "w-0 p-0 border-none",
         )}
       >
@@ -62,11 +62,11 @@ export function LayerSidebar() {
                 key={layer.id}
                 onClick={() => setActiveLayer(layer.id)}
                 className={cn(
-                  "p-2 rounded-md cursor-pointer hover:bg-muted flex justify-between items-center",
+                  "px-2 py-1 rounded-md cursor-pointer hover:bg-muted flex justify-between items-center",
                   activeLayerId === layer.id && "bg-muted",
                 )}
               >
-                <span className='truncate'>{layer.name}</span>
+                <span className='truncate text-sm'>{layer.name}</span>
                 <div className='flex items-center'>
                   <LayerDialog layer={layer}>
                     <Button
@@ -85,7 +85,7 @@ export function LayerSidebar() {
                       setLayerToDelete(layer.id);
                     }}
                   >
-                    <Trash2 className='h-4 w-4 text-destructive' />
+                    <Trash2 className='h-4 w-4 text-red-600' />
                   </Button>
                 </div>
               </li>
