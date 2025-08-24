@@ -27,7 +27,9 @@ Instead of relying on passive, closed-off security systems, Vessel gives you the
 ## Features
 
 - Connect all sensers (MQTT, RTP, RTSP)
--
+- RTP Audio Streaming
+- RTSP Video Streaming
+- Flow Visual Logic
 
 ## Develop
 
@@ -37,6 +39,7 @@ Get your local copy up and running.
 
 - [Rust](https://www.rust-lang.org/) & Cargo
 - [Node.js](https://nodejs.org/en/) (v18+) and npm
+- [mosquitto (MQTT)](https://mosquitto.org/) (additional)
 
 #### 1. Server Setup
 

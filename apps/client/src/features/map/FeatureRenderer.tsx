@@ -1,4 +1,4 @@
-import { Marker, Polygon, Polyline } from "react-leaflet";
+import { CircleMarker, Polygon, Polyline } from "react-leaflet";
 import { LatLngExpression } from "leaflet";
 import { FeatureWithVertices } from "@/entities/map/types";
 
@@ -17,7 +17,13 @@ export function FeatureRenderer({ feature }: FeatureRendererProps) {
 
   switch (feature.feature_type) {
     case "POINT":
-      return <Marker position={positions[0]} />;
+      return (
+        <CircleMarker
+          center={positions[0]}
+          pathOptions={{ color: "#ffffff" }}
+          radius={6}
+        />
+      );
 
     case "LINE":
       return <Polyline positions={positions} pathOptions={{ color: "lime" }} />;
