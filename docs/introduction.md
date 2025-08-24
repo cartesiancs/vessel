@@ -15,14 +15,14 @@ Our goal is to empower individuals to build their own intelligent security syste
 
 ## Vision
 
-We believe in a future where you are not dependent on large corporations for your physical security. Vessel provides the tools to build a truly independent and customizable security platform. Our ultimate goal is to become the leading open-source C2 software for civilian use, enabling proactive protection of your assets, from your home to your land.
+We believe in a future where you are not dependent on large corporations for your physical security. Vessel provides the tools to build a truly independent and customizable security platform.
 
 ## Key Features
 
 - **Visual Flow Editor**: Easily design complex automation workflows using a drag-and-drop interface powered by React Flow. Connect sensors to processors and actions to create custom logic (e.g., "If the microphone detects a sound louder than 80dB, turn on the porch light via Home Assistant").
-- **Sentinel/Device Management**: Register and manage your sensor devices (Sentinels). Monitor real-time data streams from each device.
+- **Device Management**: Register and manage your sensor devices. Monitor real-time data streams from each device.
 - **Broad Sensor Compatibility**: Vessel is designed to support a wide range of sensors, from simple temperature and motion detectors to complex devices like GPS, IMU, cameras, and microphones.
-- **Real-time Communication**: Utilizes UDP, SRTP, MQTT, and WebRTC for low-latency communication between Sentinels, the server, and the client.
+- **Real-time Communication**: Utilizes UDP, SRTP, MQTT, and WebRTC for low-latency communication between Devices, the server, and the client.
 - **Extensible Architecture**: Built with a modular structure, allowing for the future integration of new devices (like drones and LoRaWAN), AI analysis servers, and custom actions.
 
 ## Target Audience
