@@ -10,8 +10,8 @@ export function LayerSidebar() {
     useMapDataStore();
 
   return (
-    <div className='absolute top-0 left-0  h-full w-64 bg-background/80 z-[1000] p-4 flex flex-col shadow-lg backdrop-blur-sm'>
-      <div className='flex justify-between items-center mb-4 mt-10'>
+    <div className='absolute top-[48px] left-0 border-r h-full w-64 bg-background/80 z-[1000] p-4 flex flex-col shadow-lg backdrop-blur-sm'>
+      <div className='flex justify-between items-center mb-4'>
         <h2 className='text-lg font-semibold'>Layers</h2>
         <LayerDialog>
           <Button variant='ghost' size='icon'>
