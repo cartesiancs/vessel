@@ -24,18 +24,23 @@ Instead of relying on passive, closed-off security systems, Vessel gives you the
 
 (flow image)
 
+## Features
+
+- Connect all sensers (MQTT, RTP, RTSP)
+-
+
 ## Develop
 
 Get your local copy up and running.
 
 #### Prerequisites
 
-- Rust & Cargo
-- Node.js (v18+) and pnpm
+- [Rust](https://www.rust-lang.org/) & Cargo
+- [Node.js](https://nodejs.org/en/) (v18+) and npm
 
 #### 1. Server Setup
 
-```
+```bash
 # 1. Clone the repository
 git clone https://github.com/cartesiancs/vessel.git
 cd vessel/apps/server
@@ -56,7 +61,7 @@ cargo run
 
 Bash
 
-```
+```bash
 # 1. Install dependencies
 npm install
 
