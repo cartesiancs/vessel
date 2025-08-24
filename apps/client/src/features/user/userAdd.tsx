@@ -75,6 +75,9 @@ export const AddUserDialog: FC<{
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Add New User</DialogTitle>
+        </DialogHeader>
         <UserForm
           onSubmit={handleSubmit}
           onCancel={() => onOpenChange(false)}

@@ -86,6 +86,9 @@ export const EditUserDialog: FC<{
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Edit User</DialogTitle>
+        </DialogHeader>
         <UserForm
           user={user}
           onSubmit={handleSubmit}
