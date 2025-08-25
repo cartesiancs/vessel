@@ -39,6 +39,6 @@ impl ExecutableNode for NumberNode {
 
         outputs.insert("number".to_string(), number_value);
 
-        Ok(ExecutionResult { outputs })
+        Ok(ExecutionResult { outputs, ..Default::default()  })
     }
 }

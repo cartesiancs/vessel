@@ -53,6 +53,6 @@ impl ExecutableNode for ConditionNode {
             outputs.insert("false".to_string(), inputs.get("input").unwrap().clone());
         }
 
-        Ok(ExecutionResult { outputs })
+        Ok(ExecutionResult { outputs, ..Default::default()  })
     }
 }

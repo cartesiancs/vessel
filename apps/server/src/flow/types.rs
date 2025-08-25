@@ -3,17 +3,18 @@ use serde_json::Value;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ExecutionResult {
-    pub outputs: HashMap<String, Value>,
+pub struct Trigger {
+    pub node_id: String,
+    pub inputs: HashMap<String, Value>,
 }
 
-impl Default for ExecutionResult {
-    fn default() -> Self {
-        Self {
-            outputs: HashMap::new(),
-        }
-    }
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ExecutionResult {
+    pub outputs: HashMap<String, Value>,
+    #[serde(default)] 
+    pub triggers: Vec<Trigger>,
 }
+
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct Graph {

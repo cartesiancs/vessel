@@ -27,6 +27,7 @@ import { renderVarNode } from "./nodes/VarNode";
 import { renderCalcNode } from "./nodes/CalcNode";
 import { renderHttpNode } from "./nodes/HttpNode";
 import { formatConstantCase } from "@/lib/string";
+import { renderLoopNode } from "./nodes/LoopNode";
 
 export function Graph({
   nodes,
@@ -69,6 +70,7 @@ export function Graph({
     NUMBER: (g, d) => renderNumberNode(g, d, () => handleClickOption(d)),
     CALCULATION: (g, d) => renderCalcNode(g, d, () => handleClickOption(d)),
     HTTP_REQUEST: (g, d) => renderHttpNode(g, d, () => handleClickOption(d)),
+    LOOP: (g, d) => renderLoopNode(g, d, () => handleClickOption(d)),
   };
 
   const handleClickOption = (node: Node) => {
