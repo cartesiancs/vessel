@@ -63,8 +63,6 @@ cargo run
 
 #### 2. Client Setup
 
-Bash
-
 ```bash
 # 1. Install dependencies
 npm install
