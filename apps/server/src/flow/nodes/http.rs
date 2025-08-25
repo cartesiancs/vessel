@@ -70,6 +70,6 @@ impl ExecutableNode for HttpNode {
         let mut outputs = HashMap::new();
         outputs.insert("result".to_string(), Value::from(result_body));
 
-        Ok(ExecutionResult { outputs })
+        Ok(ExecutionResult { outputs, ..Default::default()  })
     }
 }

@@ -11,7 +11,7 @@ import {
   NodeTypes,
 } from "./flowTypes";
 
-import { renderButtonNode } from "./nodes/ButtonNode";
+// import { renderButtonNode } from "./nodes/ButtonNode";
 import { renderTitleNode } from "./nodes/TitleNode";
 import { Options } from "./Options";
 import {
@@ -27,6 +27,7 @@ import { renderVarNode } from "./nodes/VarNode";
 import { renderCalcNode } from "./nodes/CalcNode";
 import { renderHttpNode } from "./nodes/HttpNode";
 import { formatConstantCase } from "@/lib/string";
+import { renderLoopNode } from "./nodes/LoopNode";
 
 export function Graph({
   nodes,
@@ -59,9 +60,9 @@ export function Graph({
   const nodesRef = useRef(nodes);
 
   const nodeRenderers: Record<string, NodeRenderer> = {
-    BUTTON: (g, d) => renderButtonNode(g, d, () => handleClickOption(d)),
-    TITLE: (g, d) => renderTitleNode(g, d),
-    ADD: (g, d) => renderProcessingNode(g, d),
+    // BUTTON: (g, d) => renderButtonNode(g, d, () => handleClickOption(d)),
+    // TITLE: (g, d) => renderTitleNode(g, d),
+    // ADD: (g, d) => renderProcessingNode(g, d),
     START: (g, d) => renderTitleNode(g, d),
     SET_VARIABLE: (g, d) => renderVarNode(g, d, () => handleClickOption(d)),
     CONDITION: (g, d) => renderProcessingNode(g, d),
@@ -69,6 +70,7 @@ export function Graph({
     NUMBER: (g, d) => renderNumberNode(g, d, () => handleClickOption(d)),
     CALCULATION: (g, d) => renderCalcNode(g, d, () => handleClickOption(d)),
     HTTP_REQUEST: (g, d) => renderHttpNode(g, d, () => handleClickOption(d)),
+    LOOP: (g, d) => renderLoopNode(g, d, () => handleClickOption(d)),
   };
 
   const handleClickOption = (node: Node) => {

@@ -56,6 +56,6 @@ impl ExecutableNode for CalcNode {
         let mut outputs = HashMap::new();
         outputs.insert("number".to_string(), Value::from(result));
 
-        Ok(ExecutionResult { outputs })
+        Ok(ExecutionResult { outputs, ..Default::default()  })
     }
 }

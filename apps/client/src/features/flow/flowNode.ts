@@ -111,4 +111,17 @@ export const DEFINITION_NODE: {
       httpMethod: "SELECT[GET,POST,DELETE,PUT]",
     },
   },
+  LOOP: {
+    connectors: [
+      { id: `id`, name: "start", type: "in" },
+      { id: `id`, name: "body", type: "out" },
+    ],
+    nodeType: "LOOP",
+    data: {
+      iterations: 5,
+    },
+    dataType: {
+      iterations: "NUMBER",
+    },
+  },
 };

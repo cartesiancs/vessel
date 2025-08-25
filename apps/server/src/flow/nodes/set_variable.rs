@@ -79,6 +79,6 @@ impl ExecutableNode for SetVariableNode {
 
         outputs.insert("out".to_string(), value);
 
-        Ok(ExecutionResult { outputs })
+        Ok(ExecutionResult { outputs, ..Default::default()  })
     }
 }

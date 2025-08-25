@@ -19,6 +19,7 @@ export type NodeTypes =
   | "CONDITION"
   | "LOG_MESSAGE"
   | "CALCULATION"
+  | "LOOP"
   | "HTTP_REQUEST";
 
 export type NumberNodeType = {
@@ -53,6 +54,10 @@ export type HTTPRequestNodeType = {
   httpMethod: "POST" | "GET" | "DELETE" | "PUT";
 };
 
+export type LoopNodeType = {
+  iterations: number;
+};
+
 export type DataNodeType =
   | NumberNodeType
   | TextNodeType
@@ -60,6 +65,7 @@ export type DataNodeType =
   | SetVariableNodeType
   | ConditionNodeType
   | HTTPRequestNodeType
+  | LoopNodeType
   | CalculationNodeType;
 
 export type DataNodeTypeType = Record<string, string>;

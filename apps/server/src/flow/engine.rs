@@ -2,12 +2,11 @@ use std::collections::{HashMap, VecDeque};
 use std::sync::Arc;
 use anyhow::{Result, anyhow};
 use axum::extract::ws::{Message, WebSocket};
-use axum::extract::State;
 use futures_util::stream::SplitSink;
-use serde_json::Value;
+use serde_json::{Value, json};
 use tokio::sync::Mutex;
 
-use crate::flow::types::{Graph, Node, ExecutionResult, Edge};
+use crate::flow::types::{Graph, Node, Edge};
 use crate::flow::nodes::{
     ExecutableNode,
     start::StartNode,
@@ -17,11 +16,9 @@ use crate::flow::nodes::{
     condition::ConditionNode,
     number::NumberNode,
     calc::CalcNode,
-    http::HttpNode
-    // button::ButtonNode,
-    // title::TitleNode,
+    http::HttpNode,
+    loop_node::LoopNode,
 };
-use crate::state::AppState;
 
 #[derive(Default)]
 pub struct ExecutionContext {
@@ -40,9 +37,6 @@ impl ExecutionContext {
 
 pub struct FlowEngine {
     nodes: HashMap<String, Node>,
-    connector_to_node_map: HashMap<String, String>,
-    connector_name_map: HashMap<String, String>,
-    
     data_flow_graph: HashMap<String, Vec<(String, String, String)>>,
     expected_input_counts: HashMap<String, usize>,
 }
@@ -85,8 +79,6 @@ impl FlowEngine {
 
         Ok(Self {
             nodes: nodes_map,
-            connector_to_node_map,
-            connector_name_map,
             data_flow_graph,
             expected_input_counts,
         })
@@ -103,11 +95,12 @@ impl FlowEngine {
             "LOG_MESSAGE" => Ok(Box::new(LogMessageNode)),
             "CALCULATION" => Ok(Box::new(CalcNode::new(&node.data)?)),
             "HTTP_REQUEST" => Ok(Box::new(HttpNode::new(&node.data)?)),
+            "LOOP" => Ok(Box::new(LoopNode::new(&node.data)?)),
             _ => Err(anyhow!("Unknown or unimplemented node type: {}", node.node_type)),
         }
     }
 
-    pub async fn run(&self, ws_sender: Arc<Mutex<SplitSink<WebSocket, Message>>>,) -> Result<()> {
+    pub async fn run(&self, ws_sender: Arc<Mutex<SplitSink<WebSocket, Message>>>) -> Result<()> {
         let mut context = ExecutionContext::default();
         let mut execution_queue: VecDeque<String> = VecDeque::new();
         let mut received_input_counts: HashMap<String, usize> = HashMap::new();
@@ -115,7 +108,6 @@ impl FlowEngine {
 
         for node_id in self.nodes.keys() {
             if self.expected_input_counts.get(node_id).unwrap_or(&0) == &0 {
-                println!("Found start node: {}", node_id);
                 execution_queue.push_back(node_id.clone());
             }
         }
@@ -126,9 +118,29 @@ impl FlowEngine {
 
         while let Some(node_id) = execution_queue.pop_front() {
             let node_instance = self.get_node_instance(&node_id)?;
-            let inputs = node_input_data.get(&node_id).cloned().unwrap_or_default();
+            let mut inputs = node_input_data.get(&node_id).cloned().unwrap_or_default();
+            
+            if let Some(node) = self.nodes.get(&node_id) {
+                if node.node_type == "LOOP" {
+                    if let Some(connections) = self.data_flow_graph.get(&node_id) {
+                        if let Some((_, target_node_id, target_connector_name)) = connections.iter().find(|(source_connector, _, _)| source_connector == "body") {
+                            inputs.insert("body_node_id".to_string(), json!(target_node_id));
+                            inputs.insert("body_input_name".to_string(), json!(target_connector_name));
+                        }
+                    }
+                }
+            }
             
             let result = node_instance.execute(&mut context, inputs, ws_sender.clone()).await?;
+
+            for trigger in result.triggers {
+                node_input_data
+                    .entry(trigger.node_id.clone())
+                    .or_default()
+                    .extend(trigger.inputs);
+                
+                execution_queue.push_back(trigger.node_id);
+            }
 
             if let Some(connections) = self.data_flow_graph.get(&node_id) {
                 for (source_connector_name, target_node_id, target_connector_name) in connections {
@@ -141,8 +153,9 @@ impl FlowEngine {
                         *received_count += 1;
 
                         let expected_count = self.expected_input_counts.get(target_node_id).unwrap_or(&0);
-                        if received_count == expected_count {
+                        if *received_count >= *expected_count {
                             execution_queue.push_back(target_node_id.clone());
+                            received_input_counts.insert(target_node_id.clone(), 0);
                         }
                     }
                 }

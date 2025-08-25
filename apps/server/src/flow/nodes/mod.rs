@@ -26,3 +26,4 @@ pub mod condition;
 pub mod number;
 pub mod calc;
 pub mod http;
+pub mod loop_node;

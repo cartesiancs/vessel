@@ -15,6 +15,6 @@ impl ExecutableNode for StartNode {
     async fn execute(&self, _context: &mut ExecutionContext, _inputs: HashMap<String, Value>, ws_sender: Arc<Mutex<SplitSink<WebSocket, Message>>>) -> Result<ExecutionResult> {
         let mut outputs = HashMap::new();
         outputs.insert("out".to_string(), Value::Null);
-        Ok(ExecutionResult { outputs })
+        Ok(ExecutionResult { outputs, ..Default::default() })
     }
 }

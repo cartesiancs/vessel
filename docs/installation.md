@@ -1,12 +1,7 @@
 # Installation
 
-This guide will walk you through setting up and running Vessel in your local environment. Vessel consists of three main components: the **Server** and the **Devices**.
+This guide will walk you through setting up and running Vessel in your local environment.
 
-## 1. Install
+Please refer to README in the repository below.
 
-First, clone the project source code to your local machine using Git.
-
-```bash
-git clone [Your-Project-Repository-URL]
-cd [your-project-directory]
-```
+[https://github.com/cartesiancs/vessel](https://github.com/cartesiancs/vessel)

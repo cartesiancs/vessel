@@ -22,7 +22,15 @@ Vessel is the C2 (Command & Control) software. It empowers you to connect, monit
 
 Instead of relying on passive, closed-off security systems, Vessel gives you the tools to build a proactive and highly customized defense system for your personal assets—be it your home, workshop, or small farm.
 
-(flow image)
+> [!NOTE]
+> 🚧 <strong>This project is under active development.</strong> Some features may be unstable or subject to change without notice.
+
+## Features
+
+- Connect all sensers (MQTT, RTP, RTSP)
+- RTP Audio Streaming
+- RTSP Video Streaming
+- Flow Visual Logic
 
 ## Develop
 
@@ -30,12 +38,13 @@ Get your local copy up and running.
 
 #### Prerequisites
 
-- Rust & Cargo
-- Node.js (v18+) and pnpm
+- [Rust](https://www.rust-lang.org/) & Cargo
+- [Node.js](https://nodejs.org/en/) (v18+) and npm
+- [mosquitto (MQTT)](https://mosquitto.org/) (additional)
 
 #### 1. Server Setup
 
-```
+```bash
 # 1. Clone the repository
 git clone https://github.com/cartesiancs/vessel.git
 cd vessel/apps/server
@@ -54,9 +63,7 @@ cargo run
 
 #### 2. Client Setup
 
-Bash
-
-```
+```bash
 # 1. Install dependencies
 npm install
 
@@ -66,7 +73,15 @@ npm run client
 
 ## Compile
 
-...
+This command compiles the entire project, including both the server and the client, into a single executable file.
+
+```bash
+npm run build
+```
+
+The compiled binary, named 'server', will be located in the target/release directory.
+
+> To run the server executable, you must have a .env file in the same directory (target/release).
 
 ## Contributing
 
