@@ -22,7 +22,8 @@ Vessel is the C2 (Command & Control) software. It empowers you to connect, monit
 
 Instead of relying on passive, closed-off security systems, Vessel gives you the tools to build a proactive and highly customized defense system for your personal assets—be it your home, workshop, or small farm.
 
-(flow image)
+> [!NOTE]
+> 🚧 <strong>This project is under active development.</strong> Some features may be unstable or subject to change without notice.
 
 ## Features
 
@@ -74,7 +75,15 @@ npm run client
 
 ## Compile
 
-...
+This command compiles the entire project, including both the server and the client, into a single executable file.
+
+```bash
+npm run build
+```
+
+The compiled binary, named 'server', will be located in the target/release directory.
+
+> To run the server executable, you must have a .env file in the same directory (target/release).
 
 ## Contributing
 
