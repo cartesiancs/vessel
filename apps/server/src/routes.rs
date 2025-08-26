@@ -5,6 +5,7 @@ use axum::{
 };
 use anyhow::Result;
 use serde_json::json;
+use tokio::sync::watch;
 use tower_http::cors::{Any, CorsLayer};
 use tracing::{ info};
 
@@ -52,7 +53,7 @@ async fn static_handler(uri: Uri) -> impl IntoResponse {
 }
 
 
-pub async fn web_server(addr: String, app_state: Arc<AppState>) -> Result<()> {
+pub async fn web_server(addr: String, app_state: Arc<AppState>, mut shutdown_rx: watch::Receiver<()>) -> Result<()> {
     let cors = CorsLayer::new()
         .allow_origin(Any)
         .allow_methods([Method::GET, Method::POST, Method::PUT, Method::DELETE])
@@ -92,6 +93,12 @@ pub async fn web_server(addr: String, app_state: Arc<AppState>) -> Result<()> {
         .fallback(static_handler);
     info!("Signal server listening on {}", addr);
     let listener = tokio::net::TcpListener::bind(addr).await?;
-    axum::serve(listener, app.into_make_service()).await?;
+    
+    axum::serve(listener, app.into_make_service())
+        .with_graceful_shutdown(async move {
+            shutdown_rx.changed().await.ok();
+            info!("Shutting down web server...");
+        })
+        .await?;
     Ok(())
 }

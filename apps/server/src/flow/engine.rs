@@ -2,9 +2,10 @@ use std::collections::{HashMap, VecDeque};
 use std::sync::Arc;
 use anyhow::{Result, anyhow};
 use axum::extract::ws::{Message, WebSocket};
-use futures_util::stream::SplitSink;
+use futures_util::{stream::SplitSink, SinkExt};
 use serde_json::{Value, json};
 use tokio::sync::Mutex;
+use tracing::error;
 
 use crate::flow::types::{Graph, Node, Edge};
 use crate::flow::nodes::{
@@ -108,6 +109,18 @@ impl FlowEngine {
         let mut received_input_counts: HashMap<String, usize> = HashMap::new();
         let mut node_input_data: HashMap<String, HashMap<String, Value>> = HashMap::new();
 
+        let ws_message = json!({
+            "type": "log_message",
+            "payload": "Executing flow..."
+        });
+        
+        if let Ok(payload_str) = serde_json::to_string(&ws_message) {
+            if ws_sender.lock().await.send(Message::Text(payload_str)).await.is_err() {
+                error!("Failed to send health check response.");
+            }
+        }
+
+
         for node_id in self.nodes.keys() {
             if self.expected_input_counts.get(node_id).unwrap_or(&0) == &0 {
                 execution_queue.push_back(node_id.clone());
@@ -164,6 +177,14 @@ impl FlowEngine {
             }
         }
 
+        if let Ok(payload_str) = serde_json::to_string(&json!({
+            "type": "log_message",
+            "payload": "Flow execution finished."
+        })) {
+            if ws_sender.lock().await.send(Message::Text(payload_str)).await.is_err() {
+                error!("Failed to send health check response.");
+            }
+        }
         Ok(())
     }
 }

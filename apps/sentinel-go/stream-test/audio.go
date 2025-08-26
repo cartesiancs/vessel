@@ -19,7 +19,7 @@ type RegisterResponse struct {
 
 func main() {
     deviceId := "audio"
-    deviceToken := "hB3iF-Y1UYqvgqeL5efWVJmcpAMNYAmg2gyjCnsUdds"
+    deviceToken := "FnhXd7dNy8iCPbu5N5jS2v_NaOYCiI9AqPO4FQQed7E"
 
     serverURL := "http://127.0.0.1:8080/api/streams/register"
     topic := "go_stream_1"

@@ -1,86 +1,97 @@
-
-
-use anyhow::{anyhow, Result};
-use crossbeam_channel::{bounded, Receiver, Sender};
+use anyhow::{anyhow, Error, Result};
+use bytes::Bytes;
+use futures_util::StreamExt;
 use gstreamer::prelude::*;
 use gstreamer_app::{prelude::*, AppSink, AppSinkCallbacks};
 use std::sync::Arc;
-use tokio::task::JoinSet;
+use tokio::sync::{broadcast, watch};
 use tracing::{error, info, warn};
-use anyhow::Error;
 
-use crate::state::{AppState, Protocol};
-
-#[derive(Debug)]
-pub struct FrameData {
-    pub stream_uri: String,
-    pub buffer: Vec<u8>,
-    pub width: i32,
-    pub height: i32,
-}
-
-pub struct RtspManager {
-    pub frame_rx: Receiver<FrameData>,
-}
-
-impl RtspManager {
-    pub fn new() -> (Self, Sender<FrameData>) {
-        let (frame_tx, frame_rx) = bounded(100);
-        (Self { frame_rx }, frame_tx)
-    }
-}
+use crate::state::{AppState, FrameData, Protocol};
 
 pub async fn start_rtsp_pipelines(
     app_state: Arc<AppState>,
-    frame_tx: Sender<FrameData>,
-) {
+    shutdown_rx: watch::Receiver<()>,
+) -> Result<()> {
     if let Err(e) = gstreamer::init() {
-        eprintln!("Failed to initialize GStreamer: {}", e);
-        return;
+        error!("Failed to initialize GStreamer: {}", e);
+        return Ok(());
     }
 
     let topic_map = app_state.topic_map.read().await;
-
     let rtsp_mappings: Vec<_> = topic_map
         .iter()
         .filter(|mapping| mapping.protocol == Protocol::RTSP)
-        .cloned() 
+        .cloned()
         .collect();
-    
     drop(topic_map);
 
     if rtsp_mappings.is_empty() {
-        println!("No RTSP streams found in topic map.");
-        return;
+        info!("No RTSP streams found in topic map.");
+        return Ok(());
     }
 
-    println!("Found {} RTSP streams to launch.", rtsp_mappings.len());
+    info!("Found {} RTSP streams to launch.", rtsp_mappings.len());
+    let mut join_set = tokio::task::JoinSet::new();
 
     for mapping in rtsp_mappings {
-        let tx = frame_tx.clone();
+        let frame_tx = app_state.rtsp_frame_tx.clone();
+        let topic = mapping.topic.clone();
+        let mut shutdown_rx = shutdown_rx.clone();
 
-        tokio::spawn(async move {
-            println!("🚀 Launching pipeline for: {}", mapping.topic);
-            
-            if let Err(e) = run_pipeline(&mapping.topic, tx).await {
-                eprintln!("Error in pipeline for {}: {}", mapping.topic, e);
+        join_set.spawn(async move {
+            info!("🚀 Launching pipeline for: {}", topic);
+            loop {
+                let mut shutdown_rx_clone = shutdown_rx.clone();
+                let pipeline_future =
+                    run_pipeline(&topic, frame_tx.clone(), &mut shutdown_rx_clone);
+
+                tokio::select! {
+                    _ = shutdown_rx.changed() => {
+                        info!("Shutdown signal received, stopping pipeline loop for {}", topic);
+                        break;
+                    }
+                    pipeline_result = pipeline_future => {
+                        match pipeline_result {
+                            Ok(_) => {
+                                info!("Pipeline for {} finished gracefully.", topic);
+                                break;
+                            }
+                            Err(e) => {
+                                error!("Error in pipeline for {}. Restarting...: {}", topic, e);
+                                tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
+                            }
+                        }
+                    }
+                }
             }
         });
     }
+
+    while let Some(res) = join_set.join_next().await {
+        if let Err(e) = res {
+            error!("A pipeline task failed: {}", e);
+        }
+    }
+
+    info!("All RTSP pipelines have shut down.");
+    Ok(())
 }
 
-async fn run_pipeline(rtsp_url: &str, frame_tx: Sender<FrameData>) -> Result<(), Error> {
+async fn run_pipeline(
+    rtsp_url: &str,
+    frame_tx: broadcast::Sender<FrameData>,
+    shutdown_rx: &mut watch::Receiver<()>,
+) -> Result<(), Error> {
     let pipeline_str = format!(
-        "rtspsrc location={0} latency=0 ! rtph264depay ! h264parse ! avdec_h264 ! videoconvert ! videoscale ! video/x-raw,format=RGB ! appsink name=sink emit-signals=true",
+        "rtspsrc location={0} latency=0 ! rtph264depay ! h264parse config-interval=-1 ! video/x-h264,stream-format=byte-stream,alignment=au ! appsink name=sink emit-signals=true",
         rtsp_url
     );
 
     let pipeline = gstreamer::parse::launch(&pipeline_str)?;
-
     let pipeline_bin = pipeline
         .downcast::<gstreamer::Bin>()
         .map_err(|_| anyhow!("Pipeline element is not a Bin"))?;
-
     let appsink = pipeline_bin
         .by_name("sink")
         .ok_or_else(|| anyhow!("Failed to get sink element"))?
@@ -93,23 +104,14 @@ async fn run_pipeline(rtsp_url: &str, frame_tx: Sender<FrameData>) -> Result<(),
             .new_sample(move |sink| {
                 let sample = sink.pull_sample().map_err(|_| gstreamer::FlowError::Eos)?;
                 let buffer = sample.buffer().ok_or(gstreamer::FlowError::Error)?;
-                let caps = sample.caps().ok_or(gstreamer::FlowError::Error)?;
-                let s = caps.structure(0).ok_or(gstreamer::FlowError::Error)?;
-                let width = s.get::<i32>("width").map_err(|_| gstreamer::FlowError::Error)?;
-                let height = s.get::<i32>("height").map_err(|_| gstreamer::FlowError::Error)?;
-                
                 let map = buffer.map_readable().map_err(|_| gstreamer::FlowError::Error)?;
-                
+
                 let frame_data = FrameData {
-                    stream_uri: rtsp_url_clone.clone(),
-                    buffer: map.as_slice().to_vec(),
-                    width,
-                    height,
+                    topic: rtsp_url_clone.clone(),
+                    buffer: Bytes::copy_from_slice(map.as_slice()),
                 };
-                
-                if let Err(e) = frame_tx.try_send(frame_data) {
-                    warn!("Failed to send frame data: {}", e);
-                }
+
+                if frame_tx.send(frame_data).is_err() {}
 
                 Ok(gstreamer::FlowSuccess::Ok)
             })
@@ -119,26 +121,44 @@ async fn run_pipeline(rtsp_url: &str, frame_tx: Sender<FrameData>) -> Result<(),
     pipeline_bin.set_state(gstreamer::State::Playing)?;
 
     let bus = pipeline_bin.bus().unwrap();
-    for msg in bus.iter_timed(gstreamer::ClockTime::NONE) {
-        use gstreamer::MessageView;
-        match msg.view() {
-            MessageView::Error(err) => {
-                error!("Error from pipeline {}: {} ({})",
-                    rtsp_url,
-                    err.error(),
-                    err.debug().unwrap_or_default()
-                );
-                pipeline_bin.set_state(gstreamer::State::Null)?;
-                return Err(anyhow!("Pipeline error: {}", err.error()));
-            }
-            MessageView::Eos(_) => {
-                info!("End of stream for {}", rtsp_url);
+    let mut bus_stream = bus.stream();
+
+    loop {
+        tokio::select! {
+            _ = shutdown_rx.changed() => {
+                info!("Shutdown signal received in run_pipeline for {}. Sending EOS.", rtsp_url);
+                if !pipeline_bin.send_event(gstreamer::event::Eos::new()) {
+                    warn!("Failed to send EOS to pipeline {}", rtsp_url);
+                }
                 break;
             }
-            _ => (),
+            maybe_msg = bus_stream.next() => {
+                match maybe_msg {
+                    Some(msg) => {
+                        use gstreamer::MessageView;
+                        match msg.view() {
+                            MessageView::Error(err) => {
+                                error!("Error from pipeline {}: {} ({})", rtsp_url, err.error(), err.debug().unwrap_or_default());
+                                pipeline_bin.set_state(gstreamer::State::Null)?;
+                                return Err(anyhow!("Pipeline error: {}", err.error()));
+                            }
+                            MessageView::Eos(_) => {
+                                info!("End of stream for {}", rtsp_url);
+                                break;
+                            }
+                            _ => (),
+                        }
+                    }
+                    None => {
+                        info!("Bus stream ended for {}", rtsp_url);
+                        break;
+                    }
+                }
+            }
         }
     }
 
     pipeline_bin.set_state(gstreamer::State::Null)?;
+    info!("Pipeline for {} has been set to NULL state.", rtsp_url);
     Ok(())
 }

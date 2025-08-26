@@ -11,12 +11,20 @@ pub type DbPool = r2d2::Pool<ConnectionManager<SqliteConnection>>;
 
 use dashmap::DashMap;
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum MediaType {
+    Audio,
+    Video,
+}
+
 #[derive(Clone)] 
 pub struct StreamInfo {
     pub topic: String,
     pub user_id: String,
     pub packet_tx: broadcast::Sender<Packet>,
+    pub media_type: MediaType,
 }
+
 
 pub type StreamManager = Arc<DashMap<u32, StreamInfo>>; 
 
@@ -24,6 +32,12 @@ pub type StreamManager = Arc<DashMap<u32, StreamInfo>>;
 pub struct MqttMessage {
     pub topic: String,
     pub bytes: Bytes,
+}
+
+#[derive(Clone, Debug)]
+pub struct FrameData {
+    pub topic: String,
+    pub buffer: Bytes,
 }
 
 #[derive(Serialize, Clone, Debug, PartialEq, Eq)]
@@ -47,4 +61,5 @@ pub struct AppState {
     pub jwt_secret: String, 
     pub pool: DbPool,
     pub topic_map: Arc<RwLock<Vec<TopicMapping>>>,
+    pub rtsp_frame_tx: broadcast::Sender<FrameData>,
 }

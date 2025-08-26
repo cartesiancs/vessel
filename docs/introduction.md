@@ -36,7 +36,7 @@ We believe in a future where you are not dependent on large corporations for you
 
 Vessel is for the **proactive problem-solver** who is comfortable with DIY projects and wants to take control of their personal security. Our ideal user is:
 
-- A homeowner in a rural area in the U.S.
+- A homeowner in a rural area.
 - Tech-savvy and interested in home automation.
 - Desires a sense of control and immediate feedback from their security system.
 - May also be a small business owner managing assets like a small factory or farm.

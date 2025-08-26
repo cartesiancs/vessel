@@ -8,7 +8,7 @@ import {
   CardTitle,
   CardFooter,
 } from "@/components/ui/card";
-import AudioReceiver from "../rtc/audio";
+import { StreamReceiver } from "../rtc/video";
 
 export function AllEntities() {
   const [entities, setEntities] = useState<EntityAll[]>([]);
@@ -38,8 +38,37 @@ export function AllEntities() {
             <CardDescription>Entity : {item.friendly_name}</CardDescription>
             <CardTitle className='text-2xl font-semibold tabular-nums'>
               {item.configuration && (
-                <AudioReceiver
+                <StreamReceiver
                   topic={item.configuration.state_topic as string}
+                  streamType='audio'
+                />
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardFooter className='flex-col items-start gap-1 px-4 text-sm'>
+            <div className='font-medium'>{item.platform}</div>
+            <div className='text-muted-foreground'>
+              {item.state?.last_updated}
+            </div>
+          </CardFooter>
+        </Card>
+      );
+    }
+
+    if (
+      item.platform == "RTSP" &&
+      item.configuration &&
+      item.entity_type == "VIDEO"
+    ) {
+      return (
+        <Card key={item.id}>
+          <CardHeader className='px-4'>
+            <CardDescription>Entity : {item.friendly_name}</CardDescription>
+            <CardTitle className='text-2xl font-semibold tabular-nums'>
+              {item.configuration && (
+                <StreamReceiver
+                  topic={item.configuration.rtsp_url as string}
+                  streamType='video'
                 />
               )}
             </CardTitle>
