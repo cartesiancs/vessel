@@ -20,6 +20,7 @@ export type NodeTypes =
   | "LOG_MESSAGE"
   | "CALCULATION"
   | "LOOP"
+  | "LOGIC_OPERATOR"
   | "HTTP_REQUEST";
 
 export type NumberNodeType = {
@@ -49,6 +50,22 @@ export type CalculationNodeType = {
   operatorCalc: "+" | "-" | "/" | "*" | "%";
 };
 
+export type LogicOpetatorNodeType = {
+  operator:
+    | "AND"
+    | "OR"
+    | "XOR"
+    | "NAND"
+    | "XNOR"
+    | "NOR"
+    | "<"
+    | ">"
+    | "="
+    | "!="
+    | ">="
+    | "<=";
+};
+
 export type HTTPRequestNodeType = {
   url: string;
   httpMethod: "POST" | "GET" | "DELETE" | "PUT";
@@ -66,6 +83,7 @@ export type DataNodeType =
   | ConditionNodeType
   | HTTPRequestNodeType
   | LoopNodeType
+  | LogicOpetatorNodeType
   | CalculationNodeType;
 
 export type DataNodeTypeType = Record<string, string>;

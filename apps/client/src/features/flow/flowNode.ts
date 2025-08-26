@@ -124,4 +124,18 @@ export const DEFINITION_NODE: {
       iterations: "NUMBER",
     },
   },
+  LOGIC_OPERATOR: {
+    connectors: [
+      { id: `id`, name: "a", type: "in" },
+      { id: `id`, name: "b", type: "in" },
+      { id: `id`, name: "bool", type: "out" },
+    ],
+    nodeType: "LOGIC_OPERATOR",
+    data: {
+      operator: "AND",
+    },
+    dataType: {
+      operator: "SELECT[AND,OR,XOR,NAND,NOR,XNOR,>,<,==,!=,>=,<=]",
+    },
+  },
 };

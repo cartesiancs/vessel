@@ -28,6 +28,7 @@ import { renderCalcNode } from "./nodes/CalcNode";
 import { renderHttpNode } from "./nodes/HttpNode";
 import { formatConstantCase } from "@/lib/string";
 import { renderLoopNode } from "./nodes/LoopNode";
+import { renderLogicNode } from "./nodes/LogicNode";
 
 export function Graph({
   nodes,
@@ -71,6 +72,7 @@ export function Graph({
     CALCULATION: (g, d) => renderCalcNode(g, d, () => handleClickOption(d)),
     HTTP_REQUEST: (g, d) => renderHttpNode(g, d, () => handleClickOption(d)),
     LOOP: (g, d) => renderLoopNode(g, d, () => handleClickOption(d)),
+    LOGIC_OPERATOR: (g, d) => renderLogicNode(g, d, () => handleClickOption(d)),
   };
 
   const handleClickOption = (node: Node) => {

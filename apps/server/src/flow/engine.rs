@@ -18,6 +18,7 @@ use crate::flow::nodes::{
     calc::CalcNode,
     http::HttpNode,
     loop_node::LoopNode,
+    logic_operator::LogicOpetatorNode
 };
 
 #[derive(Default)]
@@ -96,6 +97,7 @@ impl FlowEngine {
             "CALCULATION" => Ok(Box::new(CalcNode::new(&node.data)?)),
             "HTTP_REQUEST" => Ok(Box::new(HttpNode::new(&node.data)?)),
             "LOOP" => Ok(Box::new(LoopNode::new(&node.data)?)),
+            "LOGIC_OPERATOR" => Ok(Box::new(LogicOpetatorNode::new(&node.data)?)),
             _ => Err(anyhow!("Unknown or unimplemented node type: {}", node.node_type)),
         }
     }
