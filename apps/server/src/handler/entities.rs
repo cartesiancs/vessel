@@ -2,7 +2,7 @@ use std::sync::Arc;
 use axum::{extract::{Path, Query, State}, Json};
 use serde::Deserialize;
 use serde_json::{json, Value};
-use crate::{db::{self, models::{EntityWithConfig, EntityWithStateAndConfig, NewEntity}}, error::AppError, lib::entity_map::remap_topics, state::AppState};
+use crate::{db::{self, models::{EntityWithConfig, EntityWithStateAndConfig, NewEntity}}, error::AppError, handler::auth::AuthUser, lib::entity_map::remap_topics, state::AppState};
 
 #[derive(Deserialize)]
 pub struct EntityPayload {
@@ -21,6 +21,7 @@ pub struct GetEntitiesParams {
 
 pub async fn create_entity(
     State(state): State<Arc<AppState>>,
+    AuthUser(_user): AuthUser,
     Json(payload): Json<EntityPayload>,
 ) -> Result<Json<EntityWithConfig>, AppError> {
     let new_entity = NewEntity {
@@ -54,6 +55,7 @@ pub async fn create_entity(
 
 pub async fn get_entities(
     State(state): State<Arc<AppState>>,
+    AuthUser(_user): AuthUser,
     Query(params): Query<GetEntitiesParams>,
 ) -> Result<Json<Vec<EntityWithConfig>>, AppError> {
     let entities = db::repository::get_all_entities_with_configs_filter(&state.pool, params.entity_type)?;
@@ -62,6 +64,7 @@ pub async fn get_entities(
 
 pub async fn get_entities_with_states(
     State(state): State<Arc<AppState>>,
+    AuthUser(_user): AuthUser,
     Query(params): Query<GetEntitiesParams>,
 ) -> Result<Json<Vec<EntityWithStateAndConfig>>, AppError> {
     let entities = db::repository::get_all_entities_with_states_and_configs_filter(&state.pool, params.entity_type)?;
@@ -72,6 +75,7 @@ pub async fn get_entities_with_states(
 pub async fn update_entity(
     State(state): State<Arc<AppState>>,
     Path(id): Path<i32>,
+    AuthUser(_user): AuthUser,
     Json(payload): Json<EntityPayload>,
 ) -> Result<Json<EntityWithConfig>, AppError> {
     let updated_entity = NewEntity {
@@ -105,6 +109,7 @@ pub async fn update_entity(
 
 pub async fn delete_entity(
     State(state): State<Arc<AppState>>,
+    AuthUser(_user): AuthUser,
     Path(id): Path<i32>,
 ) -> Result<Json<Value>, AppError> {
     db::repository::delete_entity(&state.pool, id)?;

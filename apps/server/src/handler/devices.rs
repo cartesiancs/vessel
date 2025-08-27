@@ -21,6 +21,7 @@ pub struct DeviceWithEntities {
 
 pub async fn create_device(
     State(state): State<Arc<AppState>>,
+    AuthUser(_user): AuthUser,
     Json(payload): Json<DevicePayload>,
 ) -> Result<Json<crate::db::models::Device>, AppError> {
     let new_device = NewDevice {
@@ -43,6 +44,7 @@ pub async fn get_devices(
 
 pub async fn get_device(
     State(state): State<Arc<AppState>>,
+    AuthUser(_user): AuthUser,
     Path(device_pk_id): Path<i32>, 
 ) -> Result<Json<DeviceWithEntities>, AppError> {
     let device = db::repository::get_device_by_id(&state.pool, device_pk_id)?;
@@ -59,6 +61,7 @@ pub async fn get_device(
 pub async fn update_device(
     State(state): State<Arc<AppState>>,
     Path(id): Path<i32>,
+    AuthUser(_user): AuthUser,
     Json(payload): Json<DevicePayload>,
 ) ->  Result<Json<crate::db::models::Device>, AppError> {
     let updated_device = NewDevice {
@@ -73,6 +76,7 @@ pub async fn update_device(
 
 pub async fn delete_device(
     State(state): State<Arc<AppState>>,
+    AuthUser(_user): AuthUser,
     Path(id): Path<i32>,
 ) -> Result<Json<Value>, AppError> {
     db::repository::delete_device(&state.pool, id)?;

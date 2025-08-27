@@ -55,6 +55,7 @@ pub async fn create_layer(
 
 pub async fn get_layers(
     State(state): State<Arc<AppState>>,
+    AuthUser(_user): AuthUser,
 ) -> Result<Json<Vec<MapLayer>>, AppError> {
     let layers = db::repository::get_all_map_layers(&state.pool)?;
     Ok(Json(layers))
@@ -62,6 +63,7 @@ pub async fn get_layers(
 
 pub async fn get_layer(
     State(state): State<Arc<AppState>>,
+    AuthUser(_user): AuthUser,
     Path(id): Path<i32>,
 ) -> Result<Json<LayerWithFeatures>, AppError> {
     let layer_with_features = db::repository::get_map_layer_with_features(&state.pool, id)?;
@@ -120,6 +122,7 @@ pub async fn create_feature(
 pub async fn get_feature(
     State(state): State<Arc<AppState>>,
     Path(id): Path<i32>,
+    AuthUser(_user): AuthUser,
 ) -> Result<Json<FeatureWithVertices>, AppError> {
     let feature = db::repository::get_map_feature_with_vertices(&state.pool, id)?;
     Ok(Json(feature))

@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use axum::{extract::{State, Path}, Json};
 use serde_json::{json, Value};
-use crate::{db, error::AppError, state::AppState, hash};
+use crate::{db, error::AppError, handler::auth::AuthUser, hash, state::AppState};
 use rand::{RngCore, thread_rng};
 use base64::{engine::general_purpose, Engine as _};
 
@@ -13,6 +13,7 @@ fn generate_api_key() -> String {
 
 pub async fn issue_token(
     State(state): State<Arc<AppState>>,
+    AuthUser(_user): AuthUser,
     Path(id): Path<i32>,
 ) -> Result<Json<Value>, AppError> {
     let raw_token = generate_api_key();
@@ -29,6 +30,7 @@ pub async fn issue_token(
 
 pub async fn get_token_info(
     State(state): State<Arc<AppState>>,
+    AuthUser(_user): AuthUser,
     Path(id): Path<i32>,
 ) -> Result<Json<Value>, AppError> {
     let token_info = db::repository::get_token_info_for_device(&state.pool, id)?;
@@ -41,6 +43,7 @@ pub async fn get_token_info(
 
 pub async fn revoke_token(
     State(state): State<Arc<AppState>>,
+    AuthUser(_user): AuthUser,
     Path(id): Path<i32>,
 ) -> Result<Json<Value>, AppError> {
     db::repository::delete_token_for_device(&state.pool, id)?;
