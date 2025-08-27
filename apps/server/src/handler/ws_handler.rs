@@ -6,7 +6,7 @@ use axum::{
     },
     response::Response,
 };
-use futures_util::{stream::SplitSink, SinkExt, StreamExt};
+use futures_util::{stream::SplitSink, FutureExt, SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::sync::Arc;
@@ -92,7 +92,7 @@ struct WebRtcActor {
     receiver: mpsc::Receiver<ActorCommand>,
     state: Arc<AppState>,
     audio_track: Arc<TrackLocalStaticRTP>,
-    video_track: Arc<TrackLocalStaticSample>, 
+    video_track: Arc<TrackLocalStaticSample>
 }
 
 impl WebRtcActor {
@@ -238,88 +238,96 @@ impl WebRtcActor {
         }
     }
 
+
     async fn handle_subscribe(&self, topic: String) {
         if let Some((ssrc, info)) = self
             .state
             .streams
             .iter()
-            .find(|entry| entry.value().topic == topic)
+            .find(|entry| entry.value().topic == topic && entry.value().media_type == MediaType::Audio)
             .map(|entry| (*entry.key(), entry.value().clone()))
         {
-            info!(
-                "Actor subscribing to pre-existing RTP stream '{}' with SSRC {}",
-                topic, ssrc
-            );
-            let mut rx = info.packet_tx.subscribe();
+            info!("[Audio] Subscribing to topic '{}' with SSRC {}", topic, ssrc);
+            
+            let rtp_sender = self.pc.add_track(
+                Arc::clone(&self.audio_track) as Arc<dyn TrackLocal + Send + Sync>
+            ).await.unwrap();
+            
+            tokio::spawn(async move {
+                let mut rtcp_buf = vec![0u8; 1500];
+                while rtp_sender.read(&mut rtcp_buf).await.is_ok() {}
+            });
 
-            if info.media_type == MediaType::Audio {
-                let audio_track_clone = Arc::clone(&self.audio_track);
-                tokio::spawn(async move {
-                    info!("Audio RTP packet forwarding started for SSRC: {}", ssrc);
-                    while let Ok(pkt) = rx.recv().await {
-                        // TrackLocalStaticRTP에는 write_rtp 사용
-                        if audio_track_clone.write_rtp(&pkt).await.is_err() {
-                            warn!("Audio RTP packet write failed for SSRC: {}", ssrc);
-                            break;
-                        }
+            let mut rx = info.packet_tx.subscribe();
+            let audio_track_clone = Arc::clone(&self.audio_track);
+            let pc_clone = Arc::clone(&self.pc);
+
+            tokio::spawn(async move {
+                let audio_sender = pc_clone.get_senders().await.into_iter().find(|s| {
+                    if let Some(track) = s.track().now_or_never().and_then(|t| t) {
+                        track.kind() == RTPCodecType::Audio
+                    } else { false }
+                }).expect("Audio sender not found");
+
+                let parameters = audio_sender.get_parameters().await;
+                let negotiated_pt = parameters.rtp_parameters.codecs.get(0).unwrap().payload_type;
+                let negotiated_ssrc = parameters.encodings.get(0).unwrap().ssrc;
+
+                info!(
+                    "[Audio] RTP packet forwarding started. Negotiated PT: {}, SSRC: {}",
+                    negotiated_pt, negotiated_ssrc
+                );
+
+                while let Ok(mut pkt) = rx.recv().await {
+                    pkt.header.payload_type = negotiated_pt;
+                    pkt.header.ssrc = negotiated_ssrc;
+
+                    if audio_track_clone.write_rtp(&pkt).await.is_err() {
+                        warn!("[Audio] RTP packet write failed for SSRC {}, stopping.", ssrc);
+                        break;
                     }
-                    info!("Audio RTP packet forwarding stopped for SSRC: {}", ssrc);
-                });
-            }
-            return;
+                }
+                info!("[Audio] RTP packet forwarding stopped for SSRC: {}", ssrc);
+            });
+            return; 
         }
 
-        // 2. GStreamer를 통한 원시 H.264 프레임 (비디오) 처리
-        if self
-            .state
-            .topic_map
-            .read()
-            .await
-            .iter()
-            .any(|m| m.topic == topic && m.protocol == crate::state::Protocol::RTSP)
-        {
-            info!("Actor subscribing to raw H264 stream topic '{}'", topic);
+        if self.state.topic_map.read().await.iter().any(|m| m.topic == topic && m.protocol == crate::state::Protocol::RTSP) {
+            info!("[Video] Subscribing to topic '{}'", topic);
+
+            let rtp_sender = self.pc.add_track(
+                Arc::clone(&self.video_track) as Arc<dyn TrackLocal + Send + Sync>
+            ).await.unwrap();
+
+            tokio::spawn(async move {
+                let mut rtcp_buf = vec![0u8; 1500];
+                while rtp_sender.read(&mut rtcp_buf).await.is_ok() {}
+            });
+
             let mut rx = self.state.rtsp_frame_tx.subscribe();
             let video_track_clone = Arc::clone(&self.video_track);
             let topic_clone = topic.clone();
-
             tokio::spawn(async move {
-                info!(
-                    "Raw H.264 frame forwarding started for topic: {}",
-                    topic_clone
-                );
+                info!("[Video] Frame forwarding started for topic: {}", topic_clone);
                 while let Ok(frame) = rx.recv().await {
                     if frame.topic == topic_clone {
                         let sample = webrtc::media::Sample {
                             data: frame.buffer.clone(),
-                            duration: std::time::Duration::from_millis(33), // 30fps 가정
+                            duration: std::time::Duration::from_millis(33),
                             ..Default::default()
                         };
-                        // TrackLocalStaticSample에는 write_sample 사용
-                        if let Err(e) = video_track_clone.write_sample(&sample).await {
-                            if webrtc::error::Error::ErrClosedPipe.eq(&e) {
-                                info!(
-                                    "Video track closed, stopping forwarding for topic: {}",
-                                    topic_clone
-                                );
-                            } else {
-                                warn!(
-                                    "Failed to write H.264 sample for topic {}: {}",
-                                    topic_clone, e
-                                );
-                            }
+                        if video_track_clone.write_sample(&sample).await.is_err() {
+                            warn!("[Video] Frame write failed for topic {}, stopping.", topic_clone);
                             break;
                         }
                     }
                 }
-                info!(
-                    "Raw H.264 frame forwarding stopped for topic: {}",
-                    topic_clone
-                );
+                info!("[Video] Frame forwarding stopped for topic: {}", topic_clone);
             });
-        } else {
-            warn!("Actor could not find any stream to subscribe: {}", topic);
+            return; 
         }
+        
+        warn!("Could not find any stream to subscribe for topic: {}", topic);
     }
 }
 
@@ -373,11 +381,11 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                     capability: RTCRtpCodecCapability {
                         mime_type: MIME_TYPE_OPUS.to_owned(),
                         clock_rate: 48000,
-                        channels: 2,
+                        channels: 1,
                         sdp_fmtp_line: "minptime=10;useinbandfec=1".to_owned(),
                         ..Default::default()
                     },
-                    payload_type: 111,
+                    // payload_type: 96,
                     ..Default::default()
                 },
                 RTPCodecType::Audio,
@@ -395,7 +403,7 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                                 .to_owned(),
                         ..Default::default()
                     },
-                    payload_type: 102,
+                    // payload_type: 102,
                     ..Default::default()
                 },
                 RTPCodecType::Video,
@@ -428,16 +436,8 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                 "audio".to_owned(),
                 "webrtc-stream-audio".to_owned(),
             ));
-            let rtp_sender_audio = pc
-                .add_track(Arc::clone(&audio_track) as Arc<dyn TrackLocal + Send + Sync>)
-                .await
-                .unwrap();
-            tokio::spawn(async move {
-                let mut rtcp_buf = vec![0u8; 1500];
-                while rtp_sender_audio.read(&mut rtcp_buf).await.is_ok() {}
-            });
-
-            let video_track = Arc::new(TrackLocalStaticSample::new( // 이 부분만 변경
+            
+            let video_track = Arc::new(TrackLocalStaticSample::new(
                 RTCRtpCodecCapability {
                     mime_type: MIME_TYPE_H264.to_owned(),
                     ..Default::default()
@@ -445,14 +445,6 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                 "video".to_owned(),
                 "webrtc-stream-video".to_owned(),
             ));
-            let rtp_sender_video = pc
-                .add_track(Arc::clone(&video_track) as Arc<dyn TrackLocal + Send + Sync>)
-                .await
-                .unwrap();
-            tokio::spawn(async move {
-                let mut rtcp_buf = vec![0u8; 1500];
-                while rtp_sender_video.read(&mut rtcp_buf).await.is_ok() {}
-            });
 
             let ws_sender_for_ice = Arc::clone(&ws_sender);
             pc.on_ice_candidate(Box::new(move |c: Option<RTCIceCandidate>| {

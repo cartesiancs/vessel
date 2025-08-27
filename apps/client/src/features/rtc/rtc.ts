@@ -3,11 +3,11 @@ import { WebSocketChannel, WebSocketMessage } from "../ws/ws";
 export class WebRTCManager {
   private pc: RTCPeerConnection;
   private signaling: WebSocketChannel;
-  private videoRef: React.RefObject<HTMLVideoElement | null>;
+  private videoRef: React.RefObject<HTMLVideoElement | HTMLAudioElement | null>;
   private streamType: "audio" | "video";
 
   constructor(
-    videoRef: React.RefObject<HTMLVideoElement | null>,
+    videoRef: React.RefObject<HTMLVideoElement | HTMLAudioElement | null>,
     signaling: WebSocketChannel,
     streamType: "audio" | "video",
   ) {
