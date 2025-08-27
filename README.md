@@ -1,7 +1,7 @@
 <p align='center'>
 <img src='.github/icon.png' width='210' />
 <h1 align='center'>Vessel</h1>
-<p align='center'>Physical Device Orchestration Platform for Home Protection</p>
+<p align='center'>Physical Device Orchestration Platform for Self Defence</p>
 </p>
 
 <p align='center'>
@@ -20,7 +20,21 @@
 
 Vessel is the C2 (Command & Control) software. It empowers you to connect, monitor, and orchestrate a wide array of physical sensors through an intuitive, visual flow-based interface.
 
-Instead of relying on passive, closed-off security systems, Vessel gives you the tools to build a proactive and highly customized defense system for your personal assets—be it your home, workshop, or small farm.
+This project is to build a "proactive security system."
+
+To achieve this, the following three functions are necessary:
+
+1. Physical device **Connection**
+2. Threat **Detect**
+3. Device **Control**
+
+This project solves the problems with existing **home security systems**. Current systems fail to protect against burglaries, trespassing, theft—and even war.
+
+So we plan to open-source the technology used in existing defense systems.
+
+We are developing "surveillance technology" and "active drone control systems" that have been used for border defense. And if humanoid technology is perfected, we will apply that as well.
+
+When everything is implemented, individuals will be able to create a medieval-level army.
 
 > [!NOTE]
 > 🚧 <strong>This project is under active development.</strong> Some features may be unstable or subject to change without notice.
@@ -31,6 +45,7 @@ Instead of relying on passive, closed-off security systems, Vessel gives you the
 - RTP Audio Streaming
 - RTSP Video Streaming
 - Flow Visual Logic
+- Map based UI
 
 ## Develop
 
@@ -88,6 +103,12 @@ The compiled binary, named 'server', will be located in the target/release direc
 Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any contributions you make are greatly appreciated.
 
 Please refer to our [CONTRIBUTING.md](CONTRIBUTING.md) for details.
+
+## Contributors
+
+ <a href = "https://github.com/cartesiancs/vessel/graphs/contributors">
+   <img src = "https://contrib.rocks/image?repo=cartesiancs/vessel"/>
+ </a>
 
 ## License
 
