@@ -2,7 +2,7 @@ use anyhow::Result;
 use dashmap::DashMap;
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 use std::{env, sync::Arc};
-use tokio::{net::UdpSocket, sync::{broadcast, watch, RwLock}, task::JoinSet};
+use tokio::{net::UdpSocket, sync::{broadcast, mpsc, watch, RwLock}, task::JoinSet};
 use tracing::{error, info, warn};
 use webrtc::{
     rtp::packet::Packet,
@@ -13,7 +13,7 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilte
 
 const LOG_FILE_PATH: &str = "log/app.log";
 
-use crate::{ db::conn::establish_connection, initial::{create_initial_admin, create_initial_configurations}, lib::entity_map::remap_topics, routes::web_server, rtp::rtp_receiver, state::{AppState, FrameData, MqttMessage, StreamInfo, StreamManager}};
+use crate::{ db::conn::establish_connection, flow::manager_state::FlowManagerActor, initial::{create_initial_admin, create_initial_configurations}, lib::entity_map::remap_topics, routes::web_server, rtp::rtp_receiver, state::{AppState, FrameData, MqttMessage, StreamInfo, StreamManager}};
 
 mod state;
 mod mqtt;
@@ -81,6 +81,13 @@ async fn main() -> Result<()> {
 
     let jwt_secret = dotenvy::var("JWT_SECRET")?;
 
+    let (flow_manager_tx, flow_manager_rx) = mpsc::channel(100);
+
+    let mut flow_manager = FlowManagerActor::new(flow_manager_rx);
+    tokio::spawn(async move {
+        flow_manager.run().await;
+    });
+
     let app_state = Arc::new(AppState {
         streams: streams.clone(),
         mqtt_tx: mqtt_tx.clone(),
@@ -88,6 +95,7 @@ async fn main() -> Result<()> {
         pool: pool,
         topic_map: Arc::new(RwLock::new(Vec::new())),
         rtsp_frame_tx,
+        flow_manager_tx
     });
 
     let (shutdown_tx, shutdown_rx) = watch::channel(());

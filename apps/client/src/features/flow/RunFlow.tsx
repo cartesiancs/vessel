@@ -1,33 +1,113 @@
 import { Button } from "@/components/ui/button";
 import { useFlowStore } from "@/entities/flow/store";
-import { Play } from "lucide-react";
+import { Play, Square } from "lucide-react";
 import { toast } from "sonner";
-import { useWebSocket } from "../ws/WebSocketProvider";
+import { useWebSocket, useWebSocketMessage } from "../ws/WebSocketProvider";
+import { useCallback, useEffect, useState } from "react";
+import { WebSocketMessage } from "../ws/ws";
 
 export function RunFlowButton() {
-  const { isConnected, sendMessage } = useWebSocket();
+  const { wsManager } = useWebSocket();
+
   const { currentFlowId, saveGraph } = useFlowStore();
 
+  const [isRun, setIsRun] = useState(false);
+
   const handleSend = async () => {
-    if (!isConnected || !currentFlowId) {
+    if (!currentFlowId || !wsManager) {
       toast.error("WebSocket is not connected or no flow is selected.");
       return;
     }
 
-    if (currentFlowId) {
+    if (currentFlowId && wsManager) {
       await saveGraph();
-      sendMessage({
+      wsManager.send({
         type: "compute_flow",
         payload: {
           flow_id: currentFlowId,
         },
       });
+
+      setTimeout(() => {
+        wsManager.send({
+          type: "get_all_flows",
+          payload: {},
+        });
+      }, 500);
     }
   };
 
+  const handleSendStop = async () => {
+    if (!currentFlowId || !wsManager) {
+      toast.error("WebSocket is not connected or no flow is selected.");
+      return;
+    }
+
+    if (currentFlowId && wsManager) {
+      await saveGraph();
+      wsManager.send({
+        type: "stop_flow",
+        payload: {
+          flow_id: currentFlowId,
+        },
+      });
+
+      setTimeout(() => {
+        wsManager.send({
+          type: "get_all_flows",
+          payload: {},
+        });
+      }, 500);
+      setIsRun(false);
+    }
+  };
+
+  const handleMessage = useCallback(
+    (msg: WebSocketMessage) => {
+      try {
+        if (msg.type === "get_all_flows_response") {
+          const loads = msg.payload as {
+            id: number;
+            name: string;
+            is_running: boolean;
+          }[];
+          const index = loads.findIndex((item) => {
+            return item.id == currentFlowId;
+          });
+
+          if (index != -1) {
+            setIsRun(!loads[index].is_running);
+          }
+        }
+      } catch (err) {
+        console.error("Error handling signaling message:", err);
+      }
+    },
+    [currentFlowId],
+  );
+
+  useEffect(() => {
+    if (currentFlowId && wsManager) {
+      wsManager.send({
+        type: "get_all_flows",
+        payload: {},
+      });
+    }
+  }, [currentFlowId, wsManager]);
+
+  useWebSocketMessage(handleMessage);
+
   return (
-    <Button onClick={handleSend} size={"sm"} variant={"outline"}>
-      <Play />
-    </Button>
+    <>
+      {isRun ? (
+        <Button onClick={handleSend} size={"icon"} variant={"outline"}>
+          <Play />
+        </Button>
+      ) : (
+        <Button onClick={handleSendStop} size={"icon"} variant={"destructive"}>
+          <Square />
+        </Button>
+      )}
+    </>
   );
 }

@@ -130,6 +130,17 @@ impl FlowEngine {
             unit: String,
         }
         
+        let ws_message = json!({
+            "type": "log_message",
+            "payload": "Executing flow..."
+        });
+        
+        if let Ok(payload_str) = serde_json::to_string(&ws_message) {
+            if ws_sender.lock().await.send(Message::Text(payload_str)).await.is_err() {
+                error!("Failed to send health check response.");
+            }
+        }
+        
         {
             let mut queue = execution_queue.lock().await;
             for (node_id, node) in &self.nodes {

@@ -1,5 +1,5 @@
 use std::sync::Arc;
-use tokio::sync::{broadcast, RwLock};
+use tokio::sync::{broadcast, mpsc, RwLock};
 use webrtc::rtp::packet::Packet;
 use serde::Serialize;
 use bytes::Bytes;
@@ -10,6 +10,8 @@ use diesel::r2d2::{self, ConnectionManager};
 pub type DbPool = r2d2::Pool<ConnectionManager<SqliteConnection>>;
 
 use dashmap::DashMap;
+
+use crate::flow::manager_state::FlowManagerCommand;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum MediaType {
@@ -62,4 +64,5 @@ pub struct AppState {
     pub pool: DbPool,
     pub topic_map: Arc<RwLock<Vec<TopicMapping>>>,
     pub rtsp_frame_tx: broadcast::Sender<FrameData>,
+    pub flow_manager_tx: mpsc::Sender<FlowManagerCommand>,
 }

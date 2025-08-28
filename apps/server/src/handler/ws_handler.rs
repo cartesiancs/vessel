@@ -31,7 +31,7 @@ use webrtc::{
 
 use crate::{
     db,
-    flow::engine::{FlowController, FlowEngine},
+    flow::{engine::{FlowController, FlowEngine}, manager_state::FlowManagerCommand},
     handler::auth::JwtAuth,
     state::{AppState, FrameData, MediaType},
 };
@@ -66,6 +66,14 @@ struct FlowPayload {
     flow_id: i32,
 }
 
+#[derive(Serialize)]
+struct FlowStatus {
+    id: i32,
+    name: String,
+    is_running: bool,
+}
+
+
 enum ActorCommand {
     SetRemoteOffer {
         offer: RTCSessionDescription,
@@ -82,6 +90,9 @@ enum ActorCommand {
     },
     StopFlow {
         flow_id: i32,
+    },
+    GetAllFlows {
+        responder: oneshot::Sender<Result<Vec<FlowStatus>>>,
     },
     SubscribeToTopic {
         topic: String,
@@ -101,8 +112,6 @@ struct WebRtcActor {
     state: Arc<AppState>,
     audio_track: Arc<TrackLocalStaticRTP>,
     video_track: Arc<TrackLocalStaticSample>,
-    active_flows: Arc<Mutex<HashMap<i32, (FlowController, JoinHandle<Result<()>>)>>>,
-
 }
 
 impl WebRtcActor {
@@ -131,6 +140,9 @@ impl WebRtcActor {
                 ActorCommand::StopFlow { flow_id } => {
                     self.handle_stop_flow(flow_id).await;
                 }
+                ActorCommand::GetAllFlows { responder } => {
+                    self.handle_get_all_flows(responder).await;
+                }
                 ActorCommand::SubscribeToTopic { topic } => {
                     self.handle_subscribe(topic).await;
                 }
@@ -146,6 +158,34 @@ impl WebRtcActor {
             }
         }
         info!("WebRTC Actor finished.");
+    }
+
+    async fn handle_get_all_flows(&self, responder: oneshot::Sender<Result<Vec<FlowStatus>>>) {
+        let (manager_responder_tx, manager_responder_rx) = tokio::sync::oneshot::channel();
+        let cmd = FlowManagerCommand::GetAllFlows { responder: manager_responder_tx, pool: self.state.pool.clone() };
+
+        if self.state.flow_manager_tx.send(cmd).await.is_err() {
+            let _ = responder.send(Err(anyhow!("Failed to communicate with FlowManager")));
+            return;
+        }
+
+        // FlowManager로부터 받은 결과를 원래 요청자에게 전달
+        if let Ok(status_tuples) = manager_responder_rx.await {
+            let all_db_flows = db::repository::get_all_flows(&self.state.pool).unwrap_or_default();
+            let status_map: HashMap<i32, bool> = status_tuples.into_iter().collect();
+
+            let result: Vec<FlowStatus> = all_db_flows.into_iter().map(|f| {
+                FlowStatus {
+                    id: f.id,
+                    name: f.name,
+                    is_running: *status_map.get(&f.id).unwrap_or(&false),
+                }
+            }).collect();
+
+            let _ = responder.send(Ok(result));
+        } else {
+            let _ = responder.send(Err(anyhow!("Failed to receive response from FlowManager")));
+        }
     }
 
     async fn handle_get_server(&self) -> Result<ServerStats> {
@@ -253,41 +293,23 @@ impl WebRtcActor {
             }
         };
         
-        let engine = match FlowEngine::new(graph) {
-            Ok(e) => Arc::new(e),
-            Err(e) => {
-                error!("Failed to create FlowEngine for flow_id {}: {}", flow_id, e);
-                return;
-            }
+        println!("Start Flow");
+        
+        let cmd = FlowManagerCommand::StartFlow {
+            flow_id,
+            graph,
+            ws_sender: self.ws_sender.clone(),
         };
 
-        println!("Start Flow");
-        let ws_sender_clone = self.ws_sender.clone();
-        
-        let (controller, handle) = engine.start(ws_sender_clone).await;
-        
-        self.active_flows.lock().await.insert(flow_id, (controller, handle));
-
-        let active_flows_clone = self.active_flows.clone();
-        
-        tokio::spawn(async move {
-            if let Some((_controller, handle)) = active_flows_clone.lock().await.remove(&flow_id) {
-                match handle.await {
-                    Ok(Ok(_)) => info!("Flow execution finished for flow_id: {}", flow_id),
-                    Ok(Err(e)) => error!("Flow execution for flow_id {} stopped with an error: {:?}", flow_id, e),
-                    Err(e) => error!("Flow execution task for flow_id {} panicked or was cancelled: {:?}", flow_id, e),
-                }
-            }
-        });
+        if self.state.flow_manager_tx.send(cmd).await.is_err() {
+            error!("Failed to send StartFlow command to FlowManager.");
+        }
     }
 
     async fn handle_stop_flow(&self, flow_id: i32) {
-        info!("Received request to stop flow with ID: {}", flow_id);
-        if let Some((controller, _handle)) = self.active_flows.lock().await.remove(&flow_id) {
-            controller.stop();
-            info!("Stop signal sent to flow_id: {}", flow_id);
-        } else {
-            warn!("Attempted to stop flow_id {}, but it was not found.", flow_id);
+        let cmd = FlowManagerCommand::StopFlow { flow_id };
+        if self.state.flow_manager_tx.send(cmd).await.is_err() {
+            error!("Failed to send StopFlow command to FlowManager.");
         }
     }
 
@@ -532,7 +554,6 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                 state: Arc::clone(&state),
                 audio_track,
                 video_track,
-                active_flows: Arc::new(Mutex::new(HashMap::new())),
             };
             actor.run().await;
         }
@@ -609,6 +630,32 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                         };
                         if cmd_tx.send(cmd).await.is_err() {
                             break;
+                        }
+                    }
+                }
+                "get_all_flows" => {
+                    let (responder_tx, responder_rx) = oneshot::channel();
+                    let cmd = ActorCommand::GetAllFlows {
+                        responder: responder_tx,
+                    };
+                    if cmd_tx.send(cmd).await.is_err() {
+                        break;
+                    }
+                    if let Ok(Ok(flows)) = responder_rx.await {
+                        let ws_response = WsMessageOut {
+                            msg_type: "get_all_flows_response",
+                            payload: &flows,
+                        };
+                        if let Ok(payload_str) = serde_json::to_string(&ws_response) {
+                            if ws_sender
+                                .lock()
+                                .await
+                                .send(Message::Text(payload_str))
+                                .await
+                                .is_err()
+                            {
+                                break;
+                            }
                         }
                     }
                 }

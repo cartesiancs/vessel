@@ -10,6 +10,9 @@ export type WebSocketMessage = {
     | "log_message"
     | "ping"
     | "pong"
+    | "get_all_flows"
+    | "get_all_flows_response"
+    | "stop_flow"
     | "get_server";
   payload:
     | RTCSessionDescriptionInit
@@ -20,6 +23,7 @@ export type WebSocketMessage = {
     | { topic: string }
     | { flow_id: number }
     | { timestamp: number }
+    | { id: number; name: string; is_running: boolean }[]
     | { cpu_usage: number; memory_usage: number };
 };
 
