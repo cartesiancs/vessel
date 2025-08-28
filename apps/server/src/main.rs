@@ -1,6 +1,7 @@
 use anyhow::Result;
 use dashmap::DashMap;
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
+use rumqttc::{AsyncClient, MqttOptions};
 use std::{env, sync::Arc};
 use tokio::{net::UdpSocket, sync::{broadcast, mpsc, watch, RwLock}, task::JoinSet};
 use tracing::{error, info, warn};
@@ -84,10 +85,7 @@ async fn main() -> Result<()> {
     let (flow_manager_tx, flow_manager_rx) = mpsc::channel(100);
     let (flow_broadcast_tx, _) = broadcast::channel(1024);
 
-    let mut flow_manager = FlowManagerActor::new(flow_manager_rx);
-    tokio::spawn(async move {
-        flow_manager.run().await;
-    });
+
 
     let app_state = Arc::new(AppState {
         streams: streams.clone(),
@@ -113,6 +111,8 @@ async fn main() -> Result<()> {
     
     let server_task = tokio::spawn(web_server("0.0.0.0:8080".to_string(), app_state.clone(), shutdown_rx.clone()));
 
+    let mut mqtt_client_for_flow: Option<AsyncClient> = None;
+
     
     if !is_debug_mode {
         if let Some(rtp_config) = configs.iter().find(|c| c.key == "rtp_broker_port") {
@@ -131,7 +131,26 @@ async fn main() -> Result<()> {
             if mqtt_config.enabled == 1 {
                 info!("MQTT Broker is enabled. Connecting to {}.", &mqtt_config.value);
                 let mqtt_broker_url = mqtt_config.value.clone();
-                set.spawn(mqtt::start_event_loop(mqtt_broker_url, mqtt_tx, app_state.clone()));
+                let parts: Vec<&str> = mqtt_broker_url.split(':').collect();
+                if parts.len() != 2 {
+                    return Err(anyhow::anyhow!(
+                        "Invalid broker address format. Expected 'host:port', got '{}'",
+                        mqtt_broker_url
+                    ));
+                }
+                let host = parts[0];
+                let port: u16 = parts[1].parse()?;
+
+                let mut mqttoptions = MqttOptions::new("rust-internal-client", host, port);
+                mqttoptions.set_keep_alive(std::time::Duration::from_secs(5));
+                
+                let (client, eventloop) = AsyncClient::new(mqttoptions, 10);
+
+                mqtt_client_for_flow = Some(client.clone());
+                let mqtt_tx_clone = mqtt_tx.clone();
+
+                set.spawn(mqtt::start_event_loop(client, eventloop, mqtt_tx_clone, app_state.clone()));
+
             } else {
                 warn!("MQTT Broker is disabled by configuration.");
             }
@@ -144,6 +163,11 @@ async fn main() -> Result<()> {
        
     
     }
+
+    let mut flow_manager = FlowManagerActor::new(flow_manager_rx, mqtt_client_for_flow);
+    tokio::spawn(async move {
+        flow_manager.run().await;
+    });
 
     info!("Server starting, press Ctrl-C to stop.");
 

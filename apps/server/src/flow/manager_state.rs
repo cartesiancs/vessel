@@ -4,6 +4,7 @@ use futures_util::stream::SplitSink;
 use std::{collections::HashMap, sync::Arc};
 use tokio::{sync::{broadcast, mpsc, Mutex}, task::JoinHandle};
 use crate::{db, flow::{engine::{FlowController, FlowEngine}, types::Graph}, state::DbPool};
+use rumqttc::AsyncClient;
 
 pub enum FlowManagerCommand {
     StartFlow {
@@ -23,13 +24,15 @@ pub enum FlowManagerCommand {
 pub struct FlowManagerActor {
     receiver: mpsc::Receiver<FlowManagerCommand>,
     active_flows: HashMap<i32, (FlowController, JoinHandle<Result<()>>)>,
+    mqtt_client: Option<AsyncClient>, 
 }
 
 impl FlowManagerActor {
-    pub fn new(receiver: mpsc::Receiver<FlowManagerCommand>) -> Self {
+    pub fn new(receiver: mpsc::Receiver<FlowManagerCommand>, mqtt_client: Option<AsyncClient>) -> Self {
         Self {
             receiver,
             active_flows: HashMap::new(),
+            mqtt_client
         }
     }
 
@@ -44,15 +47,13 @@ impl FlowManagerActor {
 
                     tracing::info!("Starting flow execution globally for flow_id: {}", flow_id);
                     let engine = Arc::new(FlowEngine::new(graph).unwrap());
-                    let (controller, handle) = engine.start(broadcast_tx).await;
+                    let (controller, handle) = engine.start(broadcast_tx, self.mqtt_client.clone()).await;
                     self.active_flows.insert(flow_id, (controller, handle));
                 }
                 FlowManagerCommand::StopFlow { flow_id } => {
                     if let Some((controller, handle)) = self.active_flows.remove(&flow_id) {
                         tracing::info!("Stop signal sent to global flow_id: {}", flow_id);
                         controller.stop();
-                        // 핸들을 중단시켜 즉시 종료를 시도할 수도 있습니다.
-                        // handle.abort();
                     }
                 }
                 FlowManagerCommand::GetAllFlows { responder, pool } => {
