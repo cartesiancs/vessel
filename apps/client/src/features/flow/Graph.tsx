@@ -610,8 +610,8 @@ export function Graph({
       <div
         style={{
           position: "absolute",
-          bottom: 48,
-          left: 16,
+          top: 32,
+          right: 16,
           display: "flex",
           flexDirection: "column",
           gap: 8,

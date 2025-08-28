@@ -20,17 +20,19 @@ export function FeatureRenderer({ feature }: FeatureRendererProps) {
       return (
         <CircleMarker
           center={positions[0]}
-          pathOptions={{ color: "#ffffff" }}
+          pathOptions={{ color: "#6ec7f0" }}
           radius={6}
         />
       );
 
     case "LINE":
-      return <Polyline positions={positions} pathOptions={{ color: "lime" }} />;
+      return (
+        <Polyline positions={positions} pathOptions={{ color: "#6ec7f0" }} />
+      );
 
     case "POLYGON":
       return (
-        <Polygon positions={positions} pathOptions={{ color: "purple" }} />
+        <Polygon positions={positions} pathOptions={{ color: "#6ec7f0" }} />
       );
 
     default:
