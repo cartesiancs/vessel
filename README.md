@@ -1,7 +1,7 @@
 <p align='center'>
 <img src='.github/icon.png' width='210' />
 <h1 align='center'>Vessel</h1>
-<p align='center'>Physical Device Orchestration Platform for Self Defence</p>
+<p align='center'>The open source alternative to Anduril for self-defence</p>
 </p>
 
 <p align='center'>
@@ -18,7 +18,7 @@
 
 ![banner](./.github/banner.png)
 
-Vessel is the C2 (Command & Control) software. It empowers you to connect, monitor, and orchestrate a wide array of physical sensors through an intuitive, visual flow-based interface.
+Vessel is the **C2 (Command & Control) software**. It empowers you to connect, monitor, and orchestrate a wide array of physical sensors through an intuitive, visual flow-based interface.
 
 This project is to build a "proactive security system". To achieve this, the following three functions are necessary:
 
@@ -118,3 +118,7 @@ Please refer to our [CONTRIBUTING.md](CONTRIBUTING.md) for details.
 ## License
 
 Distributed under the Apache-2.0 License. See [LICENSE](LICENSE) for more information.
+
+## Disclaimer
+
+This project is intended for academic and research purposes only. It is designed to facilitate the connection and control of physical devices. All responsibility for its use lies with the user.
