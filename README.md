@@ -20,9 +20,7 @@
 
 Vessel is the C2 (Command & Control) software. It empowers you to connect, monitor, and orchestrate a wide array of physical sensors through an intuitive, visual flow-based interface.
 
-This project is to build a "proactive security system."
-
-To achieve this, the following three functions are necessary:
+This project is to build a "proactive security system". To achieve this, the following three functions are necessary:
 
 1. Physical device **Connection**
 2. Threat **Detect**
@@ -41,7 +39,7 @@ When everything is implemented, individuals will be able to create a medieval-le
 
 ## Features
 
-- Connect all sensers (MQTT, RTP, RTSP)
+- Connect all sensers (MQTT, RTP, RTSP, ...)
 - RTP Audio Streaming
 - RTSP Video Streaming
 - Flow Visual Logic
@@ -98,6 +96,12 @@ npm run build
 The compiled binary, named 'server', will be located in the target/release directory.
 
 > To run the server executable, you must have a .env file in the same directory (target/release).
+
+## Roadmap
+
+Please visit our Roadmap page below:
+
+[Roadmap Page >](https://vessel.cartesiancs.com/roadmap)
 
 ## Contributing
 
