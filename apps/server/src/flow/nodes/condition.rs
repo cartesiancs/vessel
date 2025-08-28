@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use axum::extract::ws::{Message, WebSocket};
 use futures_util::stream::SplitSink;
-use tokio::sync::Mutex;
+use tokio::sync::{broadcast, Mutex};
 use std::{collections::HashMap, sync::Arc};
 use anyhow::{Result, anyhow};
 use serde::Deserialize;
@@ -37,7 +37,7 @@ impl ConditionNode {
 
 #[async_trait]
 impl ExecutableNode for ConditionNode {
-    async fn execute(&self, context: &mut ExecutionContext, inputs: HashMap<String, Value>, ws_sender: Arc<Mutex<SplitSink<WebSocket, Message>>>) -> Result<ExecutionResult> {
+    async fn execute(&self, context: &mut ExecutionContext, inputs: HashMap<String, Value>, broadcast_tx: broadcast::Sender<String>,) -> Result<ExecutionResult> {
         let input_val = inputs.get("input").and_then(Value::as_f64).ok_or_else(|| anyhow!("Conditional input is not a valid number"))?;
 
         let condition_met = match self.data.operator {

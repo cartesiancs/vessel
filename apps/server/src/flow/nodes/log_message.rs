@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use axum::extract::ws::{Message, WebSocket};
 use futures_util::{stream::SplitSink, SinkExt};
-use tokio::sync::Mutex;
+use tokio::sync::{broadcast, Mutex};
 use std::{collections::HashMap, sync::Arc};
 use anyhow::Result;
 use serde_json::{json, Value};
@@ -18,7 +18,7 @@ impl ExecutableNode for LogMessageNode {
         &self,
         _context: &mut ExecutionContext,
         inputs: HashMap<String, Value>,
-        ws_sender: Arc<Mutex<SplitSink<WebSocket, Message>>>
+        broadcast_tx: broadcast::Sender<String>,
     ) -> Result<ExecutionResult> {
         println!("[LOG]: {:?}", inputs);
 
@@ -27,7 +27,7 @@ impl ExecutableNode for LogMessageNode {
             "payload": inputs.clone()
         });
         if let Ok(payload_str) = serde_json::to_string(&ws_message) {
-            if ws_sender.lock().await.send(Message::Text(payload_str)).await.is_err() {
+            if broadcast_tx.send(payload_str).is_err() {
                 error!("Failed to send health check response.");
             }
         }

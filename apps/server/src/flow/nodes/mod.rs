@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use axum::extract::ws::{Message, WebSocket};
 use futures_util::stream::SplitSink;
-use tokio::sync::Mutex;
+use tokio::sync::{broadcast, Mutex};
 use std::{collections::HashMap, sync::Arc};
 use anyhow::{Result, anyhow};
 use serde_json::Value;
@@ -14,7 +14,7 @@ pub trait ExecutableNode: Send + Sync {
         &self, 
         context: &mut ExecutionContext, 
         inputs: HashMap<String, Value>,
-        ws_sender: Arc<Mutex<SplitSink<WebSocket, Message>>>
+        broadcast_tx: broadcast::Sender<String>,
     ) -> Result<ExecutionResult>;
 }
 

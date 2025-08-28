@@ -2,14 +2,14 @@ use anyhow::Result;
 use axum::extract::ws::{Message, WebSocket};
 use futures_util::stream::SplitSink;
 use std::{collections::HashMap, sync::Arc};
-use tokio::{sync::{mpsc, Mutex}, task::JoinHandle};
+use tokio::{sync::{broadcast, mpsc, Mutex}, task::JoinHandle};
 use crate::{db, flow::{engine::{FlowController, FlowEngine}, types::Graph}, state::DbPool};
 
 pub enum FlowManagerCommand {
     StartFlow {
         flow_id: i32,
         graph: Graph,
-        ws_sender: Arc<Mutex<SplitSink<WebSocket, Message>>>,
+        broadcast_tx: broadcast::Sender<String>
     },
     StopFlow {
         flow_id: i32,
@@ -36,7 +36,7 @@ impl FlowManagerActor {
     pub async fn run(&mut self) {
         while let Some(cmd) = self.receiver.recv().await {
             match cmd {
-                FlowManagerCommand::StartFlow { flow_id, graph, ws_sender } => {
+                FlowManagerCommand::StartFlow { flow_id, graph, broadcast_tx } => {
                     if self.active_flows.contains_key(&flow_id) {
                         tracing::error!("Flow with ID {} is already running.", flow_id);
                         continue;
@@ -44,7 +44,7 @@ impl FlowManagerActor {
 
                     tracing::info!("Starting flow execution globally for flow_id: {}", flow_id);
                     let engine = Arc::new(FlowEngine::new(graph).unwrap());
-                    let (controller, handle) = engine.start(ws_sender).await;
+                    let (controller, handle) = engine.start(broadcast_tx).await;
                     self.active_flows.insert(flow_id, (controller, handle));
                 }
                 FlowManagerCommand::StopFlow { flow_id } => {

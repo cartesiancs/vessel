@@ -6,7 +6,7 @@ use axum::extract::ws::{Message, WebSocket};
 use futures_util::{stream::SplitSink, SinkExt};
 use serde::Deserialize; 
 use serde_json::{Value, json};
-use tokio::sync::{Mutex, watch};
+use tokio::sync::{broadcast, watch, Mutex};
 use tokio::task::JoinHandle;
 use tokio::time; // timeout을 위해 추가
 use tracing::{error, info};
@@ -120,7 +120,7 @@ impl FlowEngine {
         }
     }
 
-    pub async fn start(self: Arc<Self>, ws_sender: Arc<Mutex<SplitSink<WebSocket, Message>>>) -> (FlowController, JoinHandle<Result<()>>) {
+    pub async fn start(self: Arc<Self>, broadcast_tx: broadcast::Sender<String>) -> (FlowController, JoinHandle<Result<()>>) {
         let (shutdown_tx, mut shutdown_rx) = watch::channel(false);
         let execution_queue = Arc::new(Mutex::new(VecDeque::new()));
 
@@ -129,14 +129,14 @@ impl FlowEngine {
             interval: u64,
             unit: String,
         }
-        
+
         let ws_message = json!({
             "type": "log_message",
             "payload": "Executing flow..."
         });
         
         if let Ok(payload_str) = serde_json::to_string(&ws_message) {
-            if ws_sender.lock().await.send(Message::Text(payload_str)).await.is_err() {
+            if broadcast_tx.clone().send(payload_str).is_err() {
                 error!("Failed to send health check response.");
             }
         }
@@ -204,7 +204,7 @@ impl FlowEngine {
                         }
                     }
 
-                    let result = node_instance.execute(&mut context, inputs, ws_sender.clone()).await?;
+                    let result = node_instance.execute(&mut context, inputs,  broadcast_tx.clone()).await?;
 
                     for trigger in result.triggers {
                         let mut queue = execution_queue.lock().await;

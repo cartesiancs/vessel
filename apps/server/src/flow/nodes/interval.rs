@@ -3,7 +3,7 @@ use axum::extract::ws::{Message, WebSocket};
 use futures_util::stream::SplitSink;
 use serde::Deserialize;
 use serde_json::{Value, json};
-use tokio::sync::Mutex;
+use tokio::sync::{broadcast, Mutex};
 use anyhow::{Result, anyhow};
 use std::{collections::HashMap, sync::Arc, time::Duration};
 use crate::flow::engine::ExecutionContext;
@@ -42,7 +42,7 @@ impl ExecutableNode for IntervalNode {
         &self,
         _context: &mut ExecutionContext,
         _inputs: HashMap<String, Value>,
-        _ws_sender: Arc<Mutex<SplitSink<WebSocket, Message>>>,
+        broadcast_tx: broadcast::Sender<String>,
     ) -> Result<ExecutionResult> {
         let mut outputs = HashMap::new();
         outputs.insert("exec".to_string(), Value::Null);

@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use axum::extract::ws::{Message, WebSocket};
 use futures_util::stream::SplitSink;
-use tokio::sync::Mutex;
+use tokio::sync::{broadcast, Mutex};
 use std::{collections::HashMap, sync::Arc};
 use anyhow::{Result, anyhow};
 use serde::Deserialize;
@@ -30,7 +30,7 @@ impl CalcNode {
 
 #[async_trait]
 impl ExecutableNode for CalcNode {
-    async fn execute(&self, _context: &mut ExecutionContext, inputs: HashMap<String, Value>, ws_sender: Arc<Mutex<SplitSink<WebSocket, Message>>>) -> Result<ExecutionResult> {
+    async fn execute(&self, _context: &mut ExecutionContext, inputs: HashMap<String, Value>, broadcast_tx: broadcast::Sender<String>,) -> Result<ExecutionResult> {
         let a = inputs.get("a").and_then(Value::as_f64).ok_or_else(|| anyhow!("Input 'a' is not a valid number"))?;
         let b = inputs.get("b").and_then(Value::as_f64).ok_or_else(|| anyhow!("Input 'b' is not a valid number"))?;
         let operatorCalc = Value::from(self.data.operator_calc.clone());

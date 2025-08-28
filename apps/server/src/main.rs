@@ -82,6 +82,7 @@ async fn main() -> Result<()> {
     let jwt_secret = dotenvy::var("JWT_SECRET")?;
 
     let (flow_manager_tx, flow_manager_rx) = mpsc::channel(100);
+    let (flow_broadcast_tx, _) = broadcast::channel(1024);
 
     let mut flow_manager = FlowManagerActor::new(flow_manager_rx);
     tokio::spawn(async move {
@@ -95,7 +96,8 @@ async fn main() -> Result<()> {
         pool: pool,
         topic_map: Arc::new(RwLock::new(Vec::new())),
         rtsp_frame_tx,
-        flow_manager_tx
+        flow_manager_tx,
+        flow_broadcast_tx
     });
 
     let (shutdown_tx, shutdown_rx) = watch::channel(());

@@ -65,4 +65,5 @@ pub struct AppState {
     pub topic_map: Arc<RwLock<Vec<TopicMapping>>>,
     pub rtsp_frame_tx: broadcast::Sender<FrameData>,
     pub flow_manager_tx: mpsc::Sender<FlowManagerCommand>,
+    pub flow_broadcast_tx: broadcast::Sender<String>,
 }

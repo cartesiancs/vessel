@@ -97,6 +97,10 @@ export function RunFlowButton() {
 
   useWebSocketMessage(handleMessage);
 
+  if (!currentFlowId) {
+    return null;
+  }
+
   return (
     <>
       {isRun ? (

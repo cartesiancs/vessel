@@ -298,7 +298,7 @@ impl WebRtcActor {
         let cmd = FlowManagerCommand::StartFlow {
             flow_id,
             graph,
-            ws_sender: self.ws_sender.clone(),
+            broadcast_tx: self.state.flow_broadcast_tx.clone()
         };
 
         if self.state.flow_manager_tx.send(cmd).await.is_err() {
@@ -439,6 +439,16 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                 {
                     break;
                 }
+            }
+        }
+    });
+
+    let mut flow_rx = state.flow_broadcast_tx.subscribe();
+    let ws_sender_for_flow = Arc::clone(&ws_sender);
+    tokio::spawn(async move {
+        while let Ok(msg) = flow_rx.recv().await {
+            if ws_sender_for_flow.lock().await.send(Message::Text(msg)).await.is_err() {
+                break;
             }
         }
     });

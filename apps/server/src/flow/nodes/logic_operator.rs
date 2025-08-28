@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use axum::extract::ws::{Message, WebSocket};
 use futures_util::{stream::SplitSink, SinkExt};
-use tokio::sync::Mutex;
+use tokio::sync::{broadcast, Mutex};
 use std::{collections::HashMap, sync::Arc};
 use anyhow::{anyhow, Error, Result};
 use serde::Deserialize;
@@ -31,7 +31,7 @@ impl LogicOpetatorNode {
         &self,
         key: &str,
         inputs: &HashMap<String, Value>,
-        ws_sender: &Arc<Mutex<SplitSink<WebSocket, Message>>>,
+        broadcast_tx: &broadcast::Sender<String>,
     ) -> Result<bool> {
         let input_val = inputs.get(key).ok_or_else(|| anyhow!("Input '{}' is missing", key))?;
         
@@ -44,7 +44,7 @@ impl LogicOpetatorNode {
 
         let err = anyhow!("Input '{}' is not a valid boolean or number", key);
         if let Ok(payload_str) = serde_json::to_string(&json!({ "type": "log_message", "payload": err.to_string() })) {
-            let _ = ws_sender.lock().await.send(Message::Text(payload_str)).await;
+            let _ = broadcast_tx.send(payload_str);
         }
         Err(err)
     }
@@ -53,7 +53,7 @@ impl LogicOpetatorNode {
         &self,
         key: &str,
         inputs: &HashMap<String, Value>,
-        ws_sender: &Arc<Mutex<SplitSink<WebSocket, Message>>>,
+        broadcast_tx: &broadcast::Sender<String>,
     ) -> Result<f64> {
         if let Some(n) = inputs.get(key).and_then(Value::as_f64) {
             return Ok(n);
@@ -61,7 +61,7 @@ impl LogicOpetatorNode {
 
         let err = anyhow!("Input '{}' is not a valid number for comparison", key);
         if let Ok(payload_str) = serde_json::to_string(&json!({ "type": "log_message", "payload": err.to_string() })) {
-            let _ = ws_sender.lock().await.send(Message::Text(payload_str)).await;
+            let _ = broadcast_tx.send(payload_str);
         }
         Err(err)
     }
@@ -69,13 +69,13 @@ impl LogicOpetatorNode {
 
 #[async_trait]
 impl ExecutableNode for LogicOpetatorNode {
-    async fn execute(&self, _context: &mut ExecutionContext, inputs: HashMap<String, Value>, ws_sender: Arc<Mutex<SplitSink<WebSocket, Message>>>) -> Result<ExecutionResult> {
+    async fn execute(&self, _context: &mut ExecutionContext, inputs: HashMap<String, Value>, broadcast_tx: broadcast::Sender<String>,) -> Result<ExecutionResult> {
         let op = self.data.operator.as_str();
 
         let result_bool = match op {
             "AND" | "OR" | "XOR" | "NAND" | "NOR" | "XNOR" => {
-                let a = self.get_input_as_bool("a", &inputs, &ws_sender).await?;
-                let b = self.get_input_as_bool("b", &inputs, &ws_sender).await?;
+                let a = self.get_input_as_bool("a", &inputs, &broadcast_tx).await?;
+                let b = self.get_input_as_bool("b", &inputs, &broadcast_tx).await?;
 
                 match op {
                     "AND" => a && b,
@@ -88,8 +88,8 @@ impl ExecutableNode for LogicOpetatorNode {
                 }
             },
             ">" | "<" | "==" | "!=" | ">=" | "<=" => {
-                let a = self.get_input_as_f64("a", &inputs, &ws_sender).await?;
-                let b = self.get_input_as_f64("b", &inputs, &ws_sender).await?;
+                let a = self.get_input_as_f64("a", &inputs, &broadcast_tx).await?;
+                let b = self.get_input_as_f64("b", &inputs, &broadcast_tx).await?;
 
                 match op {
                     ">" => a > b,
@@ -104,7 +104,7 @@ impl ExecutableNode for LogicOpetatorNode {
             _ => {
                 let err = anyhow!("Unsupported operator: {}", op);
                 if let Ok(payload_str) = serde_json::to_string(&json!({ "type": "log_message", "payload": err.to_string() })) {
-                    let _ = ws_sender.lock().await.send(Message::Text(payload_str)).await;
+                    let _ = broadcast_tx.send(payload_str);
                 }
                 return Err(err);
             }
