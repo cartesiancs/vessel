@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use axum::extract::ws::{Message, WebSocket};
 use futures_util::{stream::SplitSink, SinkExt};
-use tokio::sync::Mutex;
+use tokio::sync::{broadcast, Mutex};
 use std::{collections::HashMap, sync::Arc};
 use anyhow::{Result, anyhow};
 use serde::Deserialize;
@@ -30,7 +30,7 @@ impl SetVariableNode {
 
 #[async_trait]
 impl ExecutableNode for SetVariableNode {
-    async fn execute(&self, _context: &mut ExecutionContext, inputs: HashMap<String, Value>, ws_sender: Arc<Mutex<SplitSink<WebSocket, Message>>>) -> Result<ExecutionResult> {
+    async fn execute(&self, _context: &mut ExecutionContext, inputs: HashMap<String, Value>, broadcast_tx: broadcast::Sender<String>,) -> Result<ExecutionResult> {
         let mut outputs = HashMap::new();
 
         let value = match self.data.variable_type.as_deref() {
@@ -46,7 +46,7 @@ impl ExecutableNode for SetVariableNode {
                         "payload": error_message.clone()
                     });
                     if let Ok(payload_str) = serde_json::to_string(&ws_message) {
-                        if ws_sender.lock().await.send(Message::Text(payload_str)).await.is_err() {
+                        if broadcast_tx.send(payload_str).is_err() {
                             error!("Failed to send websocket log message.");
                         }
                     }
@@ -64,7 +64,7 @@ impl ExecutableNode for SetVariableNode {
                             "payload": error_message.clone(),
                         });
                         if let Ok(payload_str) = serde_json::to_string(&ws_message) {
-                            if ws_sender.lock().await.send(Message::Text(payload_str)).await.is_err() {
+                            if broadcast_tx.send(payload_str).is_err() {
                                 error!("Failed to send websocket log message.");
                             }
                         }

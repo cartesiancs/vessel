@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use axum::{extract::ws::{Message, WebSocket}, http};
 use futures_util::stream::SplitSink;
-use tokio::sync::Mutex;
+use tokio::sync::{broadcast, Mutex};
 use std::{collections::HashMap, sync::Arc};
 use anyhow::{Result, anyhow};
 use serde::Deserialize;
@@ -36,7 +36,7 @@ impl ExecutableNode for HttpNode {
         &self,
         _context: &mut ExecutionContext,
         inputs: HashMap<String, Value>,
-        _ws_sender: Arc<Mutex<SplitSink<WebSocket, Message>>>,
+        broadcast_tx: broadcast::Sender<String>,
     ) -> Result<ExecutionResult> {
         let client = Client::new();
         let url = &self.data.url;

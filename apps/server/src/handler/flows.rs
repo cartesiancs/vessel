@@ -3,7 +3,7 @@ use axum::{extract::{State, Path}, Json};
 use serde::Deserialize;
 use serde_json::{json, Value};
 use crate::{
-    db::{self, models::{Flow, FlowVersion, NewFlow, NewFlowVersion}}, error::AppError, flow::{ engine::FlowEngine, types::Graph}, handler::auth::JwtAuth, state::AppState
+    db::{self, models::{Flow, FlowVersion, NewFlow, NewFlowVersion}}, error::AppError, flow::{ engine::FlowEngine, types::Graph}, handler::auth::{AuthUser, JwtAuth}, state::AppState
 };
 use anyhow::anyhow;
 
@@ -23,6 +23,7 @@ pub struct FlowVersionPayload {
 
 pub async fn get_all_flows(
     State(state): State<Arc<AppState>>,
+    AuthUser(_user): AuthUser,
 ) -> Result<Json<Vec<Flow>>, AppError> {
     let flows = db::repository::get_all_flows(&state.pool)?;
     Ok(Json(flows))
@@ -31,6 +32,7 @@ pub async fn get_all_flows(
 
 pub async fn create_flow(
     State(state): State<Arc<AppState>>,
+    AuthUser(_user): AuthUser,
     Json(payload): Json<FlowPayload>,
 ) -> Result<Json<Flow>, AppError> {
     let new_flow = NewFlow {
@@ -45,6 +47,7 @@ pub async fn create_flow(
 pub async fn update_flow(
     State(state): State<Arc<AppState>>,
     Path(id): Path<i32>,
+    AuthUser(_user): AuthUser,
     Json(payload): Json<FlowPayload>,
 ) -> Result<Json<Value>, AppError> {
     let updated_flow = NewFlow {
@@ -59,8 +62,8 @@ pub async fn update_flow(
 
 pub async fn delete_flow(
     State(state): State<Arc<AppState>>,
-    JwtAuth(claims): JwtAuth,
     Path(id): Path<i32>,
+    AuthUser(_user): AuthUser,
 ) -> Result<Json<Value>, AppError> {
     db::repository::delete_flow(&state.pool, id)?;
     Ok(Json(json!({ "status": "success", "message": "Flow deleted" })))
@@ -71,7 +74,7 @@ pub async fn delete_flow(
 
 pub async fn create_flow_version(
     State(state): State<Arc<AppState>>,
-    JwtAuth(_): JwtAuth,
+    AuthUser(_user): AuthUser,
     Path(flow_id): Path<i32>,
     Json(payload): Json<FlowVersionPayload>,
 ) -> Result<Json<FlowVersion>, AppError> {
@@ -87,7 +90,7 @@ pub async fn create_flow_version(
 }
 pub async fn get_flow_versions(
     State(state): State<Arc<AppState>>,
-    JwtAuth(_): JwtAuth,
+    AuthUser(_user): AuthUser,
     Path(flow_id): Path<i32>,
 ) -> Result<Json<Vec<FlowVersion>>, AppError> {
     let versions = db::repository::get_versions_for_flow(&state.pool, flow_id)?;

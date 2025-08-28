@@ -3,13 +3,16 @@ import { WebSocketChannel, WebSocketMessage } from "../ws/ws";
 export class WebRTCManager {
   private pc: RTCPeerConnection;
   private signaling: WebSocketChannel;
-  private audioRef: React.RefObject<HTMLAudioElement | null>;
+  private videoRef: React.RefObject<HTMLVideoElement | HTMLAudioElement | null>;
+  private streamType: "audio" | "video";
 
   constructor(
-    audioRef: React.RefObject<HTMLAudioElement | null>,
+    videoRef: React.RefObject<HTMLVideoElement | HTMLAudioElement | null>,
     signaling: WebSocketChannel,
+    streamType: "audio" | "video",
   ) {
-    this.audioRef = audioRef;
+    this.videoRef = videoRef;
+    this.streamType = streamType;
     this.pc = new RTCPeerConnection({
       iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
     });
@@ -37,11 +40,13 @@ export class WebRTCManager {
 
   private setupEvents(): void {
     this.pc.ontrack = (event) => {
-      console.log("Track received:", event.track);
-      if (this.audioRef.current && event.streams[0]) {
-        this.audioRef.current.srcObject = event.streams[0];
-        this.audioRef.current.play().catch((e) => {
-          console.error("Audio play failed:", e);
+      console.log(
+        `Track received: ${event.track.kind}, Stream Count: ${event.streams.length}`,
+      );
+      if (this.videoRef.current && event.streams[0]) {
+        this.videoRef.current.srcObject = event.streams[0];
+        this.videoRef.current.play().catch((e) => {
+          console.error("Media play failed:", e);
         });
       }
     };
@@ -62,6 +67,10 @@ export class WebRTCManager {
 
       this.pc.addTransceiver("audio", { direction: "recvonly" });
 
+      if (this.streamType === "video") {
+        this.pc.addTransceiver("video", { direction: "recvonly" });
+      }
+
       const offer = await this.pc.createOffer();
       await this.pc.setLocalDescription(offer);
 
@@ -69,7 +78,7 @@ export class WebRTCManager {
         type: "offer",
         payload: this.pc.localDescription as RTCSessionDescriptionInit,
       });
-      console.log("Offer sent to server.");
+      console.log(`Offer for ${this.streamType} stream sent to server.`);
     } catch (err) {
       console.error("Error creating offer:", err);
     }

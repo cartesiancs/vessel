@@ -16,6 +16,9 @@ export function EntitySelectTypes() {
       <SelectItem value='TEXT'>
         <Baseline /> TEXT
       </SelectItem>
+      <SelectItem value='VIDEO'>
+        <Play /> VIDEO
+      </SelectItem>
     </>
   );
 }

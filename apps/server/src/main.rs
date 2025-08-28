@@ -2,7 +2,7 @@ use anyhow::Result;
 use dashmap::DashMap;
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 use std::{env, sync::Arc};
-use tokio::{net::UdpSocket, sync::{broadcast, RwLock}, task::JoinSet};
+use tokio::{net::UdpSocket, sync::{broadcast, mpsc, watch, RwLock}, task::JoinSet};
 use tracing::{error, info, warn};
 use webrtc::{
     rtp::packet::Packet,
@@ -13,7 +13,7 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilte
 
 const LOG_FILE_PATH: &str = "log/app.log";
 
-use crate::{ db::conn::establish_connection, initial::{create_initial_admin, create_initial_configurations}, lib::entity_map::remap_topics, routes::web_server, rtp::rtp_receiver, state::{AppState, MqttMessage, StreamInfo, StreamManager}};
+use crate::{ db::conn::establish_connection, flow::manager_state::FlowManagerActor, initial::{create_initial_admin, create_initial_configurations}, lib::entity_map::remap_topics, routes::web_server, rtp::rtp_receiver, state::{AppState, FrameData, MqttMessage, StreamInfo, StreamManager}};
 
 mod state;
 mod mqtt;
@@ -76,18 +76,32 @@ async fn main() -> Result<()> {
     
     let streams = Arc::new(DashMap::<u32, StreamInfo>::new());
 
-    let (packet_tx, _) = broadcast::channel::<Packet>(1024);
     let (mqtt_tx, _) = broadcast::channel::<MqttMessage>(1024);
+    let (rtsp_frame_tx, _) = broadcast::channel::<FrameData>(256);
 
     let jwt_secret = dotenvy::var("JWT_SECRET")?;
+
+    let (flow_manager_tx, flow_manager_rx) = mpsc::channel(100);
+    let (flow_broadcast_tx, _) = broadcast::channel(1024);
+
+    let mut flow_manager = FlowManagerActor::new(flow_manager_rx);
+    tokio::spawn(async move {
+        flow_manager.run().await;
+    });
 
     let app_state = Arc::new(AppState {
         streams: streams.clone(),
         mqtt_tx: mqtt_tx.clone(),
         jwt_secret: jwt_secret,
         pool: pool,
-        topic_map: Arc::new(RwLock::new(Vec::new()))
+        topic_map: Arc::new(RwLock::new(Vec::new())),
+        rtsp_frame_tx,
+        flow_manager_tx,
+        flow_broadcast_tx
     });
+
+    let (shutdown_tx, shutdown_rx) = watch::channel(());
+
 
     let configs = db::repository::get_all_system_configs(&app_state.clone().pool)?;
 
@@ -97,7 +111,7 @@ async fn main() -> Result<()> {
     remap_topics(axum::extract::State(app_state.clone()))
         .await;
     
-    let server_task = tokio::spawn(web_server("0.0.0.0:8080".to_string(), app_state.clone()));
+    let server_task = tokio::spawn(web_server("0.0.0.0:8080".to_string(), app_state.clone(), shutdown_rx.clone()));
 
     
     if !is_debug_mode {
@@ -125,13 +139,27 @@ async fn main() -> Result<()> {
             warn!("MQTT Broker configuration ('mqtt_broker_url') not found.");
         }
 
-        let (rtsp_manager, frame_tx) = rtsp::RtspManager::new();
         let app_state_clone = app_state.clone();
-        rtsp::start_rtsp_pipelines(app_state_clone, frame_tx).await;
+        set.spawn( rtsp::start_rtsp_pipelines(app_state_clone, shutdown_rx.clone()));
+       
     
     }
 
     info!("Server starting, press Ctrl-C to stop.");
+
+    tokio::select! {
+        _ = tokio::signal::ctrl_c() => {
+            info!("Ctrl-C received, initiating shutdown...");
+        }
+        Some(res) = set.join_next() => {
+             match res {
+                Ok(Ok(())) => info!("A background task finished gracefully."),
+                Ok(Err(e)) => error!("A background task finished with an error: {}", e),
+                Ok(Err(e)) => error!("A background task failed to join: {}", e),
+                Err(e) => error!("A background task panicked: {}", e),
+            }
+        }
+    }
 
     tokio::select! {
         res = set.join_next(), if !set.is_empty() => {
@@ -145,6 +173,18 @@ async fn main() -> Result<()> {
     }
 
     set.abort_all();
+        shutdown_tx.send(()).ok();
+    
+    info!("Waiting for all tasks to complete...");
+    while let Some(res) = set.join_next().await {
+         match res {
+            Ok(Ok(())) => {}, 
+            Ok(Err(e)) => error!("A task shut down with an error: {}", e),
+            Ok(Err(e)) => error!("A task failed to join during shutdown: {}", e),
+            Err(e) => error!("A task panicked during shutdown: {}", e),
+        }
+    }
+    info!("All tasks have been shut down.");
 
     Ok(())
 }

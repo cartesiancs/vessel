@@ -124,4 +124,30 @@ export const DEFINITION_NODE: {
       iterations: "NUMBER",
     },
   },
+  LOGIC_OPERATOR: {
+    connectors: [
+      { id: `id`, name: "a", type: "in" },
+      { id: `id`, name: "b", type: "in" },
+      { id: `id`, name: "bool", type: "out" },
+    ],
+    nodeType: "LOGIC_OPERATOR",
+    data: {
+      operator: "AND",
+    },
+    dataType: {
+      operator: "SELECT[AND,OR,XOR,NAND,NOR,XNOR,>,<,==,!=,>=,<=]",
+    },
+  },
+  INTERVAL: {
+    connectors: [{ id: `id`, name: "exec", type: "out" }],
+    nodeType: "INTERVAL",
+    data: {
+      interval: 10,
+      unit: "seconds",
+    },
+    dataType: {
+      interval: "NUMBER",
+      unit: "SELECT[milliseconds,seconds,minutes]",
+    },
+  },
 };

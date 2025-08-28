@@ -1,8 +1,3 @@
-import { Button } from "@/components/ui/button";
-import { BookText, LogIn } from "lucide-react";
-import { FaGithub } from "react-icons/fa";
-import * as React from "react";
-
 import {
   NavigationMenu,
   NavigationMenuItem,
@@ -10,13 +5,20 @@ import {
   NavigationMenuList,
   navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
+import { useEffect } from "react";
 
 function LandingPage() {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    navigate("/auth");
+  }, []);
+
   return (
     <>
       <main className='flex h-screen w-screen flex-col items-center justify-center bg-background text-foreground'>
-        <div className='flex flex-col items-center gap-y-6'>
+        {/* <div className='flex flex-col items-center gap-y-6'>
           <h1 className='text-3xl md:text-5xl lg:text-5xl leading-17 font-bold tracking-tight text-center'>
             Vessel
           </h1>
@@ -45,7 +47,7 @@ function LandingPage() {
               GitHub
             </Button>
           </div>
-        </div>
+        </div> */}
       </main>
     </>
   );

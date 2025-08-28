@@ -2,6 +2,8 @@ use axum::{http::StatusCode, response::{IntoResponse, Response}, Json};
 use serde::Serialize;
 use std::fs;
 
+use crate::handler::auth::AuthUser;
+
 const LOG_FILE_PATH: &str = "log/app.log";
 
 #[derive(Serialize)]
@@ -15,7 +17,9 @@ struct ErrorResponse {
 }
 
 
-pub async fn get_logs_handler() -> Response {
+pub async fn get_logs_handler(
+    AuthUser(_user): AuthUser,
+) -> Response {
     match fs::read_to_string(LOG_FILE_PATH) {
         Ok(contents) => {
             let logs: String = contents.lines().rev().collect::<Vec<&str>>().join("\n");

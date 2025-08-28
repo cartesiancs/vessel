@@ -9,7 +9,7 @@ use tracing::info;
 
 use crate::{
     handler::auth::{DeviceTokenAuth, JwtAuth},
-    state::{AppState, StreamInfo},
+    state::{AppState, MediaType, StreamInfo},
 };
 
 #[derive(Deserialize)]
@@ -37,6 +37,7 @@ pub async fn register_stream(
         topic: payload.topic.clone(),
         user_id: auth.device_id,
         packet_tx,
+        media_type: MediaType::Audio
     };
     
     state.streams.insert(ssrc, stream_info);

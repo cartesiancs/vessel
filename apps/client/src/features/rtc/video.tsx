@@ -9,11 +9,8 @@ type StreamReceiverProps = {
   streamType: "audio" | "video";
 };
 
-export function AudioStreamReceiver({
-  topic,
-  streamType,
-}: StreamReceiverProps) {
-  const audioRef = useRef<HTMLAudioElement>(null);
+export function StreamReceiver({ topic, streamType }: StreamReceiverProps) {
+  const videoRef = useRef<HTMLVideoElement>(null);
   const { wsManager, isConnected } = useWebSocket();
   const [isSubscribe, setIsSubscribe] = useState(false);
 
@@ -23,7 +20,7 @@ export function AudioStreamReceiver({
       return;
     }
 
-    const manager = new WebRTCManager(audioRef, wsManager, streamType);
+    const manager = new WebRTCManager(videoRef, wsManager, streamType);
 
     manager.subscribe(topic);
     manager.createAndSendOffer();
@@ -41,7 +38,13 @@ export function AudioStreamReceiver({
   return (
     <>
       {isSubscribe ? (
-        <audio ref={audioRef} className='w-30' autoPlay playsInline controls />
+        <video
+          ref={videoRef}
+          className='w-full bg-black rounded-md'
+          autoPlay
+          playsInline
+          controls
+        />
       ) : (
         <Button
           className='w-full'

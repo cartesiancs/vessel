@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use axum::{
     extract::{
         ws::{Message, WebSocket, WebSocketUpgrade},
@@ -6,31 +6,35 @@ use axum::{
     },
     response::Response,
 };
-use futures_util::{stream::SplitSink, SinkExt, StreamExt};
+use futures_util::{stream::SplitSink, FutureExt, SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Number};
+use serde_json::json;
+use std::{collections::HashMap, sync::Arc};
 use sysinfo::System;
-use std::{sync::Arc, thread, time::Duration};
-use tokio::sync::{mpsc, oneshot, Mutex};
+use tokio::{sync::{mpsc, oneshot, Mutex}, task::JoinHandle};
 use tracing::{error, info, warn};
 use webrtc::{
     api::{
-        media_engine::{MediaEngine, MIME_TYPE_OPUS},
+        media_engine::{MediaEngine, MIME_TYPE_H264, MIME_TYPE_OPUS},
+        setting_engine::SettingEngine,
         APIBuilder,
-    },
-    ice_transport::{
+    }, ice::network_type::NetworkType, ice_transport::{
         ice_candidate::{RTCIceCandidate, RTCIceCandidateInit},
         ice_server::RTCIceServer,
-    },
-    peer_connection::{
-        configuration::RTCConfiguration, peer_connection_state::RTCPeerConnectionState,
-        sdp::session_description::RTCSessionDescription, RTCPeerConnection,
-    },
-    rtp_transceiver::rtp_codec::{RTCRtpCodecCapability, RTCRtpCodecParameters, RTPCodecType},
-    track::track_local::{track_local_static_rtp::TrackLocalStaticRTP, TrackLocal, TrackLocalWriter},
+    }, peer_connection::{
+        configuration::RTCConfiguration, sdp::session_description::RTCSessionDescription,
+        RTCPeerConnection,
+    }, rtp_transceiver::rtp_codec::{RTCRtpCodecCapability, RTCRtpCodecParameters, RTPCodecType}, track::track_local::{
+        track_local_static_rtp::TrackLocalStaticRTP, track_local_static_sample::TrackLocalStaticSample, TrackLocal, TrackLocalWriter
+    }
 };
 
-use crate::{db, flow::engine::FlowEngine, handler::auth::JwtAuth, state::AppState};
+use crate::{
+    db,
+    flow::{engine::{FlowController, FlowEngine}, manager_state::FlowManagerCommand},
+    handler::auth::JwtAuth,
+    state::{AppState, FrameData, MediaType},
+};
 
 #[derive(Serialize)]
 struct WsMessageOut<'a, T: Serialize> {
@@ -46,7 +50,6 @@ struct WsMessageIn {
     payload: serde_json::Value,
 }
 
-
 #[derive(Serialize)]
 struct ServerStats {
     cpu_usage: f32,
@@ -57,6 +60,19 @@ struct ServerStats {
 struct SubscribeStreamPayload {
     topic: String,
 }
+
+#[derive(Deserialize)]
+struct FlowPayload {
+    flow_id: i32,
+}
+
+#[derive(Serialize)]
+struct FlowStatus {
+    id: i32,
+    name: String,
+    is_running: bool,
+}
+
 
 enum ActorCommand {
     SetRemoteOffer {
@@ -71,6 +87,12 @@ enum ActorCommand {
     },
     ComputeFlow {
         payload: serde_json::Value,
+    },
+    StopFlow {
+        flow_id: i32,
+    },
+    GetAllFlows {
+        responder: oneshot::Sender<Result<Vec<FlowStatus>>>,
     },
     SubscribeToTopic {
         topic: String,
@@ -89,6 +111,7 @@ struct WebRtcActor {
     receiver: mpsc::Receiver<ActorCommand>,
     state: Arc<AppState>,
     audio_track: Arc<TrackLocalStaticRTP>,
+    video_track: Arc<TrackLocalStaticSample>,
 }
 
 impl WebRtcActor {
@@ -114,6 +137,12 @@ impl WebRtcActor {
                 ActorCommand::ComputeFlow { payload } => {
                     self.handle_compute_flow(payload).await;
                 }
+                ActorCommand::StopFlow { flow_id } => {
+                    self.handle_stop_flow(flow_id).await;
+                }
+                ActorCommand::GetAllFlows { responder } => {
+                    self.handle_get_all_flows(responder).await;
+                }
                 ActorCommand::SubscribeToTopic { topic } => {
                     self.handle_subscribe(topic).await;
                 }
@@ -131,24 +160,50 @@ impl WebRtcActor {
         info!("WebRTC Actor finished.");
     }
 
+    async fn handle_get_all_flows(&self, responder: oneshot::Sender<Result<Vec<FlowStatus>>>) {
+        let (manager_responder_tx, manager_responder_rx) = tokio::sync::oneshot::channel();
+        let cmd = FlowManagerCommand::GetAllFlows { responder: manager_responder_tx, pool: self.state.pool.clone() };
+
+        if self.state.flow_manager_tx.send(cmd).await.is_err() {
+            let _ = responder.send(Err(anyhow!("Failed to communicate with FlowManager")));
+            return;
+        }
+
+        // FlowManager로부터 받은 결과를 원래 요청자에게 전달
+        if let Ok(status_tuples) = manager_responder_rx.await {
+            let all_db_flows = db::repository::get_all_flows(&self.state.pool).unwrap_or_default();
+            let status_map: HashMap<i32, bool> = status_tuples.into_iter().collect();
+
+            let result: Vec<FlowStatus> = all_db_flows.into_iter().map(|f| {
+                FlowStatus {
+                    id: f.id,
+                    name: f.name,
+                    is_running: *status_map.get(&f.id).unwrap_or(&false),
+                }
+            }).collect();
+
+            let _ = responder.send(Ok(result));
+        } else {
+            let _ = responder.send(Err(anyhow!("Failed to receive response from FlowManager")));
+        }
+    }
+
     async fn handle_get_server(&self) -> Result<ServerStats> {
         tokio::task::spawn_blocking(|| {
             let mut sys = System::new();
-            
             sys.refresh_cpu_all();
-            thread::sleep(Duration::from_millis(200));
-            let cpu_usage = sys.cpus().iter().map(|cpu| cpu.cpu_usage()).sum::<f32>() / sys.cpus().len() as f32;
-            
+            let cpu_usage =
+                sys.cpus().iter().map(|cpu| cpu.cpu_usage()).sum::<f32>() / sys.cpus().len() as f32;
             sys.refresh_memory();
             let memory_usage = (sys.used_memory() as f32 / sys.total_memory() as f32) * 100.0;
-            
             Ok(ServerStats {
                 cpu_usage,
                 memory_usage,
             })
-        }).await?
+        })
+        .await?
     }
-    
+
     async fn handle_offer(
         pc: Arc<RTCPeerConnection>,
         offer: RTCSessionDescription,
@@ -158,7 +213,7 @@ impl WebRtcActor {
         pc.set_local_description(answer).await?;
         pc.local_description()
             .await
-            .ok_or_else(|| anyhow::Error::msg("Failed to get local description"))
+            .ok_or_else(|| anyhow!("Failed to get local description"))
     }
 
     async fn handle_health_check(&self, payload: serde_json::Value) {
@@ -176,7 +231,14 @@ impl WebRtcActor {
             payload: response_payload,
         };
         if let Ok(payload_str) = serde_json::to_string(&ws_message) {
-            if self.ws_sender.lock().await.send(Message::Text(payload_str)).await.is_err() {
+            if self
+                .ws_sender
+                .lock()
+                .await
+                .send(Message::Text(payload_str))
+                .await
+                .is_err()
+            {
                 error!("Failed to send health check response.");
             }
         }
@@ -185,93 +247,162 @@ impl WebRtcActor {
     async fn handle_ping(&self, payload: serde_json::Value) {
         let ws_message = WsMessageOut {
             msg_type: "pong",
-            payload: payload
+            payload,
         };
         if let Ok(payload_str) = serde_json::to_string(&ws_message) {
-            if self.ws_sender.lock().await.send(Message::Text(payload_str)).await.is_err() {
-                error!("Failed to send health check response.");
+            if self
+                .ws_sender
+                .lock()
+                .await
+                .send(Message::Text(payload_str))
+                .await
+                .is_err()
+            {
+                error!("Failed to send pong response.");
             }
         }
     }
 
     async fn handle_compute_flow(&self, payload: serde_json::Value) {
-        if let Some(value) = payload.get("flow_id") {
-            if !value.is_number() {
-                error!("Invalid flow_id in payload: {:?}", payload);
-                return;
-            }
-
-            let age_i64: i64 = value.as_i64().unwrap_or_default();
-
-
-            let versions = db::repository::get_versions_for_flow(&self.state.pool, age_i64 as i32).expect("msg");
-            if versions.is_empty() {
-                error!("Failed");
-            }
-
-            let latest_version = versions[0].clone();
-            let json_data = latest_version.graph_json;
-            let graph = serde_json::from_str(&json_data).expect("Failed to parse graph JSON");
-            let engine = FlowEngine::new(graph).expect("Failed to create FlowEngine");
-
-            let ws_message = json!({
-                "type": "log_message",
-                "payload": "Executing flow..."
-            });
-            
-            if let Ok(payload_str) = serde_json::to_string(&ws_message) {
-                if self.ws_sender.lock().await.send(Message::Text(payload_str)).await.is_err() {
-                    error!("Failed to send health check response.");
-                }
-            }
-
-        
-            println!("Executing flow...");
-            engine.run(self.ws_sender.clone()).await;
-            println!("Flow execution finished.");
-            
-            if let Ok(payload_str) = serde_json::to_string(&json!({
-                "type": "log_message",
-                "payload": "Flow execution finished."
-            })) {
-                if self.ws_sender.lock().await.send(Message::Text(payload_str)).await.is_err() {
-                    error!("Failed to send health check response.");
-                }
-            }
-
-        } else {
+        let Some(value) = payload.get("flow_id") else {
             error!("Missing flow_id in payload: {:?}", payload);
             return;
-            
+        };
+
+        if !value.is_number() {
+            error!("Invalid flow_id in payload: {:?}", payload);
+            return;
         }
 
-        
-    }
-    
-    async fn handle_subscribe(&self, topic: String) {
-        let stream_info = self.state.streams.iter()
-            .find(|entry| entry.value().topic == topic)
-            .map(|entry| (entry.key().clone(), entry.value().clone()));
+        let flow_id: i32 = value.as_i64().unwrap_or_default() as i32;
 
-        if let Some((ssrc, info)) = stream_info {
-            info!("Actor subscribing to topic '{}' with SSRC {}", topic, ssrc);
-            let mut rx = info.packet_tx.subscribe();
-            let audio_track_clone = Arc::clone(&self.audio_track);
+        let versions =
+            db::repository::get_versions_for_flow(&self.state.pool, flow_id as i32)
+                .expect("msg");
+        if versions.is_empty() {
+            return;
+        }
+        
+
+        let latest_version = versions[0].clone();
+        let graph = match serde_json::from_str(&latest_version.graph_json) {
+            Ok(g) => g,
+            Err(e) => {
+                error!("Failed to parse graph JSON for flow_id {}: {}", flow_id, e);
+                return;
+            }
+        };
+        
+        println!("Start Flow");
+        
+        let cmd = FlowManagerCommand::StartFlow {
+            flow_id,
+            graph,
+            broadcast_tx: self.state.flow_broadcast_tx.clone()
+        };
+
+        if self.state.flow_manager_tx.send(cmd).await.is_err() {
+            error!("Failed to send StartFlow command to FlowManager.");
+        }
+    }
+
+    async fn handle_stop_flow(&self, flow_id: i32) {
+        let cmd = FlowManagerCommand::StopFlow { flow_id };
+        if self.state.flow_manager_tx.send(cmd).await.is_err() {
+            error!("Failed to send StopFlow command to FlowManager.");
+        }
+    }
+
+
+    async fn handle_subscribe(&self, topic: String) {
+        if let Some((ssrc, info)) = self
+            .state
+            .streams
+            .iter()
+            .find(|entry| entry.value().topic == topic && entry.value().media_type == MediaType::Audio)
+            .map(|entry| (*entry.key(), entry.value().clone()))
+        {
+            info!("[Audio] Subscribing to topic '{}' with SSRC {}", topic, ssrc);
+            
+            let rtp_sender = self.pc.add_track(
+                Arc::clone(&self.audio_track) as Arc<dyn TrackLocal + Send + Sync>
+            ).await.unwrap();
             
             tokio::spawn(async move {
-                println!("RTP packet forwarding started for SSRC: {}", ssrc);
-                while let Ok(pkt) = rx.recv().await {
+                let mut rtcp_buf = vec![0u8; 1500];
+                while rtp_sender.read(&mut rtcp_buf).await.is_ok() {}
+            });
+
+            let mut rx = info.packet_tx.subscribe();
+            let audio_track_clone = Arc::clone(&self.audio_track);
+            let pc_clone = Arc::clone(&self.pc);
+
+            tokio::spawn(async move {
+                let audio_sender = pc_clone.get_senders().await.into_iter().find(|s| {
+                    if let Some(track) = s.track().now_or_never().and_then(|t| t) {
+                        track.kind() == RTPCodecType::Audio
+                    } else { false }
+                }).expect("Audio sender not found");
+
+                let parameters = audio_sender.get_parameters().await;
+                let negotiated_pt = parameters.rtp_parameters.codecs.get(0).unwrap().payload_type;
+                let negotiated_ssrc = parameters.encodings.get(0).unwrap().ssrc;
+
+                info!(
+                    "[Audio] RTP packet forwarding started. Negotiated PT: {}, SSRC: {}",
+                    negotiated_pt, negotiated_ssrc
+                );
+
+                while let Ok(mut pkt) = rx.recv().await {
+                    pkt.header.payload_type = negotiated_pt;
+                    pkt.header.ssrc = negotiated_ssrc;
+
                     if audio_track_clone.write_rtp(&pkt).await.is_err() {
-                        warn!("RTP packet write failed, stopping forwarding for SSRC: {}", ssrc);
+                        warn!("[Audio] RTP packet write failed for SSRC {}, stopping.", ssrc);
                         break;
                     }
                 }
-                info!("RTP packet forwarding stopped for SSRC: {}", ssrc);
+                info!("[Audio] RTP packet forwarding stopped for SSRC: {}", ssrc);
+            });
+            return; 
+        }
+
+        if self.state.topic_map.read().await.iter().any(|m| m.topic == topic && m.protocol == crate::state::Protocol::RTSP) {
+            info!("[Video] Subscribing to topic '{}'", topic);
+
+            let rtp_sender = self.pc.add_track(
+                Arc::clone(&self.video_track) as Arc<dyn TrackLocal + Send + Sync>
+            ).await.unwrap();
+
+            tokio::spawn(async move {
+                let mut rtcp_buf = vec![0u8; 1500];
+                while rtp_sender.read(&mut rtcp_buf).await.is_ok() {}
             });
 
-        } else {
-            warn!("Actor could not find topic to subscribe: {}", topic);
+            let mut rx = self.state.rtsp_frame_tx.subscribe();
+            let video_track_clone = Arc::clone(&self.video_track);
+            let topic_clone = topic.clone();
+            tokio::spawn(async move {
+                info!("[Video] Frame forwarding started for topic: {}", topic_clone);
+                while let Ok(frame) = rx.recv().await {
+                    if frame.topic == topic_clone {
+                        let sample = webrtc::media::Sample {
+                            data: frame.buffer.clone(),
+                            duration: std::time::Duration::from_millis(33),
+                            ..Default::default()
+                        };
+                        if video_track_clone.write_sample(&sample).await.is_err() {
+                            warn!("[Video] Frame write failed for topic {}, stopping.", topic_clone);
+                            break;
+                        }
+                    }
+                }
+                info!("[Video] Frame forwarding stopped for topic: {}", topic_clone);
+            });
+            return; 
         }
+        
+        warn!("Could not find any stream to subscribe for topic: {}", topic);
     }
 }
 
@@ -281,7 +412,7 @@ pub async fn ws_handler(
     State(state): State<Arc<AppState>>,
 ) -> Response {
     ws.on_upgrade(move |socket| {
-        println!("'{}' authenticated and connected.", claims.sub);
+        info!("'{}' authenticated and connected.", claims.sub);
         handle_socket(socket, state)
     })
 }
@@ -294,15 +425,34 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
     let ws_sender_for_mqtt = Arc::clone(&ws_sender);
     tokio::spawn(async move {
         while let Ok(msg) = mqtt_rx.recv().await {
-            let ws_message = WsMessageOut { msg_type: "mqtt_message", payload: &msg };
+            let ws_message = WsMessageOut {
+                msg_type: "mqtt_message",
+                payload: &msg,
+            };
             if let Ok(payload_str) = serde_json::to_string(&ws_message) {
-                if ws_sender_for_mqtt.lock().await.send(Message::Text(payload_str)).await.is_err() {
+                if ws_sender_for_mqtt
+                    .lock()
+                    .await
+                    .send(Message::Text(payload_str))
+                    .await
+                    .is_err()
+                {
                     break;
                 }
             }
         }
     });
-    
+
+    let mut flow_rx = state.flow_broadcast_tx.subscribe();
+    let ws_sender_for_flow = Arc::clone(&ws_sender);
+    tokio::spawn(async move {
+        while let Ok(msg) = flow_rx.recv().await {
+            if ws_sender_for_flow.lock().await.send(Message::Text(msg)).await.is_err() {
+                break;
+            }
+        }
+    });
+
     let (cmd_tx, cmd_rx) = mpsc::channel(10);
 
     tokio::spawn({
@@ -315,16 +465,45 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                 RTCRtpCodecParameters {
                     capability: RTCRtpCodecCapability {
                         mime_type: MIME_TYPE_OPUS.to_owned(),
-                        clock_rate: 48000, channels: 1,
+                        clock_rate: 48000,
+                        channels: 1,
                         sdp_fmtp_line: "minptime=10;useinbandfec=1".to_owned(),
                         ..Default::default()
                     },
-                    payload_type: 96, ..Default::default()
+                    // payload_type: 96,
+                    ..Default::default()
                 },
                 RTPCodecType::Audio,
-            ).unwrap();
+            )
+            .unwrap();
 
-            let api = APIBuilder::new().with_media_engine(m).build();
+            m.register_codec(
+                RTCRtpCodecParameters {
+                    capability: RTCRtpCodecCapability {
+                        mime_type: MIME_TYPE_H264.to_owned(),
+                        clock_rate: 90000,
+                        channels: 0,
+                        sdp_fmtp_line:
+                            "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f"
+                                .to_owned(),
+                        ..Default::default()
+                    },
+                    // payload_type: 102,
+                    ..Default::default()
+                },
+                RTPCodecType::Video,
+            )
+            .unwrap();
+
+            let mut s = SettingEngine::default();
+            s.set_network_types(vec![NetworkType::Udp4]);
+
+
+            let api = APIBuilder::new()
+                .with_media_engine(m)
+                .with_setting_engine(s)
+                .build();
+
             let config = RTCConfiguration {
                 ice_servers: vec![RTCIceServer {
                     urls: vec!["stun:stun.l.google.com:19302".to_owned()],
@@ -340,24 +519,36 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                     ..Default::default()
                 },
                 "audio".to_owned(),
-                "webrtc-stream".to_owned(),
+                "webrtc-stream-audio".to_owned(),
+            ));
+            
+            let video_track = Arc::new(TrackLocalStaticSample::new(
+                RTCRtpCodecCapability {
+                    mime_type: MIME_TYPE_H264.to_owned(),
+                    ..Default::default()
+                },
+                "video".to_owned(),
+                "webrtc-stream-video".to_owned(),
             ));
 
-            let rtp_sender = pc.add_track(Arc::clone(&audio_track) as Arc<dyn TrackLocal + Send + Sync>).await.unwrap();
-            tokio::spawn(async move {
-                let mut rtcp_buf = vec![0u8; 1500];
-                while rtp_sender.read(&mut rtcp_buf).await.is_ok() {}
-            });
-            
             let ws_sender_for_ice = Arc::clone(&ws_sender);
             pc.on_ice_candidate(Box::new(move |c: Option<RTCIceCandidate>| {
                 let ws_sender = Arc::clone(&ws_sender_for_ice);
                 Box::pin(async move {
                     if let Some(c) = c {
                         if let Ok(candidate) = c.to_json() {
-                            let msg = WsMessageOut { msg_type: "candidate", payload: candidate };
+                            let msg = WsMessageOut {
+                                msg_type: "candidate",
+                                payload: candidate,
+                            };
                             if let Ok(payload_str) = serde_json::to_string(&msg) {
-                                if ws_sender.lock().await.send(Message::Text(payload_str)).await.is_err() {
+                                if ws_sender
+                                    .lock()
+                                    .await
+                                    .send(Message::Text(payload_str))
+                                    .await
+                                    .is_err()
+                                {
                                     info!("Failed to send ICE candidate, WebSocket closed.");
                                 }
                             }
@@ -372,29 +563,48 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                 receiver: cmd_rx,
                 state: Arc::clone(&state),
                 audio_track,
+                video_track,
             };
             actor.run().await;
         }
     });
 
-
     while let Some(Ok(msg)) = ws_receiver.next().await {
         if let Message::Text(text) = msg {
             let ws_msg: WsMessageIn = match serde_json::from_str(&text) {
                 Ok(json) => json,
-                Err(e) => { error!("Failed to parse incoming message: {}", e); continue; }
+                Err(e) => {
+                    error!("Failed to parse incoming message: {}", e);
+                    continue;
+                }
             };
 
             match ws_msg.msg_type.as_str() {
                 "offer" => {
                     if let Ok(offer) = serde_json::from_value(ws_msg.payload) {
                         let (responder_tx, responder_rx) = oneshot::channel();
-                        let cmd = ActorCommand::SetRemoteOffer { offer, responder: responder_tx };
-                        if cmd_tx.send(cmd).await.is_err() { break; }
+                        let cmd = ActorCommand::SetRemoteOffer {
+                            offer,
+                            responder: responder_tx,
+                        };
+                        if cmd_tx.send(cmd).await.is_err() {
+                            break;
+                        }
                         if let Ok(Ok(answer)) = responder_rx.await {
-                            let ws_answer = WsMessageOut { msg_type: "answer", payload: &answer };
+                            let ws_answer = WsMessageOut {
+                                msg_type: "answer",
+                                payload: &answer,
+                            };
                             if let Ok(payload_str) = serde_json::to_string(&ws_answer) {
-                                if ws_sender.lock().await.send(Message::Text(payload_str)).await.is_err() { break; }
+                                if ws_sender
+                                    .lock()
+                                    .await
+                                    .send(Message::Text(payload_str))
+                                    .await
+                                    .is_err()
+                                {
+                                    break;
+                                }
                             }
                         }
                     }
@@ -402,36 +612,105 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                 "candidate" => {
                     if let Ok(candidate) = serde_json::from_value(ws_msg.payload) {
                         let cmd = ActorCommand::AddIceCandidate { candidate };
-                        if cmd_tx.send(cmd).await.is_err() { break; }
+                        if cmd_tx.send(cmd).await.is_err() {
+                            break;
+                        }
                     }
                 }
                 "health_check" => {
-                    let cmd = ActorCommand::HealthCheck { payload: ws_msg.payload };
-                    if cmd_tx.send(cmd).await.is_err() { break; }
+                    let cmd = ActorCommand::HealthCheck {
+                        payload: ws_msg.payload,
+                    };
+                    if cmd_tx.send(cmd).await.is_err() {
+                        break;
+                    }
                 }
                 "compute_flow" => {
-                    let cmd = ActorCommand::ComputeFlow { payload: ws_msg.payload };
-                    if cmd_tx.send(cmd).await.is_err() { break; }
+                    let cmd = ActorCommand::ComputeFlow {
+                        payload: ws_msg.payload,
+                    };
+                    if cmd_tx.send(cmd).await.is_err() {
+                        break;
+                    }
+                }
+                "stop_flow" => {
+                    if let Ok(payload) = serde_json::from_value::<FlowPayload>(ws_msg.payload) {
+                        let cmd = ActorCommand::StopFlow {
+                            flow_id: payload.flow_id,
+                        };
+                        if cmd_tx.send(cmd).await.is_err() {
+                            break;
+                        }
+                    }
+                }
+                "get_all_flows" => {
+                    let (responder_tx, responder_rx) = oneshot::channel();
+                    let cmd = ActorCommand::GetAllFlows {
+                        responder: responder_tx,
+                    };
+                    if cmd_tx.send(cmd).await.is_err() {
+                        break;
+                    }
+                    if let Ok(Ok(flows)) = responder_rx.await {
+                        let ws_response = WsMessageOut {
+                            msg_type: "get_all_flows_response",
+                            payload: &flows,
+                        };
+                        if let Ok(payload_str) = serde_json::to_string(&ws_response) {
+                            if ws_sender
+                                .lock()
+                                .await
+                                .send(Message::Text(payload_str))
+                                .await
+                                .is_err()
+                            {
+                                break;
+                            }
+                        }
+                    }
                 }
                 "ping" => {
-                    let cmd = ActorCommand::Ping { payload: ws_msg.payload };
-                    if cmd_tx.send(cmd).await.is_err() { break; }
+                    let cmd = ActorCommand::Ping {
+                        payload: ws_msg.payload,
+                    };
+                    if cmd_tx.send(cmd).await.is_err() {
+                        break;
+                    }
                 }
                 "subscribe_stream" => {
-                    if let Ok(payload) = serde_json::from_value::<SubscribeStreamPayload>(ws_msg.payload) {
-                        println!("Actor subscribing to topic: {}", payload.topic);
-                        let cmd = ActorCommand::SubscribeToTopic { topic: payload.topic };
-                        if cmd_tx.send(cmd).await.is_err() { break; }
+                    if let Ok(payload) =
+                        serde_json::from_value::<SubscribeStreamPayload>(ws_msg.payload)
+                    {
+                        info!("Received subscribe request for topic: {}", payload.topic);
+                        let cmd = ActorCommand::SubscribeToTopic {
+                            topic: payload.topic,
+                        };
+                        if cmd_tx.send(cmd).await.is_err() {
+                            break;
+                        }
                     }
                 }
                 "get_server" => {
                     let (responder_tx, responder_rx) = oneshot::channel();
-                    let cmd = ActorCommand::GetServer { responder: responder_tx };
-                    if cmd_tx.send(cmd).await.is_err() { break; }
+                    let cmd = ActorCommand::GetServer {
+                        responder: responder_tx,
+                    };
+                    if cmd_tx.send(cmd).await.is_err() {
+                        break;
+                    }
                     if let Ok(Ok(stats)) = responder_rx.await {
-                        let ws_response = WsMessageOut { msg_type: "get_server", payload: &stats };
+                        let ws_response = WsMessageOut {
+                            msg_type: "get_server",
+                            payload: &stats,
+                        };
                         if let Ok(payload_str) = serde_json::to_string(&ws_response) {
-                            if ws_sender.lock().await.send(Message::Text(payload_str)).await.is_err() {
+                            if ws_sender
+                                .lock()
+                                .await
+                                .send(Message::Text(payload_str))
+                                .await
+                                .is_err()
+                            {
                                 break;
                             }
                         }

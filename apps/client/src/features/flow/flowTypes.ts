@@ -20,7 +20,9 @@ export type NodeTypes =
   | "LOG_MESSAGE"
   | "CALCULATION"
   | "LOOP"
-  | "HTTP_REQUEST";
+  | "LOGIC_OPERATOR"
+  | "HTTP_REQUEST"
+  | "INTERVAL";
 
 export type NumberNodeType = {
   number: number;
@@ -49,6 +51,22 @@ export type CalculationNodeType = {
   operatorCalc: "+" | "-" | "/" | "*" | "%";
 };
 
+export type LogicOpetatorNodeType = {
+  operator:
+    | "AND"
+    | "OR"
+    | "XOR"
+    | "NAND"
+    | "XNOR"
+    | "NOR"
+    | "<"
+    | ">"
+    | "="
+    | "!="
+    | ">="
+    | "<=";
+};
+
 export type HTTPRequestNodeType = {
   url: string;
   httpMethod: "POST" | "GET" | "DELETE" | "PUT";
@@ -56,6 +74,11 @@ export type HTTPRequestNodeType = {
 
 export type LoopNodeType = {
   iterations: number;
+};
+
+export type IntervalNodeType = {
+  interval: number;
+  unit: "milliseconds" | "seconds" | "minutes";
 };
 
 export type DataNodeType =
@@ -66,6 +89,8 @@ export type DataNodeType =
   | ConditionNodeType
   | HTTPRequestNodeType
   | LoopNodeType
+  | LogicOpetatorNodeType
+  | IntervalNodeType
   | CalculationNodeType;
 
 export type DataNodeTypeType = Record<string, string>;

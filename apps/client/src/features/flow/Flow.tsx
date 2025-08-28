@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { MoreHorizontal, PlusCircle, Trash2 } from "lucide-react";
+import { MoreHorizontal, Plus, Trash2 } from "lucide-react";
 import { File } from "lucide-react";
 import { deleteFlow } from "@/entities/flow/api";
 import { Flow } from "@/entities/flow/types";
@@ -181,42 +181,44 @@ export function FlowSidebar() {
     <aside className='w-84 border-r bg-card text-card-foreground p-4 flex flex-col'>
       <div className='flex items-center justify-between mb-4'>
         <h2 className='mb-1 text-lg font-semibold tracking-tight'>Files</h2>
-        <Dialog onOpenChange={(open) => !open && setNewFlowName("")}>
-          <DialogTrigger asChild>
-            <Button variant='ghost' size='sm' className='top-[-4px] relative'>
-              <PlusCircle className='h-4 w-4 ' />
-            </Button>
-          </DialogTrigger>
-          <DialogContent className='sm:max-w-[425px]'>
-            <DialogHeader>
-              <DialogTitle>Create New Flow</DialogTitle>
-              <DialogDescription>
-                Enter a name for your new flow. Click create when you're done.
-              </DialogDescription>
-            </DialogHeader>
-            <div className='grid gap-4 py-4'>
-              <div className='grid grid-cols-4 items-center gap-4'>
-                <Label htmlFor='name' className='text-right'>
-                  Name
-                </Label>
-                <Input
-                  id='name'
-                  value={newFlowName}
-                  onChange={(e) => setNewFlowName(e.target.value)}
-                  className='col-span-3'
-                  placeholder='My Awesome Flow'
-                />
+        <div className='flex items-center'>
+          <Dialog onOpenChange={(open) => !open && setNewFlowName("")}>
+            <DialogTrigger asChild>
+              <Button variant='ghost' size='icon'>
+                <Plus className='h-4 w-4 ' />
+              </Button>
+            </DialogTrigger>
+            <DialogContent className='sm:max-w-[425px]'>
+              <DialogHeader>
+                <DialogTitle>Create New Flow</DialogTitle>
+                <DialogDescription>
+                  Enter a name for your new flow. Click create when you're done.
+                </DialogDescription>
+              </DialogHeader>
+              <div className='grid gap-4 py-4'>
+                <div className='grid grid-cols-4 items-center gap-4'>
+                  <Label htmlFor='name' className='text-right'>
+                    Name
+                  </Label>
+                  <Input
+                    id='name'
+                    value={newFlowName}
+                    onChange={(e) => setNewFlowName(e.target.value)}
+                    className='col-span-3'
+                    placeholder='My Awesome Flow'
+                  />
+                </div>
               </div>
-            </div>
-            <DialogFooter>
-              <DialogClose asChild>
-                <Button type='button' onClick={handleCreateFlow}>
-                  Create
-                </Button>
-              </DialogClose>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+              <DialogFooter>
+                <DialogClose asChild>
+                  <Button type='button' onClick={handleCreateFlow}>
+                    Create
+                  </Button>
+                </DialogClose>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
       <div className='flex-1 overflow-y-auto -mr-4 pr-4'>
         <div className='flex flex-col gap-1'>
