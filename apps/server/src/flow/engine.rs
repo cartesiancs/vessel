@@ -1,13 +1,17 @@
 use std::collections::{HashMap, VecDeque};
 use std::sync::Arc;
+use std::time::Duration;
 use anyhow::{Result, anyhow};
 use axum::extract::ws::{Message, WebSocket};
 use futures_util::{stream::SplitSink, SinkExt};
+use serde::Deserialize; 
 use serde_json::{Value, json};
-use tokio::sync::Mutex;
-use tracing::error;
+use tokio::sync::{Mutex, watch};
+use tokio::task::JoinHandle;
+use tokio::time; // timeout을 위해 추가
+use tracing::{error, info};
 
-use crate::flow::types::{Graph, Node, Edge};
+use crate::flow::types::{Graph, Node};
 use crate::flow::nodes::{
     ExecutableNode,
     start::StartNode,
@@ -19,7 +23,8 @@ use crate::flow::nodes::{
     calc::CalcNode,
     http::HttpNode,
     loop_node::LoopNode,
-    logic_operator::LogicOpetatorNode
+    logic_operator::LogicOpetatorNode,
+    interval::IntervalNode,
 };
 
 #[derive(Default)]
@@ -37,6 +42,16 @@ impl ExecutionContext {
     }
 }
 
+pub struct FlowController {
+    shutdown_tx: watch::Sender<bool>,
+}
+
+impl FlowController {
+    pub fn stop(&self) {
+        self.shutdown_tx.send(true).ok();
+    }
+}
+
 pub struct FlowEngine {
     nodes: HashMap<String, Node>,
     data_flow_graph: HashMap<String, Vec<(String, String, String)>>,
@@ -45,6 +60,7 @@ pub struct FlowEngine {
 
 impl FlowEngine {
     pub fn new(graph: Graph) -> Result<Self> {
+
         let nodes_map: HashMap<String, Node> =
             graph.nodes.into_iter().map(|n| (n.id.clone(), n)).collect();
 
@@ -75,7 +91,7 @@ impl FlowEngine {
                     target_node_id.clone(),
                     target_connector_name.clone()
                 ));
-
+            
             *expected_input_counts.entry(target_node_id.clone()).or_insert(0) += 1;
         }
 
@@ -99,92 +115,119 @@ impl FlowEngine {
             "HTTP_REQUEST" => Ok(Box::new(HttpNode::new(&node.data)?)),
             "LOOP" => Ok(Box::new(LoopNode::new(&node.data)?)),
             "LOGIC_OPERATOR" => Ok(Box::new(LogicOpetatorNode::new(&node.data)?)),
+            "INTERVAL" => Ok(Box::new(IntervalNode::new(&node.data)?)),
             _ => Err(anyhow!("Unknown or unimplemented node type: {}", node.node_type)),
         }
     }
 
-    pub async fn run(&self, ws_sender: Arc<Mutex<SplitSink<WebSocket, Message>>>) -> Result<()> {
-        let mut context = ExecutionContext::default();
-        let mut execution_queue: VecDeque<String> = VecDeque::new();
-        let mut received_input_counts: HashMap<String, usize> = HashMap::new();
-        let mut node_input_data: HashMap<String, HashMap<String, Value>> = HashMap::new();
+    pub async fn start(self: Arc<Self>, ws_sender: Arc<Mutex<SplitSink<WebSocket, Message>>>) -> (FlowController, JoinHandle<Result<()>>) {
+        let (shutdown_tx, mut shutdown_rx) = watch::channel(false);
+        let execution_queue = Arc::new(Mutex::new(VecDeque::new()));
 
-        let ws_message = json!({
-            "type": "log_message",
-            "payload": "Executing flow..."
+        #[derive(Deserialize)]
+        struct IntervalData {
+            interval: u64,
+            unit: String,
+        }
+        
+        {
+            let mut queue = execution_queue.lock().await;
+            for (node_id, node) in &self.nodes {
+                if *self.expected_input_counts.get(node_id).unwrap_or(&0) == 0 {
+                    if node.node_type == "INTERVAL" {
+                        if let Ok(data) = serde_json::from_value::<IntervalData>(node.data.clone()) {
+                            let duration = match data.unit.as_str() {
+                                "milliseconds" => Duration::from_millis(data.interval),
+                                "seconds" => Duration::from_secs(data.interval),
+                                "minutes" => Duration::from_secs(data.interval * 60),
+                                _ => continue,
+                            };
+                            
+                            let mut interval_shutdown_rx = shutdown_rx.clone();
+                            let queue_clone = Arc::clone(&execution_queue);
+                            let node_id_clone = node_id.clone();
+                            tokio::spawn(async move {
+                                let mut interval = time::interval(duration);
+                                loop {
+                                    tokio::select! {
+                                        _ = interval.tick() => {
+                                            queue_clone.lock().await.push_back(node_id_clone.clone());
+                                        }
+                                        _ = interval_shutdown_rx.changed() => {
+                                            if *interval_shutdown_rx.borrow() { break; }
+                                        }
+                                    }
+                                }
+                            });
+                        }
+                    } else {
+                        queue.push_back(node_id.clone());
+                    }
+                }
+            }
+        }
+        
+        let engine_clone = Arc::clone(&self);
+        let handle = tokio::spawn(async move {
+            let self_ = engine_clone;
+            let mut context = ExecutionContext::default();
+            let mut node_input_data: HashMap<String, HashMap<String, Value>> = HashMap::new();
+
+            info!("Flow Engine task started. Entering main execution loop...");
+
+            while !*shutdown_rx.borrow() {
+                let maybe_node_id = execution_queue.lock().await.pop_front();
+
+                if let Some(node_id) = maybe_node_id {
+                    let node_instance = self_.get_node_instance(&node_id)?;
+                    let mut inputs = node_input_data.remove(&node_id).unwrap_or_default();
+                    
+                    if let Some(node) = self_.nodes.get(&node_id) {
+                        if node.node_type == "LOOP" {
+                            if let Some(connections) = self_.data_flow_graph.get(&node_id) {
+                                if let Some((_, target_node_id, target_connector_name)) = connections.iter().find(|(c, _, _)| c == "body") {
+                                    inputs.insert("body_node_id".to_string(), json!(target_node_id));
+                                    inputs.insert("body_input_name".to_string(), json!(target_connector_name));
+                                }
+                            }
+                        }
+                    }
+
+                    let result = node_instance.execute(&mut context, inputs, ws_sender.clone()).await?;
+
+                    for trigger in result.triggers {
+                        let mut queue = execution_queue.lock().await;
+                        node_input_data.entry(trigger.node_id.clone()).or_default().extend(trigger.inputs);
+                        queue.push_back(trigger.node_id);
+                    }
+
+                    if let Some(connections) = self_.data_flow_graph.get(&node_id) {
+                        for (source_connector_name, target_node_id, target_connector_name) in connections {
+                            if let Some(output_value) = result.outputs.get(source_connector_name) {
+                                let target_inputs = node_input_data.entry(target_node_id.clone()).or_default();
+                                target_inputs.insert(target_connector_name.clone(), output_value.clone());
+                                
+                                let expected_count = *self_.expected_input_counts.get(target_node_id).unwrap_or(&0);
+                                if target_inputs.len() >= expected_count {
+                                    execution_queue.lock().await.push_back(target_node_id.clone());
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    let timeout_duration = Duration::from_millis(50);
+                    let _ = time::timeout(timeout_duration, shutdown_rx.changed()).await;
+
+                    if *shutdown_rx.borrow() {
+                        break;
+                    }
+                }
+            }
+
+            info!("Flow execution loop stopped.");
+            Ok(())
         });
-        
-        if let Ok(payload_str) = serde_json::to_string(&ws_message) {
-            if ws_sender.lock().await.send(Message::Text(payload_str)).await.is_err() {
-                error!("Failed to send health check response.");
-            }
-        }
 
-
-        for node_id in self.nodes.keys() {
-            if self.expected_input_counts.get(node_id).unwrap_or(&0) == &0 {
-                execution_queue.push_back(node_id.clone());
-            }
-        }
-        
-        if execution_queue.is_empty() && !self.nodes.is_empty() {
-            return Err(anyhow!("No start node found (a node with no inputs)"));
-        }
-
-        while let Some(node_id) = execution_queue.pop_front() {
-            let node_instance = self.get_node_instance(&node_id)?;
-            let mut inputs = node_input_data.get(&node_id).cloned().unwrap_or_default();
-            
-            if let Some(node) = self.nodes.get(&node_id) {
-                if node.node_type == "LOOP" {
-                    if let Some(connections) = self.data_flow_graph.get(&node_id) {
-                        if let Some((_, target_node_id, target_connector_name)) = connections.iter().find(|(source_connector, _, _)| source_connector == "body") {
-                            inputs.insert("body_node_id".to_string(), json!(target_node_id));
-                            inputs.insert("body_input_name".to_string(), json!(target_connector_name));
-                        }
-                    }
-                }
-            }
-            
-            let result = node_instance.execute(&mut context, inputs, ws_sender.clone()).await?;
-
-            for trigger in result.triggers {
-                node_input_data
-                    .entry(trigger.node_id.clone())
-                    .or_default()
-                    .extend(trigger.inputs);
-                
-                execution_queue.push_back(trigger.node_id);
-            }
-
-            if let Some(connections) = self.data_flow_graph.get(&node_id) {
-                for (source_connector_name, target_node_id, target_connector_name) in connections {
-                    if let Some(output_value) = result.outputs.get(source_connector_name) {
-                        
-                        let target_inputs = node_input_data.entry(target_node_id.clone()).or_default();
-                        target_inputs.insert(target_connector_name.clone(), output_value.clone());
-
-                        let received_count = received_input_counts.entry(target_node_id.clone()).or_insert(0);
-                        *received_count += 1;
-
-                        let expected_count = self.expected_input_counts.get(target_node_id).unwrap_or(&0);
-                        if *received_count >= *expected_count {
-                            execution_queue.push_back(target_node_id.clone());
-                            received_input_counts.insert(target_node_id.clone(), 0);
-                        }
-                    }
-                }
-            }
-        }
-
-        if let Ok(payload_str) = serde_json::to_string(&json!({
-            "type": "log_message",
-            "payload": "Flow execution finished."
-        })) {
-            if ws_sender.lock().await.send(Message::Text(payload_str)).await.is_err() {
-                error!("Failed to send health check response.");
-            }
-        }
-        Ok(())
+        (FlowController { shutdown_tx }, handle)
     }
 }

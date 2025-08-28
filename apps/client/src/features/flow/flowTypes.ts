@@ -21,7 +21,8 @@ export type NodeTypes =
   | "CALCULATION"
   | "LOOP"
   | "LOGIC_OPERATOR"
-  | "HTTP_REQUEST";
+  | "HTTP_REQUEST"
+  | "INTERVAL";
 
 export type NumberNodeType = {
   number: number;
@@ -75,6 +76,11 @@ export type LoopNodeType = {
   iterations: number;
 };
 
+export type IntervalNodeType = {
+  interval: number;
+  unit: "milliseconds" | "seconds" | "minutes";
+};
+
 export type DataNodeType =
   | NumberNodeType
   | TextNodeType
@@ -84,6 +90,7 @@ export type DataNodeType =
   | HTTPRequestNodeType
   | LoopNodeType
   | LogicOpetatorNodeType
+  | IntervalNodeType
   | CalculationNodeType;
 
 export type DataNodeTypeType = Record<string, string>;

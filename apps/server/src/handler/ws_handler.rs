@@ -9,9 +9,9 @@ use axum::{
 use futures_util::{stream::SplitSink, FutureExt, SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 use sysinfo::System;
-use tokio::sync::{mpsc, oneshot, Mutex};
+use tokio::{sync::{mpsc, oneshot, Mutex}, task::JoinHandle};
 use tracing::{error, info, warn};
 use webrtc::{
     api::{
@@ -31,7 +31,7 @@ use webrtc::{
 
 use crate::{
     db,
-    flow::engine::FlowEngine,
+    flow::engine::{FlowController, FlowEngine},
     handler::auth::JwtAuth,
     state::{AppState, FrameData, MediaType},
 };
@@ -61,6 +61,11 @@ struct SubscribeStreamPayload {
     topic: String,
 }
 
+#[derive(Deserialize)]
+struct FlowPayload {
+    flow_id: i32,
+}
+
 enum ActorCommand {
     SetRemoteOffer {
         offer: RTCSessionDescription,
@@ -74,6 +79,9 @@ enum ActorCommand {
     },
     ComputeFlow {
         payload: serde_json::Value,
+    },
+    StopFlow {
+        flow_id: i32,
     },
     SubscribeToTopic {
         topic: String,
@@ -92,7 +100,9 @@ struct WebRtcActor {
     receiver: mpsc::Receiver<ActorCommand>,
     state: Arc<AppState>,
     audio_track: Arc<TrackLocalStaticRTP>,
-    video_track: Arc<TrackLocalStaticSample>
+    video_track: Arc<TrackLocalStaticSample>,
+    active_flows: Arc<Mutex<HashMap<i32, (FlowController, JoinHandle<Result<()>>)>>>,
+
 }
 
 impl WebRtcActor {
@@ -117,6 +127,9 @@ impl WebRtcActor {
                 }
                 ActorCommand::ComputeFlow { payload } => {
                     self.handle_compute_flow(payload).await;
+                }
+                ActorCommand::StopFlow { flow_id } => {
+                    self.handle_stop_flow(flow_id).await;
                 }
                 ActorCommand::SubscribeToTopic { topic } => {
                     self.handle_subscribe(topic).await;
@@ -211,30 +224,70 @@ impl WebRtcActor {
     }
 
     async fn handle_compute_flow(&self, payload: serde_json::Value) {
-        if let Some(value) = payload.get("flow_id") {
-            if !value.is_number() {
-                error!("Invalid flow_id in payload: {:?}", payload);
-                return;
-            }
-
-            let age_i64: i64 = value.as_i64().unwrap_or_default();
-
-            let versions =
-                db::repository::get_versions_for_flow(&self.state.pool, age_i64 as i32)
-                    .expect("msg");
-            if versions.is_empty() {
-                error!("No versions found for flow_id: {}", age_i64);
-                return;
-            }
-
-            let latest_version = versions[0].clone();
-            let json_data = latest_version.graph_json;
-            let graph = serde_json::from_str(&json_data).expect("Failed to parse graph JSON");
-            let engine = FlowEngine::new(graph).expect("Failed to create FlowEngine");
-
-            engine.run(self.ws_sender.clone()).await;
-        } else {
+        let Some(value) = payload.get("flow_id") else {
             error!("Missing flow_id in payload: {:?}", payload);
+            return;
+        };
+
+        if !value.is_number() {
+            error!("Invalid flow_id in payload: {:?}", payload);
+            return;
+        }
+
+        let flow_id: i32 = value.as_i64().unwrap_or_default() as i32;
+
+        let versions =
+            db::repository::get_versions_for_flow(&self.state.pool, flow_id as i32)
+                .expect("msg");
+        if versions.is_empty() {
+            return;
+        }
+        
+
+        let latest_version = versions[0].clone();
+        let graph = match serde_json::from_str(&latest_version.graph_json) {
+            Ok(g) => g,
+            Err(e) => {
+                error!("Failed to parse graph JSON for flow_id {}: {}", flow_id, e);
+                return;
+            }
+        };
+        
+        let engine = match FlowEngine::new(graph) {
+            Ok(e) => Arc::new(e),
+            Err(e) => {
+                error!("Failed to create FlowEngine for flow_id {}: {}", flow_id, e);
+                return;
+            }
+        };
+
+        println!("Start Flow");
+        let ws_sender_clone = self.ws_sender.clone();
+        
+        let (controller, handle) = engine.start(ws_sender_clone).await;
+        
+        self.active_flows.lock().await.insert(flow_id, (controller, handle));
+
+        let active_flows_clone = self.active_flows.clone();
+        
+        tokio::spawn(async move {
+            if let Some((_controller, handle)) = active_flows_clone.lock().await.remove(&flow_id) {
+                match handle.await {
+                    Ok(Ok(_)) => info!("Flow execution finished for flow_id: {}", flow_id),
+                    Ok(Err(e)) => error!("Flow execution for flow_id {} stopped with an error: {:?}", flow_id, e),
+                    Err(e) => error!("Flow execution task for flow_id {} panicked or was cancelled: {:?}", flow_id, e),
+                }
+            }
+        });
+    }
+
+    async fn handle_stop_flow(&self, flow_id: i32) {
+        info!("Received request to stop flow with ID: {}", flow_id);
+        if let Some((controller, _handle)) = self.active_flows.lock().await.remove(&flow_id) {
+            controller.stop();
+            info!("Stop signal sent to flow_id: {}", flow_id);
+        } else {
+            warn!("Attempted to stop flow_id {}, but it was not found.", flow_id);
         }
     }
 
@@ -479,6 +532,7 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                 state: Arc::clone(&state),
                 audio_track,
                 video_track,
+                active_flows: Arc::new(Mutex::new(HashMap::new())),
             };
             actor.run().await;
         }
@@ -546,6 +600,16 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                     };
                     if cmd_tx.send(cmd).await.is_err() {
                         break;
+                    }
+                }
+                "stop_flow" => {
+                    if let Ok(payload) = serde_json::from_value::<FlowPayload>(ws_msg.payload) {
+                        let cmd = ActorCommand::StopFlow {
+                            flow_id: payload.flow_id,
+                        };
+                        if cmd_tx.send(cmd).await.is_err() {
+                            break;
+                        }
                     }
                 }
                 "ping" => {

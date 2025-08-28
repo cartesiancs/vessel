@@ -138,4 +138,16 @@ export const DEFINITION_NODE: {
       operator: "SELECT[AND,OR,XOR,NAND,NOR,XNOR,>,<,==,!=,>=,<=]",
     },
   },
+  INTERVAL: {
+    connectors: [{ id: `id`, name: "exec", type: "out" }],
+    nodeType: "INTERVAL",
+    data: {
+      interval: 10,
+      unit: "seconds",
+    },
+    dataType: {
+      interval: "NUMBER",
+      unit: "SELECT[milliseconds,seconds,minutes]",
+    },
+  },
 };
