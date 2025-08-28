@@ -150,4 +150,18 @@ export const DEFINITION_NODE: {
       unit: "SELECT[milliseconds,seconds,minutes]",
     },
   },
+  MQTT_PUBLISH: {
+    connectors: [{ id: `id`, name: "payload", type: "in" }],
+    nodeType: "MQTT_PUBLISH",
+    data: {
+      topic: "default/topic",
+      qos: 1,
+      retain: false,
+    },
+    dataType: {
+      topic: "STRING",
+      qos: "SELECT[0,1,2]",
+      retain: "BOOLEAN",
+    },
+  },
 };

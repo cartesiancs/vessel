@@ -22,7 +22,8 @@ export type NodeTypes =
   | "LOOP"
   | "LOGIC_OPERATOR"
   | "HTTP_REQUEST"
-  | "INTERVAL";
+  | "INTERVAL"
+  | "MQTT_PUBLISH";
 
 export type NumberNodeType = {
   number: number;
@@ -81,6 +82,12 @@ export type IntervalNodeType = {
   unit: "milliseconds" | "seconds" | "minutes";
 };
 
+export type MqttPublishNodeType = {
+  topic: string;
+  qos: 0 | 1 | 2;
+  retain: boolean;
+};
+
 export type DataNodeType =
   | NumberNodeType
   | TextNodeType
@@ -91,6 +98,7 @@ export type DataNodeType =
   | LoopNodeType
   | LogicOpetatorNodeType
   | IntervalNodeType
+  | MqttPublishNodeType
   | CalculationNodeType;
 
 export type DataNodeTypeType = Record<string, string>;

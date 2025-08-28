@@ -43,6 +43,7 @@ When everything is implemented, individuals will be able to create a medieval-le
 - RTP Audio Streaming
 - RTSP Video Streaming
 - Flow Visual Logic
+- Publish MQTT with Flow
 - Map based UI
 
 ## Develop

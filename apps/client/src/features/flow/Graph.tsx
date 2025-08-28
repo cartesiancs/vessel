@@ -30,6 +30,7 @@ import { formatConstantCase } from "@/lib/string";
 import { renderLoopNode } from "./nodes/LoopNode";
 import { renderLogicNode } from "./nodes/LogicNode";
 import { renderIntervalNode } from "./nodes/IntervalNode";
+import { renderMQTTNode } from "./nodes/MQTTNode";
 
 export function Graph({
   nodes,
@@ -75,6 +76,7 @@ export function Graph({
     LOOP: (g, d) => renderLoopNode(g, d, () => handleClickOption(d)),
     INTERVAL: (g, d) => renderIntervalNode(g, d, () => handleClickOption(d)),
     LOGIC_OPERATOR: (g, d) => renderLogicNode(g, d, () => handleClickOption(d)),
+    MQTT_PUBLISH: (g, d) => renderMQTTNode(g, d, () => handleClickOption(d)),
   };
 
   const handleClickOption = (node: Node) => {

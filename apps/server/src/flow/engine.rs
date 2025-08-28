@@ -4,6 +4,7 @@ use std::time::Duration;
 use anyhow::{Result, anyhow};
 use axum::extract::ws::{Message, WebSocket};
 use futures_util::{stream::SplitSink, SinkExt};
+use rumqttc::AsyncClient;
 use serde::Deserialize; 
 use serde_json::{Value, json};
 use tokio::sync::{broadcast, watch, Mutex};
@@ -11,6 +12,7 @@ use tokio::task::JoinHandle;
 use tokio::time; // timeout을 위해 추가
 use tracing::{error, info};
 
+use crate::flow::nodes::mqtt_publish::MqttPublishNode;
 use crate::flow::types::{Graph, Node};
 use crate::flow::nodes::{
     ExecutableNode,
@@ -30,15 +32,28 @@ use crate::flow::nodes::{
 #[derive(Default)]
 pub struct ExecutionContext {
     variables: HashMap<String, Value>,
+    mqtt_client: Option<AsyncClient>,
+
 }
 
 impl ExecutionContext {
+    pub fn new(mqtt_client: Option<AsyncClient>) -> Self {
+        Self {
+            variables: HashMap::new(),
+            mqtt_client,
+        }
+    }
+
     pub fn set_variable(&mut self, name: &str, value: Value) {
         self.variables.insert(name.to_string(), value);
     }
 
     pub fn get_variable(&self, name: &str) -> Option<&Value> {
         self.variables.get(name)
+    }
+
+    pub fn mqtt_client(&self) -> &Option<AsyncClient> {
+        &self.mqtt_client
     }
 }
 
@@ -116,11 +131,12 @@ impl FlowEngine {
             "LOOP" => Ok(Box::new(LoopNode::new(&node.data)?)),
             "LOGIC_OPERATOR" => Ok(Box::new(LogicOpetatorNode::new(&node.data)?)),
             "INTERVAL" => Ok(Box::new(IntervalNode::new(&node.data)?)),
+            "MQTT_PUBLISH" => Ok(Box::new(MqttPublishNode::new(&node.data)?)), 
             _ => Err(anyhow!("Unknown or unimplemented node type: {}", node.node_type)),
         }
     }
 
-    pub async fn start(self: Arc<Self>, broadcast_tx: broadcast::Sender<String>) -> (FlowController, JoinHandle<Result<()>>) {
+    pub async fn start(self: Arc<Self>, broadcast_tx: broadcast::Sender<String>, mqtt_client: Option<AsyncClient>) -> (FlowController, JoinHandle<Result<()>>) {
         let (shutdown_tx, mut shutdown_rx) = watch::channel(false);
         let execution_queue = Arc::new(Mutex::new(VecDeque::new()));
 
@@ -181,7 +197,7 @@ impl FlowEngine {
         let engine_clone = Arc::clone(&self);
         let handle = tokio::spawn(async move {
             let self_ = engine_clone;
-            let mut context = ExecutionContext::default();
+            let mut context = ExecutionContext::new(mqtt_client);
             let mut node_input_data: HashMap<String, HashMap<String, Value>> = HashMap::new();
 
             info!("Flow Engine task started. Entering main execution loop...");
