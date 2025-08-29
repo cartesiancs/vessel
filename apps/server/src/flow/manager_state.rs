@@ -3,7 +3,7 @@ use axum::extract::ws::{Message, WebSocket};
 use futures_util::stream::SplitSink;
 use std::{collections::HashMap, sync::Arc};
 use tokio::{sync::{broadcast, mpsc, Mutex}, task::JoinHandle};
-use crate::{db, flow::{engine::{FlowController, FlowEngine}, types::Graph}, state::DbPool};
+use crate::{db, flow::{engine::{FlowController, FlowEngine}, types::Graph}, state::{DbPool, MqttMessage}};
 use rumqttc::AsyncClient;
 
 pub enum FlowManagerCommand {
@@ -25,14 +25,16 @@ pub struct FlowManagerActor {
     receiver: mpsc::Receiver<FlowManagerCommand>,
     active_flows: HashMap<i32, (FlowController, JoinHandle<Result<()>>)>,
     mqtt_client: Option<AsyncClient>, 
+    mqtt_tx: broadcast::Sender<MqttMessage>,
 }
 
 impl FlowManagerActor {
-    pub fn new(receiver: mpsc::Receiver<FlowManagerCommand>, mqtt_client: Option<AsyncClient>) -> Self {
+    pub fn new(receiver: mpsc::Receiver<FlowManagerCommand>, mqtt_client: Option<AsyncClient>, mqtt_tx: broadcast::Sender<MqttMessage>,) -> Self {
         Self {
             receiver,
             active_flows: HashMap::new(),
-            mqtt_client
+            mqtt_client,
+            mqtt_tx,
         }
     }
 
@@ -47,7 +49,7 @@ impl FlowManagerActor {
 
                     tracing::info!("Starting flow execution globally for flow_id: {}", flow_id);
                     let engine = Arc::new(FlowEngine::new(graph).unwrap());
-                    let (controller, handle) = engine.start(broadcast_tx, self.mqtt_client.clone()).await;
+                    let (controller, handle) = engine.start(broadcast_tx, self.mqtt_client.clone(), Some(self.mqtt_tx.clone())).await;
                     self.active_flows.insert(flow_id, (controller, handle));
                 }
                 FlowManagerCommand::StopFlow { flow_id } => {

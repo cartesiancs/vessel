@@ -23,6 +23,7 @@ export type NodeTypes =
   | "LOGIC_OPERATOR"
   | "HTTP_REQUEST"
   | "INTERVAL"
+  | "MQTT_SUBSCRIBE"
   | "MQTT_PUBLISH";
 
 export type NumberNodeType = {
@@ -88,6 +89,10 @@ export type MqttPublishNodeType = {
   retain: boolean;
 };
 
+export type MqttSubscribeNodeType = {
+  topic: string;
+};
+
 export type DataNodeType =
   | NumberNodeType
   | TextNodeType
@@ -99,6 +104,7 @@ export type DataNodeType =
   | LogicOpetatorNodeType
   | IntervalNodeType
   | MqttPublishNodeType
+  | MqttSubscribeNodeType
   | CalculationNodeType;
 
 export type DataNodeTypeType = Record<string, string>;

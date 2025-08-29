@@ -164,4 +164,14 @@ export const DEFINITION_NODE: {
       retain: "BOOLEAN",
     },
   },
+  MQTT_SUBSCRIBE: {
+    connectors: [{ id: `id`, name: "payload", type: "out" }],
+    nodeType: "MQTT_SUBSCRIBE",
+    data: {
+      topic: "default/topic",
+    },
+    dataType: {
+      topic: "STRING",
+    },
+  },
 };

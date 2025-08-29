@@ -77,6 +77,7 @@ export function Graph({
     INTERVAL: (g, d) => renderIntervalNode(g, d, () => handleClickOption(d)),
     LOGIC_OPERATOR: (g, d) => renderLogicNode(g, d, () => handleClickOption(d)),
     MQTT_PUBLISH: (g, d) => renderMQTTNode(g, d, () => handleClickOption(d)),
+    MQTT_SUBSCRIBE: (g, d) => renderMQTTNode(g, d, () => handleClickOption(d)),
   };
 
   const handleClickOption = (node: Node) => {

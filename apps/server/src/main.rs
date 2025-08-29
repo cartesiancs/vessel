@@ -164,7 +164,7 @@ async fn main() -> Result<()> {
     
     }
 
-    let mut flow_manager = FlowManagerActor::new(flow_manager_rx, mqtt_client_for_flow);
+    let mut flow_manager = FlowManagerActor::new(flow_manager_rx, mqtt_client_for_flow, mqtt_tx.clone());
     tokio::spawn(async move {
         flow_manager.run().await;
     });
