@@ -819,13 +819,16 @@ pub fn update_map_feature(
 
     let mut conn = pool.get()?;
 
-    let feature = conn.transaction::<_, diesel::result::Error, _>(|conn| {
-        let updated_feature: MapFeature = diesel::update(map_features::table.find(target_feature_id))
-            .set(feature_data)
-            .get_result(conn)?;
+    conn.transaction::<_, anyhow::Error, _>(|conn| {
+        if feature_data.has_changes() {
+            diesel::update(map_features::table.find(target_feature_id))
+                .set(feature_data)
+                .execute(conn)?;
+        }
         
         if let Some(vertices_data) = new_vertices_data {
-            diesel::delete(map_vertices::table.filter(map_vertices::feature_id.eq(target_feature_id))).execute(conn)?;
+            diesel::delete(map_vertices::table.filter(map_vertices::feature_id.eq(target_feature_id)))
+                .execute(conn)?;
             
             let vertices_with_id: Vec<NewMapVertex> = vertices_data
                 .into_iter()
@@ -840,10 +843,10 @@ pub fn update_map_feature(
                 .execute(conn)?;
         }
 
-        Ok(updated_feature)
-    })?;
-
-    Ok(feature)
+        let result = map_features::table.find(target_feature_id).first(conn)?;
+        Ok(result)
+    })
+    .map_err(Into::into)
 }
 
 pub fn delete_map_feature(pool: &DbPool, target_feature_id: i32) -> Result<usize, anyhow::Error> {

@@ -8,9 +8,8 @@ import {
   CardTitle,
   CardFooter,
 } from "@/components/ui/card";
-import { StreamReceiver } from "../rtc/video";
-import { AudioStreamReceiver } from "../rtc/audio";
 import { formatSimpleDateTime } from "@/lib/time";
+import { StreamReceiver } from "../rtc/StreamReceiver";
 
 export function AllEntities() {
   const [entities, setEntities] = useState<EntityAll[]>([]);
@@ -40,7 +39,7 @@ export function AllEntities() {
             <CardDescription>Entity : {item.friendly_name}</CardDescription>
             <CardTitle className='text-2xl font-semibold tabular-nums'>
               {item.configuration && (
-                <AudioStreamReceiver
+                <StreamReceiver
                   topic={item.configuration.state_topic as string}
                   streamType='audio'
                 />

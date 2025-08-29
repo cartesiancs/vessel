@@ -79,6 +79,9 @@ enum ActorCommand {
         offer: RTCSessionDescription,
         responder: oneshot::Sender<Result<RTCSessionDescription>>,
     },
+    SetRemoteAnswer {
+        answer: RTCSessionDescription,
+    },
     AddIceCandidate {
         candidate: RTCIceCandidateInit,
     },
@@ -124,6 +127,13 @@ impl WebRtcActor {
                     let res = Self::handle_offer(pc_clone, offer).await;
                     if responder.send(res).is_err() {
                         error!("Failed to send answer back to handler.");
+                    }
+                }
+                ActorCommand::SetRemoteAnswer { answer } => {
+                    if let Err(e) = self.pc.set_remote_description(answer).await {
+                        error!("Failed to set remote answer for renegotiation: {}", e);
+                    } else {
+                        info!("Renegotiation successful: Remote answer set.");
                     }
                 }
                 ActorCommand::AddIceCandidate { candidate } => {
@@ -315,6 +325,8 @@ impl WebRtcActor {
 
 
     async fn handle_subscribe(&self, topic: String) {
+        let mut subscribed = false;
+
         if let Some((ssrc, info)) = self
             .state
             .streams
@@ -322,6 +334,7 @@ impl WebRtcActor {
             .find(|entry| entry.value().topic == topic && entry.value().media_type == MediaType::Audio)
             .map(|entry| (*entry.key(), entry.value().clone()))
         {
+            subscribed = true;
             info!("[Audio] Subscribing to topic '{}' with SSRC {}", topic, ssrc);
             
             let rtp_sender = self.pc.add_track(
@@ -364,10 +377,10 @@ impl WebRtcActor {
                 }
                 info!("[Audio] RTP packet forwarding stopped for SSRC: {}", ssrc);
             });
-            return; 
         }
 
         if self.state.topic_map.read().await.iter().any(|m| m.topic == topic && m.protocol == crate::state::Protocol::RTSP) {
+            subscribed = true;
             info!("[Video] Subscribing to topic '{}'", topic);
 
             let rtp_sender = self.pc.add_track(
@@ -399,10 +412,30 @@ impl WebRtcActor {
                 }
                 info!("[Video] Frame forwarding stopped for topic: {}", topic_clone);
             });
-            return; 
         }
-        
-        warn!("Could not find any stream to subscribe for topic: {}", topic);
+
+        if subscribed {
+            info!("Track added. Starting renegotiation...");
+            match self.pc.create_offer(None).await {
+                Ok(offer) => {
+                    if self.pc.set_local_description(offer).await.is_ok() {
+                        if let Some(local_desc) = self.pc.local_description().await {
+                            let msg = WsMessageOut { msg_type: "offer", payload: local_desc };
+                            if let Ok(payload_str) = serde_json::to_string(&msg) {
+                                if self.ws_sender.lock().await.send(Message::Text(payload_str)).await.is_err() {
+                                    error!("Failed to send renegotiation offer to client.");
+                                } else {
+                                    info!("Renegotiation offer sent to client.");
+                                }
+                            }
+                        }
+                    }
+                }
+                Err(e) => error!("Failed to create renegotiation offer: {}", e),
+            }
+        } else {
+            warn!("Could not find any stream to subscribe for topic: {}", topic);
+        }
     }
 }
 
@@ -606,6 +639,14 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                                     break;
                                 }
                             }
+                        }
+                    }
+                }
+                "answer" => {
+                    if let Ok(answer) = serde_json::from_value(ws_msg.payload) {
+                        let cmd = ActorCommand::SetRemoteAnswer { answer };
+                        if cmd_tx.send(cmd).await.is_err() {
+                            break;
                         }
                     }
                 }

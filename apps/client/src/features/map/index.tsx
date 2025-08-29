@@ -11,8 +11,10 @@ import { useMapStore } from "./store";
 import "./style.css";
 import { useMapDataStore } from "@/entities/map/store";
 import { MapEvents } from "./MapEvents";
-import { DrawingPreview } from "./DrawingPreview";
+import { DrawingPreview } from "./FeatureDrawingPreview";
 import { FeatureRenderer } from "./FeatureRenderer";
+import { FeatureEditor } from "./FeatureEditor";
+import { FeatureDetailsPanel } from "./FeatureDetailsPanel";
 
 const DefaultIcon = L.icon({
   iconUrl: icon,
@@ -79,6 +81,7 @@ export function MapView() {
 
   return (
     <>
+      <FeatureDetailsPanel />
       {!position ? (
         <div className='flex items-center justify-center h-full'>
           <span>Loading Map...</span>
@@ -101,6 +104,7 @@ export function MapView() {
           ))}
           <MapEvents />
           <DrawingPreview />
+          <FeatureEditor />
 
           {entities.map((entity) => {
             const markerPosition = parseGpsState(entity.state?.state);

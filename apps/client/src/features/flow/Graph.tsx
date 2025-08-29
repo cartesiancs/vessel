@@ -31,6 +31,7 @@ import { renderLoopNode } from "./nodes/LoopNode";
 import { renderLogicNode } from "./nodes/LogicNode";
 import { renderIntervalNode } from "./nodes/IntervalNode";
 import { renderMQTTNode } from "./nodes/MQTTNode";
+import { renderButtonNode } from "./nodes/ButtonNode";
 
 export function Graph({
   nodes,
@@ -77,6 +78,9 @@ export function Graph({
     INTERVAL: (g, d) => renderIntervalNode(g, d, () => handleClickOption(d)),
     LOGIC_OPERATOR: (g, d) => renderLogicNode(g, d, () => handleClickOption(d)),
     MQTT_PUBLISH: (g, d) => renderMQTTNode(g, d, () => handleClickOption(d)),
+    MQTT_SUBSCRIBE: (g, d) => renderMQTTNode(g, d, () => handleClickOption(d)),
+    TYPE_CONVERTER: (g, d) =>
+      renderButtonNode(g, d, () => handleClickOption(d)),
   };
 
   const handleClickOption = (node: Node) => {

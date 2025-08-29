@@ -10,9 +10,11 @@ use serde_json::{Value, json};
 use tokio::sync::{broadcast, watch, Mutex};
 use tokio::task::JoinHandle;
 use tokio::time; // timeout을 위해 추가
-use tracing::{error, info};
+use tracing::{error, info, warn};
 
 use crate::flow::nodes::mqtt_publish::MqttPublishNode;
+use crate::flow::nodes::mqtt_subscribe::MqttSubscribeNode;
+use crate::flow::nodes::type_converter::TypeConverterNode;
 use crate::flow::types::{Graph, Node};
 use crate::flow::nodes::{
     ExecutableNode,
@@ -28,6 +30,7 @@ use crate::flow::nodes::{
     logic_operator::LogicOpetatorNode,
     interval::IntervalNode,
 };
+use crate::state::MqttMessage;
 
 #[derive(Default)]
 pub struct ExecutionContext {
@@ -132,14 +135,23 @@ impl FlowEngine {
             "LOGIC_OPERATOR" => Ok(Box::new(LogicOpetatorNode::new(&node.data)?)),
             "INTERVAL" => Ok(Box::new(IntervalNode::new(&node.data)?)),
             "MQTT_PUBLISH" => Ok(Box::new(MqttPublishNode::new(&node.data)?)), 
+            "MQTT_SUBSCRIBE" => Ok(Box::new(MqttSubscribeNode::new(&node.data)?)), 
+            "TYPE_CONVERTER" => Ok(Box::new(TypeConverterNode::new(&node.data)?)), 
+
             _ => Err(anyhow!("Unknown or unimplemented node type: {}", node.node_type)),
         }
     }
 
-    pub async fn start(self: Arc<Self>, broadcast_tx: broadcast::Sender<String>, mqtt_client: Option<AsyncClient>) -> (FlowController, JoinHandle<Result<()>>) {
+    pub async fn start(
+        self: Arc<Self>, 
+        broadcast_tx: broadcast::Sender<String>, 
+        mqtt_client: Option<AsyncClient>,
+        mqtt_tx: Option<broadcast::Sender<MqttMessage>>,
+    ) -> (FlowController, JoinHandle<Result<()>>) {
         let (shutdown_tx, mut shutdown_rx) = watch::channel(false);
         let execution_queue = Arc::new(Mutex::new(VecDeque::new()));
-
+        let node_input_data = Arc::new(Mutex::new(HashMap::<String, HashMap<String, Value>>::new()));
+        
         #[derive(Deserialize)]
         struct IntervalData {
             interval: u64,
@@ -157,19 +169,65 @@ impl FlowEngine {
             }
         }
         
+        let mut mqtt_subscriptions = HashMap::<String, Vec<String>>::new();
+        for (node_id, node) in &self.nodes {
+            if node.node_type == "MQTT_SUBSCRIBE" {
+                if let Ok(data) = serde_json::from_value::<serde_json::Value>(node.data.clone()) {
+                    if let Some(topic) = data.get("topic").and_then(|t| t.as_str()) {
+                        mqtt_subscriptions
+                            .entry(topic.to_string())
+                            .or_default()
+                            .push(node_id.clone());
+                    }
+                }
+            }
+        }
+
+        if !mqtt_subscriptions.is_empty() {
+            if let Some(tx) = mqtt_tx {
+                let mut mqtt_rx = tx.subscribe();
+                let queue_clone = Arc::clone(&execution_queue);
+                let node_input_data_clone = Arc::clone(&node_input_data);
+
+                tokio::spawn(async move {
+                    while let Ok(msg) = mqtt_rx.recv().await {
+                        if let Some(node_ids) = mqtt_subscriptions.get(&msg.topic) {
+                            for node_id in node_ids {
+                                let mut input_data = node_input_data_clone.lock().await;
+                                let entry = input_data.entry(node_id.clone()).or_default();
+                                let payload_value = match serde_json::from_slice(&msg.bytes) {
+                                    Ok(p) => p,
+                                    Err(e) => {
+                                        Value::String(String::from_utf8_lossy(&msg.bytes).to_string())
+                                    }
+                                };
+                                entry.insert("payload".to_string(), payload_value);
+
+                                queue_clone.lock().await.push_back(node_id.clone());
+                            }
+                        }
+                    }
+                });
+            } else {
+                warn!("MQTT is not enabled.");
+            }
+        }
+
         {
             let mut queue = execution_queue.lock().await;
             for (node_id, node) in &self.nodes {
                 if *self.expected_input_counts.get(node_id).unwrap_or(&0) == 0 {
                     if node.node_type == "INTERVAL" {
-                        if let Ok(data) = serde_json::from_value::<IntervalData>(node.data.clone()) {
+                        if let Ok(data) =
+                            serde_json::from_value::<IntervalData>(node.data.clone())
+                        {
                             let duration = match data.unit.as_str() {
                                 "milliseconds" => Duration::from_millis(data.interval),
                                 "seconds" => Duration::from_secs(data.interval),
                                 "minutes" => Duration::from_secs(data.interval * 60),
                                 _ => continue,
                             };
-                            
+
                             let mut interval_shutdown_rx = shutdown_rx.clone();
                             let queue_clone = Arc::clone(&execution_queue);
                             let node_id_clone = node_id.clone();
@@ -193,12 +251,11 @@ impl FlowEngine {
                 }
             }
         }
-        
+
         let engine_clone = Arc::clone(&self);
         let handle = tokio::spawn(async move {
             let self_ = engine_clone;
             let mut context = ExecutionContext::new(mqtt_client);
-            let mut node_input_data: HashMap<String, HashMap<String, Value>> = HashMap::new();
 
             info!("Flow Engine task started. Entering main execution loop...");
 
@@ -207,34 +264,58 @@ impl FlowEngine {
 
                 if let Some(node_id) = maybe_node_id {
                     let node_instance = self_.get_node_instance(&node_id)?;
-                    let mut inputs = node_input_data.remove(&node_id).unwrap_or_default();
-                    
+                    let mut inputs =
+                        node_input_data.lock().await.remove(&node_id).unwrap_or_default();
+
                     if let Some(node) = self_.nodes.get(&node_id) {
                         if node.node_type == "LOOP" {
                             if let Some(connections) = self_.data_flow_graph.get(&node_id) {
-                                if let Some((_, target_node_id, target_connector_name)) = connections.iter().find(|(c, _, _)| c == "body") {
-                                    inputs.insert("body_node_id".to_string(), json!(target_node_id));
-                                    inputs.insert("body_input_name".to_string(), json!(target_connector_name));
+                                if let Some((_, target_node_id, target_connector_name)) =
+                                    connections.iter().find(|(c, _, _)| c == "body")
+                                {
+                                    inputs.insert(
+                                        "body_node_id".to_string(),
+                                        json!(target_node_id),
+                                    );
+                                    inputs.insert(
+                                        "body_input_name".to_string(),
+                                        json!(target_connector_name),
+                                    );
                                 }
                             }
                         }
                     }
 
-                    let result = node_instance.execute(&mut context, inputs,  broadcast_tx.clone()).await?;
+                    let result = node_instance
+                        .execute(&mut context, inputs, broadcast_tx.clone())
+                        .await?;
 
                     for trigger in result.triggers {
                         let mut queue = execution_queue.lock().await;
-                        node_input_data.entry(trigger.node_id.clone()).or_default().extend(trigger.inputs);
+                        node_input_data
+                            .lock()
+                            .await
+                            .entry(trigger.node_id.clone())
+                            .or_default()
+                            .extend(trigger.inputs);
                         queue.push_back(trigger.node_id);
                     }
 
                     if let Some(connections) = self_.data_flow_graph.get(&node_id) {
-                        for (source_connector_name, target_node_id, target_connector_name) in connections {
+                        for (source_connector_name, target_node_id, target_connector_name) in
+                            connections
+                        {
                             if let Some(output_value) = result.outputs.get(source_connector_name) {
-                                let target_inputs = node_input_data.entry(target_node_id.clone()).or_default();
-                                target_inputs.insert(target_connector_name.clone(), output_value.clone());
-                                
-                                let expected_count = *self_.expected_input_counts.get(target_node_id).unwrap_or(&0);
+                                let mut data_map = node_input_data.lock().await;
+                                let target_inputs =
+                                    data_map.entry(target_node_id.clone()).or_default();
+                                target_inputs
+                                    .insert(target_connector_name.clone(), output_value.clone());
+
+                                let expected_count = *self_
+                                    .expected_input_counts
+                                    .get(target_node_id)
+                                    .unwrap_or(&0);
                                 if target_inputs.len() >= expected_count {
                                     execution_queue.lock().await.push_back(target_node_id.clone());
                                 }
