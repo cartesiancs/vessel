@@ -90,4 +90,8 @@ export interface MapDataState {
   fetchLayerData: (layerId: number) => Promise<void>;
   addFeature: (payload: FeaturePayload) => Promise<void>;
   removeFeature: (featureId: number) => Promise<void>;
+  updateFeature: (
+    featureId: number,
+    payload: UpdateFeaturePayload,
+  ) => Promise<void>;
 }

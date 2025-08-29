@@ -103,9 +103,34 @@ export const useMapDataStore = create<MapDataState>((set, get) => ({
             features: currentLayer.features.filter((f) => f.id !== featureId),
           },
         });
+        useMapInteractionStore.getState().setSelectedFeature(null);
       }
     } catch (err) {
       set({ error: "Failed to remove feature" + err });
+    }
+  },
+  updateFeature: async (featureId, payload) => {
+    try {
+      const updatedFeatureData = await mapApi.updateFeature(featureId, payload);
+      const featureWithVertices = await mapApi.getFeatureWithVertices(
+        updatedFeatureData.id,
+      );
+      const currentLayer = get().layer;
+      if (currentLayer) {
+        set({
+          layer: {
+            ...currentLayer,
+            features: currentLayer.features.map((f) =>
+              f.id === featureId ? featureWithVertices : f,
+            ),
+          },
+        });
+        useMapInteractionStore
+          .getState()
+          .setSelectedFeature(featureWithVertices);
+      }
+    } catch (err) {
+      set({ error: "Failed to update feature" + err });
     }
   },
 }));

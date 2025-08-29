@@ -313,6 +313,12 @@ pub struct UpdateMapFeature {
     pub style_properties: Option<String>,
 }
 
+impl UpdateMapFeature {
+    pub fn has_changes(&self) -> bool {
+        self.name.is_some() || self.style_properties.is_some()
+    }
+}
+
 #[derive(Queryable, Selectable, Identifiable, Associations, Serialize, Deserialize, Clone)]
 #[diesel(table_name = crate::db::schema::map_vertices)]
 #[diesel(belongs_to(MapFeature, foreign_key = feature_id))]
