@@ -11,7 +11,7 @@ import { useMapStore } from "./store";
 import "./style.css";
 import { useMapDataStore } from "@/entities/map/store";
 import { MapEvents } from "./MapEvents";
-import { DrawingPreview } from "./DrawingPreview";
+import { DrawingPreview } from "./FeatureDrawingPreview";
 import { FeatureRenderer } from "./FeatureRenderer";
 import { FeatureEditor } from "./FeatureEditor";
 import { FeatureDetailsPanel } from "./FeatureDetailsPanel";

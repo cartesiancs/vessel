@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   X,
   Pencil,
@@ -7,6 +7,8 @@ import {
   MapPin,
   Milestone,
   Squircle,
+  Maximize,
+  Ruler,
 } from "lucide-react";
 import { useMapDataStore, useMapInteractionStore } from "@/entities/map/store";
 import { Button } from "@/components/ui/button";
@@ -29,6 +31,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import { MapVertex, UpdateFeaturePayload } from "@/entities/map/types";
+import { calculateFeatureGeometry } from "@/lib/geometry-precision";
 
 const FeatureIcon = ({ type }: { type: string }) => {
   switch (type) {
@@ -50,6 +53,11 @@ export function FeatureDetailsPanel() {
   const [isEditing, setIsEditing] = useState(false);
   const [editableVertices, setEditableVertices] = useState<MapVertex[]>([]);
   const [isDeleteAlertOpen, setDeleteAlertOpen] = useState(false);
+
+  const geometryInfo = useMemo(() => {
+    if (!selectedFeature) return null;
+    return calculateFeatureGeometry(selectedFeature);
+  }, [selectedFeature]);
 
   useEffect(() => {
     if (selectedFeature) {
@@ -115,17 +123,55 @@ export function FeatureDetailsPanel() {
               </div>
             </CardHeader>
             <CardContent className='flex-grow overflow-y-auto space-y-4'>
-              <div className='text-xs p-3 bg-muted rounded-md overflow-auto max-h-80'>
-                <pre>
-                  {JSON.stringify(
-                    editableVertices.map((v) => ({
-                      lat: v.latitude.toFixed(6),
-                      lng: v.longitude.toFixed(6),
-                    })),
-                    null,
-                    2,
-                  )}
-                </pre>
+              {geometryInfo && (
+                <div>
+                  <h4 className='font-semibold text-sm mb-2'>Geometry</h4>
+                  <ul className='text-sm space-y-2 p-3 bg-muted rounded-md'>
+                    {geometryInfo.location && (
+                      <li className='flex items-center'>
+                        <MapPin className='h-4 w-4 mr-2 text-muted-foreground' />
+                        <strong>Location:</strong>
+                        <span className='ml-2 font-mono'>
+                          {geometryInfo.location}
+                        </span>
+                      </li>
+                    )}
+                    {geometryInfo.length && (
+                      <li className='flex items-center'>
+                        <Ruler className='h-4 w-4 mr-2 text-muted-foreground' />
+                        <strong>Length:</strong>
+                        <span className='ml-2 font-mono'>
+                          {geometryInfo.length}
+                        </span>
+                      </li>
+                    )}
+                    {geometryInfo.area && (
+                      <li className='flex items-center'>
+                        <Maximize className='h-4 w-4 mr-2 text-muted-foreground' />
+                        <strong>Area:</strong>
+                        <span className='ml-2 font-mono'>
+                          {geometryInfo.area}
+                        </span>
+                      </li>
+                    )}
+                  </ul>
+                </div>
+              )}
+
+              <div>
+                <h4 className='font-semibold text-sm mb-2'>Vertices</h4>
+                <div className='text-xs p-3 bg-muted rounded-md overflow-auto max-h-60'>
+                  <pre>
+                    {JSON.stringify(
+                      editableVertices.map((v) => ({
+                        lat: v.latitude.toFixed(6),
+                        lng: v.longitude.toFixed(6),
+                      })),
+                      null,
+                      2,
+                    )}
+                  </pre>
+                </div>
               </div>
             </CardContent>
             <CardFooter className='flex justify-end gap-2'>
