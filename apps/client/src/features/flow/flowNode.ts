@@ -174,4 +174,17 @@ export const DEFINITION_NODE: {
       topic: "STRING",
     },
   },
+  TYPE_CONVERTER: {
+    connectors: [
+      { id: `id`, name: "in", type: "in" },
+      { id: `id`, name: "out", type: "out" },
+    ],
+    nodeType: "TYPE_CONVERTER",
+    data: {
+      targetType: "string",
+    },
+    dataType: {
+      targetType: "SELECT[string,number,boolean]",
+    },
+  },
 };

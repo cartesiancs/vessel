@@ -31,3 +31,4 @@ pub mod logic_operator;
 pub mod interval;
 pub mod mqtt_publish;
 pub mod mqtt_subscribe;
+pub mod type_converter;

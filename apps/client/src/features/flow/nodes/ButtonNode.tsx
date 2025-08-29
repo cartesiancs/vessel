@@ -13,9 +13,9 @@ export function renderButtonNode(
     .style("cursor", "pointer");
   group
     .append("rect")
-    .attr("x", w / 2 - 20)
+    .attr("x", w / 2 - 40)
     .attr("y", h / 2 - 10)
-    .attr("width", 40)
+    .attr("width", 80)
     .attr("height", 20)
     .attr("rx", 4)
     .attr("fill", "#2a2c36");
@@ -27,7 +27,7 @@ export function renderButtonNode(
     .attr("dominant-baseline", "middle")
     .attr("font-size", 8)
     .attr("fill", "#fff")
-    .text("Click");
+    .text("Change Attr");
   group.on("click", (e) => {
     e.stopPropagation();
     onOpen();

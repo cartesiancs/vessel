@@ -14,6 +14,7 @@ use tracing::{error, info, warn};
 
 use crate::flow::nodes::mqtt_publish::MqttPublishNode;
 use crate::flow::nodes::mqtt_subscribe::MqttSubscribeNode;
+use crate::flow::nodes::type_converter::TypeConverterNode;
 use crate::flow::types::{Graph, Node};
 use crate::flow::nodes::{
     ExecutableNode,
@@ -135,6 +136,8 @@ impl FlowEngine {
             "INTERVAL" => Ok(Box::new(IntervalNode::new(&node.data)?)),
             "MQTT_PUBLISH" => Ok(Box::new(MqttPublishNode::new(&node.data)?)), 
             "MQTT_SUBSCRIBE" => Ok(Box::new(MqttSubscribeNode::new(&node.data)?)), 
+            "TYPE_CONVERTER" => Ok(Box::new(TypeConverterNode::new(&node.data)?)), 
+
             _ => Err(anyhow!("Unknown or unimplemented node type: {}", node.node_type)),
         }
     }
