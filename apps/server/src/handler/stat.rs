@@ -1,8 +1,7 @@
 use std::sync::Arc;
-use axum::{extract::{State, Path}, Json};
-use serde::Deserialize;
-use serde_json::{json, Value};
-use crate::{db::{self, models::{EntityWithConfig, NewEntity}}, error::AppError, handler::auth::AuthUser, lib::entity_map::remap_topics, state::AppState};
+use axum::{extract::{State}, Json};
+use serde_json::{json};
+use crate::{db::{self}, error::AppError, handler::auth::AuthUser, lib::entity_map::remap_topics, state::AppState};
 
 
 
