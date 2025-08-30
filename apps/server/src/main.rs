@@ -3,12 +3,8 @@ use dashmap::DashMap;
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 use rumqttc::{AsyncClient, MqttOptions};
 use std::{env, sync::Arc};
-use tokio::{net::UdpSocket, sync::{broadcast, mpsc, watch, RwLock}, task::JoinSet};
+use tokio::{sync::{broadcast, mpsc, watch, RwLock}, task::JoinSet};
 use tracing::{error, info, warn};
-use webrtc::{
-    rtp::packet::Packet,
-    util::Unmarshal,
-};
 use dotenvy::dotenv;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, fmt};
 
@@ -67,9 +63,9 @@ async fn main() -> Result<()> {
 
     {
         let mut conn = pool.get().expect("Failed to get a connection from the pool");
-        println!("Running database migrations...");
+        info!("Running database migrations...");
         run_migrations(&mut conn)?;
-        println!("✅ Migrations completed successfully.");
+        info!("Migrations completed successfully.");
         
         create_initial_admin(&mut conn);
         create_initial_configurations(&mut conn); 

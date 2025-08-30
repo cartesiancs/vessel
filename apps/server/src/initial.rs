@@ -48,7 +48,7 @@ pub fn create_initial_admin(conn: &mut SqliteConnection) {
 
 
 pub fn create_initial_configurations(conn: &mut SqliteConnection) {
-    use crate::db::schema::system_configurations::dsl::*;
+    use crate::db::schema::system_configurations::{dsl::{system_configurations, key}};
 
     let default_configs = vec![
         (
@@ -77,7 +77,7 @@ pub fn create_initial_configurations(conn: &mut SqliteConnection) {
             .expect("Error checking for system configuration");
 
         if config_exists.is_none() {
-            println!("Configuration '{}' not found. Creating...", k);
+            info!("Configuration '{}' not found. Creating...", k);
             let new_config = NewSystemConfiguration {
                 key: k,
                 value: v,
@@ -90,9 +90,9 @@ pub fn create_initial_configurations(conn: &mut SqliteConnection) {
                 .execute(conn)
                 .expect("Error creating system configuration");
             
-            println!("Configuration '{}' created.", k);
+            info!("Configuration '{}' created.", k);
         } else {
-            println!("Configuration '{}' already exists. Skipping creation.", k);
+            info!("Configuration '{}' already exists. Skipping creation.", k);
         }
     }
 }

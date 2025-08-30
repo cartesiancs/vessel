@@ -2,7 +2,7 @@ use anyhow::{anyhow, Error, Result};
 use bytes::Bytes;
 use futures_util::StreamExt;
 use gstreamer::prelude::*;
-use gstreamer_app::{prelude::*, AppSink, AppSinkCallbacks};
+use gstreamer_app::{AppSink, AppSinkCallbacks};
 use std::sync::Arc;
 use tokio::sync::{broadcast, watch};
 use tracing::{error, info, warn};

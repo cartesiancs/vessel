@@ -1,8 +1,6 @@
 use std::sync::Arc;
-use axum::{extract::{State, Path}, Json};
-use serde::Deserialize;
-use serde_json::{json, Value};
-use crate::{db::{self, models::{EntityWithConfig, NewEntity}}, error::AppError, state::{AppState, Protocol, TopicMapping}};
+use axum::{extract::{State}};
+use crate::{db::{self}, error::AppError, state::{AppState, Protocol, TopicMapping}};
 
 
 
@@ -52,13 +50,11 @@ pub async fn remap_topics(State(state): State<Arc<AppState>>) -> Result<usize, A
     }
 
 
-    println!("🔄 Remapping topics for {:?}", new_mappings.clone());
     
     let num_mappings = new_mappings.len();
     
     let mut map = state.topic_map.write().await;
     *map = new_mappings;
 
-    println!("✅ Topics re-mapped. Total mappings: {}", num_mappings);
     Ok(num_mappings)
 }

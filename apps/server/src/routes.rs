@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use axum::{
-    http::{header, HeaderValue, Method, StatusCode, Uri}, response::IntoResponse, routing::{get, post, put}, Json, Router
+    http::{header, Method, StatusCode, Uri}, response::IntoResponse, routing::{get, post, put}, Json, Router
 };
 use anyhow::Result;
 use serde_json::json;
