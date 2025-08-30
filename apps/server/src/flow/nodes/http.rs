@@ -1,12 +1,10 @@
 use async_trait::async_trait;
-use axum::{extract::ws::{Message, WebSocket}, http};
-use futures_util::stream::SplitSink;
-use tokio::sync::{broadcast, Mutex};
-use std::{collections::HashMap, sync::Arc};
+use tokio::sync::{broadcast};
+use std::{collections::HashMap};
 use anyhow::{Result, anyhow};
 use serde::Deserialize;
 use serde_json::Value;
-use reqwest::{get, Client};
+use reqwest::{Client};
 use crate::flow::engine::ExecutionContext;
 
 use super::{ExecutableNode, ExecutionResult};
@@ -36,7 +34,7 @@ impl ExecutableNode for HttpNode {
         &self,
         _context: &mut ExecutionContext,
         inputs: HashMap<String, Value>,
-        broadcast_tx: broadcast::Sender<String>,
+        _broadcast_tx: broadcast::Sender<String>,
     ) -> Result<ExecutionResult> {
         let client = Client::new();
         let url = &self.data.url;
@@ -45,11 +43,11 @@ impl ExecutableNode for HttpNode {
         let response = match method.as_str() {
             "GET" => client.get(url).send().await?,
             "POST" => {
-                let body = inputs.get("body").cloned().unwrap_or(Value::Null);
+                let _body = inputs.get("body").cloned().unwrap_or(Value::Null);
                 client.post(url).send().await?
             }
             "PUT" => {
-                let body = inputs.get("body").cloned().unwrap_or(Value::Null);
+                let _body = inputs.get("body").cloned().unwrap_or(Value::Null);
                 client.put(url).send().await?
             }
             "DELETE" => client.delete(url).send().await?,

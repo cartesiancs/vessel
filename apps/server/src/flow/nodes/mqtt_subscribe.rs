@@ -31,7 +31,7 @@ impl ExecutableNode for MqttSubscribeNode {
         &self,
         _context: &mut ExecutionContext,
         inputs: HashMap<String, Value>,
-        broadcast_tx: broadcast::Sender<String>,
+        _broadcast_tx: broadcast::Sender<String>,
     ) -> Result<ExecutionResult> {
         let mut outputs = HashMap::new();
         if let Some(payload) = inputs.get("payload") {

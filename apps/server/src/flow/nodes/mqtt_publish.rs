@@ -3,8 +3,8 @@ use serde::Deserialize;
 use serde_json::{json, to_string, Value};
 use anyhow::{Result, anyhow};
 use tokio::sync::broadcast;
-use std::{collections::HashMap, sync::Arc};
-use rumqttc::{AsyncClient, QoS};
+use std::{collections::HashMap};
+use rumqttc::{QoS};
 use tracing::{error, warn};
 
 use super::{ExecutableNode};

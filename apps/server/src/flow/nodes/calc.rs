@@ -28,22 +28,22 @@ impl CalcNode {
 
 #[async_trait]
 impl ExecutableNode for CalcNode {
-    async fn execute(&self, _context: &mut ExecutionContext, inputs: HashMap<String, Value>, broadcast_tx: broadcast::Sender<String>,) -> Result<ExecutionResult> {
+    async fn execute(&self, _context: &mut ExecutionContext, inputs: HashMap<String, Value>, _broadcast_tx: broadcast::Sender<String>,) -> Result<ExecutionResult> {
         let a = inputs.get("a").and_then(Value::as_f64).ok_or_else(|| anyhow!("Input 'a' is not a valid number"))?;
         let b = inputs.get("b").and_then(Value::as_f64).ok_or_else(|| anyhow!("Input 'b' is not a valid number"))?;
-        let operatorCalc = Value::from(self.data.operator_calc.clone());
+        let operator_calc = Value::from(self.data.operator_calc.clone());
         let result;
 
-        if operatorCalc == "+" {
+        if operator_calc == "+" {
             println!("Adding numbers: a = {}, b = {}", a, b);
             result = a + b;
-        } else if operatorCalc == "-" {
+        } else if operator_calc == "-" {
             println!("Adding numbers: a = {}, b = {}", a, b);
             result = a - b;
-        } else if operatorCalc == "/" {
+        } else if operator_calc == "/" {
             println!("Adding numbers: a = {}, b = {}", a, b);
             result = a / b;
-        } else if operatorCalc == "*" {
+        } else if operator_calc == "*" {
             println!("Adding numbers: a = {}, b = {}", a, b);
             result = a * b;
         } else {
