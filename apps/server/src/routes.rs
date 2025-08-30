@@ -10,7 +10,7 @@ use tower_http::cors::{Any, CorsLayer};
 use tracing::{ info};
 
 use crate::{handler::{
-    auth::auth_with_password, configurations, device_tokens, devices, entities, flows, log, map, stat, streams, users, ws_handler::ws_handler
+    auth::auth_with_password, configurations, device_tokens, devices, entities, flows, log, map, stat, streams, users, ws::ws_handler
 }, state::AppState};
 use rust_embed::Embed;
 

@@ -1,10 +1,9 @@
+
 use anyhow::{anyhow, Result};
 use axum::{
     extract::{
-        ws::{Message, WebSocket, WebSocketUpgrade},
-        State,
+        ws::{Message, WebSocket},
     },
-    response::Response,
 };
 use futures_util::{stream::SplitSink, FutureExt, SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
@@ -30,10 +29,12 @@ use webrtc::{
 
 use crate::{
     db,
-    flow::{manager_state::FlowManagerCommand},
-    handler::auth::JwtAuth,
+    flow::manager_state::FlowManagerCommand,
     state::{AppState, MediaType},
 };
+
+
+
 
 #[derive(Serialize)]
 struct WsMessageOut<'a, T: Serialize> {
@@ -107,7 +108,7 @@ enum ActorCommand {
     },
 }
 
-struct WebRtcActor {
+struct WSActor {
     pc: Arc<RTCPeerConnection>,
     ws_sender: Arc<Mutex<SplitSink<WebSocket, Message>>>,
     receiver: mpsc::Receiver<ActorCommand>,
@@ -116,7 +117,7 @@ struct WebRtcActor {
     video_track: Arc<TrackLocalStaticSample>,
 }
 
-impl WebRtcActor {
+impl WSActor {
     async fn run(mut self) {
         info!("WebRTC Actor started.");
         while let Some(cmd) = self.receiver.recv().await {
@@ -178,7 +179,6 @@ impl WebRtcActor {
             return;
         }
 
-        // FlowManager로부터 받은 결과를 원래 요청자에게 전달
         if let Ok(status_tuples) = manager_responder_rx.await {
             let all_db_flows = db::repository::get_all_flows(&self.state.pool).unwrap_or_default();
             let status_map: HashMap<i32, bool> = status_tuples.into_iter().collect();
@@ -438,18 +438,7 @@ impl WebRtcActor {
     }
 }
 
-pub async fn ws_handler(
-    JwtAuth(claims): JwtAuth,
-    ws: WebSocketUpgrade,
-    State(state): State<Arc<AppState>>,
-) -> Response {
-    ws.on_upgrade(move |socket| {
-        info!("'{}' authenticated and connected.", claims.sub);
-        handle_socket(socket, state)
-    })
-}
-
-async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
+pub async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
     let (ws_sender, mut ws_receiver) = socket.split();
     let ws_sender = Arc::new(Mutex::new(ws_sender));
 
@@ -589,7 +578,7 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                 })
             }));
 
-            let actor = WebRtcActor {
+            let actor = WSActor {
                 pc,
                 ws_sender,
                 receiver: cmd_rx,
