@@ -23,8 +23,13 @@ export function FlowPage() {
 
   useEffect(() => {
     const token = Cookies.get("token");
-    if (token) {
-      setWsUrl("ws://127.0.0.1:8080/signal?token=" + token);
+    const urlString = Cookies.get("server_url");
+    if (urlString) {
+      const url = new URL(urlString);
+      const result = url.host;
+      if (token) {
+        setWsUrl(`ws://${result}/signal?token=${token}`);
+      }
     }
   }, []);
 

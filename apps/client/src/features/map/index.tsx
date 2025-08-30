@@ -70,7 +70,7 @@ export function MapView() {
         setPosition([latitude, longitude]);
       },
       (err) => {
-        console.error("Error getting location:", err);
+        console.log("Error getting location:", err);
         setPosition(failedPosition as [number, number]);
       },
       {
