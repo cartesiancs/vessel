@@ -16,6 +16,7 @@ import { UsersPage } from "./pages/users";
 import { LogPage } from "./pages/log";
 import { MapPage } from "./pages/map";
 import { isElectron } from "./lib/electron";
+import { IntegrationPage } from "./pages/integration";
 
 const router = createBrowserRouter([
   {
@@ -106,6 +107,16 @@ const router = createBrowserRouter([
       <TopBarWrapper>
         <AuthInterceptor>
           <MapPage />
+        </AuthInterceptor>
+      </TopBarWrapper>
+    ),
+  },
+  {
+    path: "/integration",
+    element: (
+      <TopBarWrapper>
+        <AuthInterceptor>
+          <IntegrationPage />
         </AuthInterceptor>
       </TopBarWrapper>
     ),

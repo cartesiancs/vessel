@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { MonitorSmartphone } from "lucide-react";
 import { useDeviceStore } from "@/entities/device/store";
-import { DeviceTokenManager } from "@/features/device-token/ui/DeviceTokenManager";
+import { DeviceTokenManager } from "@/features/device-token/DeviceTokenManager";
 import { Separator } from "@/components/ui/separator";
 
 export function KeyPage() {
