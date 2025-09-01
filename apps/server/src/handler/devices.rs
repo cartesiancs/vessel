@@ -36,7 +36,7 @@ pub async fn create_device(
 
 pub async fn get_devices(
     State(state): State<Arc<AppState>>,
-    AuthUser(user): AuthUser,
+    AuthUser(_user): AuthUser,
 ) -> Result<Json<Vec<crate::db::models::Device>>, AppError> {
     let devices = db::repository::get_all_devices(&state.pool)?;
     Ok(Json(devices))

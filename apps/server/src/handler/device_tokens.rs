@@ -2,12 +2,12 @@ use std::sync::Arc;
 use axum::{extract::{State, Path}, Json};
 use serde_json::{json, Value};
 use crate::{db, error::AppError, handler::auth::AuthUser, hash, state::AppState};
-use rand::{RngCore, thread_rng};
+use rand::{RngCore};
 use base64::{engine::general_purpose, Engine as _};
 
 fn generate_api_key() -> String {
     let mut key = [0u8; 32];
-    thread_rng().fill_bytes(&mut key);
+    rand::rng().fill_bytes(&mut key);
     general_purpose::URL_SAFE_NO_PAD.encode(key)
 }
 

@@ -6,7 +6,7 @@
   "main": "maindist/main.js",
   "scripts": {
     "dev": "npm run build:main && concurrently \"npm run dev:vite\" \"npm run dev:electron\"",
-    "dev:vite": "vite",
+    "dev:vite": "vite --host",
     "dev:electron": "wait-on tcp:5173 && electron .",
     "build:main": "tsc -p ./configs/electron",
     "build:app": "tsc -b && vite build",

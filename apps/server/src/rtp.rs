@@ -11,7 +11,6 @@ use crate::{ state::{ StreamManager}};
 
 pub async fn rtp_receiver(addr: String, stream_manager: StreamManager) -> Result<()> {
     let sock = UdpSocket::bind(&addr).await?;
-    println!("RTP Demultiplexer listening on {}", addr);
 
     let mut buf = vec![0u8; 4096];
 

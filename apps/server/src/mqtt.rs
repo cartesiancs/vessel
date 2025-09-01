@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::{db, state::{AppState, MqttMessage, Protocol}};
 use anyhow::Result;
-use rumqttc::{AsyncClient, Event, EventLoop, Incoming, MqttOptions, QoS};
+use rumqttc::{AsyncClient, Event, EventLoop, Incoming, QoS};
 use tokio::sync::broadcast;
 use tracing::{error, info, warn};
 
@@ -16,7 +16,7 @@ pub async fn start_event_loop(
 
     client.subscribe("#", QoS::AtMostOnce).await?;
 
-    println!("Internal MQTT client connected and subscribed to all topics.");
+    info!("Internal MQTT client connected and subscribed to all topics.");
 
     loop {
         match eventloop.poll().await {
@@ -34,15 +34,12 @@ pub async fn start_event_loop(
                     bytes: p.payload.to_vec().into(),
                 };
                 
-                println!("Received MQTT message on topic '{}': {:?}", msg.topic, msg.bytes);
-
                 let topic_map = state.topic_map.read().await;
                 let matched_mapping = topic_map.iter().find(|m| {
                     m.protocol == Protocol::MQTT && m.topic == topic_str
                 });
 
                 if let Some(mapping) = matched_mapping {
-                    println!("Found mapping: Topic '{}' -> Entity '{}'", &topic_str, &mapping.entity_id);
                     
                     let pool = state.pool.clone();
                     let entity_id = mapping.entity_id.clone();

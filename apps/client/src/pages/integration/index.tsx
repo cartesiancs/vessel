@@ -1,3 +1,4 @@
+import React from "react";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -12,10 +13,11 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/features/sidebar";
-import { UserTable } from "@/widgets/user-table/UserList";
 
-export function UsersPage() {
+import { AppSidebar } from "@/features/sidebar";
+import { Intergration } from "@/features/integration/Integration";
+
+export function IntegrationPage(): React.ReactElement {
   return (
     <SidebarProvider>
       <AppSidebar />
@@ -33,13 +35,19 @@ export function UsersPage() {
               </BreadcrumbItem>
               <BreadcrumbSeparator className='hidden md:block' />
               <BreadcrumbItem>
-                <BreadcrumbPage>Users</BreadcrumbPage>
+                <BreadcrumbPage>Integration</BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
         </header>
-        <main className='flex-1 overflow-y-auto p-4 md:p-6'>
-          <UserTable />
+        <main className='flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-6'>
+          <div className='flex items-center'>
+            <h1 className='text-lg font-semibold md:text-2xl'>Integrations</h1>
+          </div>
+
+          <div className='flex flex-col gap-4'>
+            <Intergration />
+          </div>
         </main>
       </SidebarInset>
     </SidebarProvider>

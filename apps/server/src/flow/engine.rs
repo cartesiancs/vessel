@@ -2,14 +2,12 @@ use std::collections::{HashMap, VecDeque};
 use std::sync::Arc;
 use std::time::Duration;
 use anyhow::{Result, anyhow};
-use axum::extract::ws::{Message, WebSocket};
-use futures_util::{stream::SplitSink, SinkExt};
 use rumqttc::AsyncClient;
 use serde::Deserialize; 
 use serde_json::{Value, json};
 use tokio::sync::{broadcast, watch, Mutex};
 use tokio::task::JoinHandle;
-use tokio::time; // timeout을 위해 추가
+use tokio::time;
 use tracing::{error, info, warn};
 
 use crate::flow::nodes::mqtt_publish::MqttPublishNode;
@@ -197,7 +195,7 @@ impl FlowEngine {
                                 let entry = input_data.entry(node_id.clone()).or_default();
                                 let payload_value = match serde_json::from_slice(&msg.bytes) {
                                     Ok(p) => p,
-                                    Err(e) => {
+                                    Err(_e) => {
                                         Value::String(String::from_utf8_lossy(&msg.bytes).to_string())
                                     }
                                 };

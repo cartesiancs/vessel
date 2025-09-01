@@ -2,8 +2,7 @@
 use std::sync::Arc;
 use axum::{extract::{Path, State}, http::StatusCode, Json};
 use serde::Deserialize;
-use serde_json::json;
-use crate::{db::{self, models::{NewUser, UpdateUser}, repository}, error::AppError, handler::auth::{AuthPayload, AuthUser}, hash::hash_password, state::AppState};
+use crate::{db::{self, models::{NewUser, UpdateUser}, repository}, error::AppError, handler::auth::{AuthUser}, hash::hash_password, state::AppState};
 
 
 #[derive(Deserialize)]
@@ -16,7 +15,7 @@ pub struct CreateUserPayload {
 
 pub async fn get_users_list(
     State(state): State<Arc<AppState>>,
-    AuthUser(user): AuthUser,
+    AuthUser(_user): AuthUser,
 ) -> Result<Json<Vec<crate::db::models::User>>, AppError> {
     let users = db::repository::get_all_users(&state.pool)?;
     Ok(Json(users))

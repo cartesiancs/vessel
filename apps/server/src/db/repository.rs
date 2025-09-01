@@ -1,5 +1,5 @@
 use chrono::Utc;
-use diesel::{dsl::max, BelongingToDsl, BoolExpressionMethods, Connection, ExpressionMethods, JoinOnDsl, OptionalExtension, QueryDsl, QueryResult, RunQueryDsl, SelectableHelper};
+use diesel::{dsl::max, BelongingToDsl, Connection, ExpressionMethods, JoinOnDsl, OptionalExtension, QueryDsl, QueryResult, RunQueryDsl, SelectableHelper};
 use serde_json::Value;
 
 use crate::{db::models::{Device, DeviceToken, Entity, EntityConfiguration, EntityWithConfig, EntityWithStateAndConfig, Flow, FlowVersion, NewDevice, NewDeviceToken, NewEntity, NewEntityConfiguration, NewFlow, NewFlowVersion, NewState, NewStatesMeta, NewSystemConfiguration, NewUser, State, StatesMeta, SystemConfiguration, UpdateUser, User}, state::DbPool};

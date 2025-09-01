@@ -1,8 +1,6 @@
 use anyhow::Result;
-use axum::extract::ws::{Message, WebSocket};
-use futures_util::stream::SplitSink;
 use std::{collections::HashMap, sync::Arc};
-use tokio::{sync::{broadcast, mpsc, Mutex}, task::JoinHandle};
+use tokio::{sync::{broadcast, mpsc}, task::JoinHandle};
 use crate::{db, flow::{engine::{FlowController, FlowEngine}, types::Graph}, state::{DbPool, MqttMessage}};
 use rumqttc::AsyncClient;
 
@@ -53,7 +51,7 @@ impl FlowManagerActor {
                     self.active_flows.insert(flow_id, (controller, handle));
                 }
                 FlowManagerCommand::StopFlow { flow_id } => {
-                    if let Some((controller, handle)) = self.active_flows.remove(&flow_id) {
+                    if let Some((controller, _handle)) = self.active_flows.remove(&flow_id) {
                         tracing::info!("Stop signal sent to global flow_id: {}", flow_id);
                         controller.stop();
                     }

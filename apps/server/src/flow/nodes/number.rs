@@ -1,9 +1,7 @@
 use async_trait::async_trait;
-use axum::extract::ws::{Message, WebSocket};
-use futures_util::stream::SplitSink;
-use tokio::sync::{broadcast, Mutex};
-use std::{collections::HashMap, sync::Arc};
-use anyhow::{Result, anyhow};
+use tokio::sync::{broadcast};
+use std::{collections::HashMap};
+use anyhow::{Result};
 use serde::Deserialize;
 use serde_json::Value;
 
@@ -32,7 +30,7 @@ impl ExecutableNode for NumberNode {
         &self,
         _context: &mut ExecutionContext,
         _inputs: HashMap<String, Value>,
-        broadcast_tx: broadcast::Sender<String>,
+        _broadcast_tx: broadcast::Sender<String>,
     ) -> Result<ExecutionResult> {
         let mut outputs = HashMap::new();
         let number_value = Value::from(self.data.number);

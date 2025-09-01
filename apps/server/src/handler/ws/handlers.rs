@@ -1,17 +1,15 @@
+
 use anyhow::{anyhow, Result};
 use axum::{
     extract::{
-        ws::{Message, WebSocket, WebSocketUpgrade},
-        State,
+        ws::{Message, WebSocket},
     },
-    response::Response,
 };
 use futures_util::{stream::SplitSink, FutureExt, SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
-use serde_json::json;
 use std::{collections::HashMap, sync::Arc};
 use sysinfo::System;
-use tokio::{sync::{mpsc, oneshot, Mutex}, task::JoinHandle};
+use tokio::{sync::{mpsc, oneshot, Mutex}};
 use tracing::{error, info, warn};
 use webrtc::{
     api::{
@@ -31,10 +29,12 @@ use webrtc::{
 
 use crate::{
     db,
-    flow::{engine::{FlowController, FlowEngine}, manager_state::FlowManagerCommand},
-    handler::auth::JwtAuth,
-    state::{AppState, FrameData, MediaType},
+    flow::manager_state::FlowManagerCommand,
+    state::{AppState, MediaType},
 };
+
+
+
 
 #[derive(Serialize)]
 struct WsMessageOut<'a, T: Serialize> {
@@ -108,16 +108,17 @@ enum ActorCommand {
     },
 }
 
-struct WebRtcActor {
+struct WSActor {
     pc: Arc<RTCPeerConnection>,
     ws_sender: Arc<Mutex<SplitSink<WebSocket, Message>>>,
     receiver: mpsc::Receiver<ActorCommand>,
     state: Arc<AppState>,
     audio_track: Arc<TrackLocalStaticRTP>,
-    video_track: Arc<TrackLocalStaticSample>,
+    rtsp_video_track: Arc<TrackLocalStaticSample>,
+    udp_video_track: Arc<TrackLocalStaticRTP>, 
 }
 
-impl WebRtcActor {
+impl WSActor {
     async fn run(mut self) {
         info!("WebRTC Actor started.");
         while let Some(cmd) = self.receiver.recv().await {
@@ -179,7 +180,6 @@ impl WebRtcActor {
             return;
         }
 
-        // FlowManager로부터 받은 결과를 원래 요청자에게 전달
         if let Ok(status_tuples) = manager_responder_rx.await {
             let all_db_flows = db::repository::get_all_flows(&self.state.pool).unwrap_or_default();
             let status_map: HashMap<i32, bool> = status_tuples.into_iter().collect();
@@ -379,12 +379,64 @@ impl WebRtcActor {
             });
         }
 
+        if let Some((ssrc, info)) = self
+            .state
+            .streams
+            .iter()
+            .find(|entry| entry.value().topic == topic && entry.value().media_type == MediaType::Video)
+            .map(|entry| (*entry.key(), entry.value().clone()))
+        {
+            subscribed = true;
+            info!("[Video-UDP] Subscribing to topic '{}' with SSRC {}", topic, ssrc);
+
+            let rtp_sender = self.pc.add_track(
+                Arc::clone(&self.udp_video_track) as Arc<dyn TrackLocal + Send + Sync>
+            ).await.unwrap();
+            
+            tokio::spawn(async move {
+                let mut rtcp_buf = vec![0u8; 1500];
+                while rtp_sender.read(&mut rtcp_buf).await.is_ok() {}
+            });
+
+            let mut rx = info.packet_tx.subscribe();
+            let video_track_clone = Arc::clone(&self.udp_video_track);
+            let pc_clone = Arc::clone(&self.pc);
+
+            tokio::spawn(async move {
+                let video_sender = pc_clone.get_senders().await.into_iter().find(|s| {
+                    if let Some(track) = s.track().now_or_never().and_then(|t| t) {
+                        track.kind() == RTPCodecType::Video
+                    } else { false }
+                }).expect("Video sender not found");
+
+                let parameters = video_sender.get_parameters().await;
+                let negotiated_pt = parameters.rtp_parameters.codecs.get(0).unwrap().payload_type;
+                let negotiated_ssrc = parameters.encodings.get(0).unwrap().ssrc;
+
+                info!(
+                    "[Video-UDP] RTP packet forwarding started. Negotiated PT: {}, SSRC: {}",
+                    negotiated_pt, negotiated_ssrc
+                );
+
+                while let Ok(mut pkt) = rx.recv().await {
+                    pkt.header.payload_type = negotiated_pt;
+                    pkt.header.ssrc = negotiated_ssrc;
+
+                    if video_track_clone.write_rtp(&pkt).await.is_err() {
+                        warn!("[Video-UDP] RTP packet write failed for SSRC {}, stopping.", ssrc);
+                        break;
+                    }
+                }
+                info!("[Video-UDP] RTP packet forwarding stopped for SSRC: {}", ssrc);
+            });
+        }
+
         if self.state.topic_map.read().await.iter().any(|m| m.topic == topic && m.protocol == crate::state::Protocol::RTSP) {
             subscribed = true;
             info!("[Video] Subscribing to topic '{}'", topic);
 
             let rtp_sender = self.pc.add_track(
-                Arc::clone(&self.video_track) as Arc<dyn TrackLocal + Send + Sync>
+                Arc::clone(&self.rtsp_video_track) as Arc<dyn TrackLocal + Send + Sync>
             ).await.unwrap();
 
             tokio::spawn(async move {
@@ -393,7 +445,7 @@ impl WebRtcActor {
             });
 
             let mut rx = self.state.rtsp_frame_tx.subscribe();
-            let video_track_clone = Arc::clone(&self.video_track);
+            let video_track_clone = Arc::clone(&self.rtsp_video_track);
             let topic_clone = topic.clone();
             tokio::spawn(async move {
                 info!("[Video] Frame forwarding started for topic: {}", topic_clone);
@@ -439,18 +491,7 @@ impl WebRtcActor {
     }
 }
 
-pub async fn ws_handler(
-    JwtAuth(claims): JwtAuth,
-    ws: WebSocketUpgrade,
-    State(state): State<Arc<AppState>>,
-) -> Response {
-    ws.on_upgrade(move |socket| {
-        info!("'{}' authenticated and connected.", claims.sub);
-        handle_socket(socket, state)
-    })
-}
-
-async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
+pub async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
     let (ws_sender, mut ws_receiver) = socket.split();
     let ws_sender = Arc::new(Mutex::new(ws_sender));
 
@@ -555,13 +596,22 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                 "webrtc-stream-audio".to_owned(),
             ));
             
-            let video_track = Arc::new(TrackLocalStaticSample::new(
+            let rtsp_video_track = Arc::new(TrackLocalStaticSample::new(
                 RTCRtpCodecCapability {
                     mime_type: MIME_TYPE_H264.to_owned(),
                     ..Default::default()
                 },
                 "video".to_owned(),
                 "webrtc-stream-video".to_owned(),
+            ));
+
+            let udp_video_track = Arc::new(TrackLocalStaticRTP::new(
+                RTCRtpCodecCapability {
+                    mime_type: MIME_TYPE_H264.to_owned(),
+                    ..Default::default()
+                },
+                "video-udp".to_owned(), 
+                "webrtc-stream-video-udp".to_owned(),
             ));
 
             let ws_sender_for_ice = Arc::clone(&ws_sender);
@@ -590,13 +640,14 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                 })
             }));
 
-            let actor = WebRtcActor {
+            let actor = WSActor {
                 pc,
                 ws_sender,
                 receiver: cmd_rx,
                 state: Arc::clone(&state),
                 audio_track,
-                video_track,
+                rtsp_video_track,
+                udp_video_track
             };
             actor.run().await;
         }

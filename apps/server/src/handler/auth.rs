@@ -18,7 +18,7 @@ use anyhow::anyhow;
 
 use crate::{
     db::{
-        self, models::{Device, User}, repository::{self, get_user_by_name}
+        self, models::{Device, User}, repository::{get_user_by_name}
     },  hash::{self, verify_password}, AppState, error::AppError
 };
 

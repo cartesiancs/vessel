@@ -24,6 +24,8 @@ import {
   UserCog,
   Workflow,
   Map,
+  Blocks,
+  CircleDashed,
 } from "lucide-react";
 import { NavFooter } from "./footer";
 import { isElectron } from "@/lib/electron";
@@ -81,6 +83,16 @@ const data = {
           title: "Users",
           url: "/users",
           icon: <UserCog />,
+        },
+        {
+          title: "Integration",
+          url: "/integration",
+          icon: <Blocks />,
+        },
+        {
+          title: "Setup",
+          url: "/setup",
+          icon: <CircleDashed />,
         },
         {
           title: "Logs",
