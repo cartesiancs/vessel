@@ -20,6 +20,7 @@ import {
 import { HA_Step1_URL, HA_Step2_Token } from "./HA";
 import { ROS2_Step1_Bridge, ROS2_Step2_Address } from "./ROS";
 import { useNavigate } from "react-router";
+import { toast } from "sonner";
 
 const FinalStep: React.FC<FinalStepProps> = ({ integrationName }) => (
   <div className='py-8 text-center flex flex-col items-center justify-center gap-4'>
@@ -117,6 +118,7 @@ const IntegrationWizardModal: React.FC<IntegrationWizardModalProps> = ({
         setCurrentStep((prev) => prev + 1);
       } catch (error) {
         console.error("Failed to save configuration:", error);
+        toast("Failed to save configuration.");
       } finally {
         setIsSaving(false);
       }
