@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -10,105 +9,17 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Home, Bot, ArrowRight, CheckCircle, Loader2 } from "lucide-react";
 import { useConfigStore } from "@/entities/configurations/store";
-
-type IntegrationId = "home-assistant" | "ros2";
-
-interface StepComponentProps {
-  value: string;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-}
-
-interface FinalStepProps {
-  integrationName: string;
-}
-
-interface IntegrationWizardModalProps {
-  integrationId: IntegrationId;
-  onClose: () => void;
-  onComplete: () => void;
-}
-
-const HA_Step1_URL: React.FC<StepComponentProps> = ({ value, onChange }) => (
-  <div className='grid gap-4 py-4'>
-    <div className='grid grid-cols-4 items-center gap-4'>
-      <Label htmlFor='ha-url' className='text-right'>
-        HA URL
-      </Label>
-      <Input
-        id='ha-url'
-        placeholder='http://homeassistant.local:8123'
-        className='col-span-3'
-        value={value}
-        onChange={onChange}
-      />
-    </div>
-    <p className='text-sm text-muted-foreground px-4 text-center'>
-      Enter the network address of your Home Assistant instance.
-    </p>
-  </div>
-);
-
-const HA_Step2_Token: React.FC<StepComponentProps> = ({ value, onChange }) => (
-  <div className='grid gap-4 py-4'>
-    <div className='grid grid-cols-4 items-center gap-4'>
-      <Label htmlFor='ha-token' className='text-right'>
-        Access Token
-      </Label>
-      <Input
-        id='ha-token'
-        type='password'
-        placeholder='Paste your Long-Lived Access Token'
-        className='col-span-3'
-        value={value}
-        onChange={onChange}
-      />
-    </div>
-    <p className='text-sm text-muted-foreground px-4 text-center'>
-      Create and copy a Long-Lived Access Token from your HA profile page.
-    </p>
-  </div>
-);
-
-const ROS2_Step1_Bridge: React.FC = () => (
-  <div className='py-4 text-center'>
-    <h4 className='font-semibold'>ROS2 Bridge Server</h4>
-    <p className='text-sm text-muted-foreground mt-2'>
-      Ensure that the `rosbridge_server` is running on your ROS2 machine.
-      <br />
-      Example command:
-    </p>
-    <code className='text-xs bg-muted p-2 rounded-md block mt-2'>
-      ros2 launch rosbridge_server rosbridge_websocket_launch.xml
-    </code>
-  </div>
-);
-
-const ROS2_Step2_Address: React.FC<StepComponentProps> = ({
-  value,
-  onChange,
-}) => (
-  <div className='grid gap-4 py-4'>
-    <div className='grid grid-cols-4 items-center gap-4'>
-      <Label htmlFor='ros-address' className='text-right'>
-        WebSocket URL
-      </Label>
-      <Input
-        id='ros-address'
-        placeholder='ws://<your_ros_ip>:9090'
-        className='col-span-3'
-        value={value}
-        onChange={onChange}
-      />
-    </div>
-    <p className='text-sm text-muted-foreground px-4 text-center'>
-      Enter the WebSocket address of your rosbridge server.
-    </p>
-  </div>
-);
+import {
+  StepComponentProps,
+  FinalStepProps,
+  IntegrationId,
+  IntegrationWizardModalProps,
+} from "./types";
+import { HA_Step1_URL, HA_Step2_Token } from "./HA";
+import { ROS2_Step1_Bridge, ROS2_Step2_Address } from "./ROS";
+import { useNavigate } from "react-router";
 
 const FinalStep: React.FC<FinalStepProps> = ({ integrationName }) => (
   <div className='py-8 text-center flex flex-col items-center justify-center gap-4'>
@@ -300,6 +211,7 @@ export function Intergration() {
   const [selectedIntegration, setSelectedIntegration] =
     useState<IntegrationId | null>(null);
   const { configurations, fetchConfigs } = useConfigStore();
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchConfigs();
@@ -358,16 +270,12 @@ export function Intergration() {
             </p>
           </div>
           <div className='flex items-center gap-4 ml-auto'>
-            <Badge
-              variant={
-                integration.status === "Connected" ? "default" : "outline"
-              }
-            >
-              {integration.status}
-            </Badge>
-
             {integration.status === "Connected" ? (
-              <Button size='sm' variant='secondary'>
+              <Button
+                size='sm'
+                variant='secondary'
+                onClick={() => navigate("/servers")}
+              >
                 Configure
               </Button>
             ) : (
