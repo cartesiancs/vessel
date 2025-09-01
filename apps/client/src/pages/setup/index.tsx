@@ -123,9 +123,7 @@ export function SetupPage(): React.ReactElement {
                         </p>
                       </div>
                       {step.isCompleted ? (
-                        <div className='flex h-9 w-9 items-center justify-center rounded-full bg-green-900/50 text-green-400'>
-                          <Check className='h-5 w-5' />
-                        </div>
+                        <div className=''></div>
                       ) : (
                         <Button
                           onClick={() => handleNavigate(step.url)}
