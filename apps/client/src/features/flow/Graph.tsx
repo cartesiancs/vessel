@@ -18,6 +18,10 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuPortal,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { renderNumberNode } from "./nodes/NumberNode";
@@ -32,6 +36,11 @@ import { renderLogicNode } from "./nodes/LogicNode";
 import { renderIntervalNode } from "./nodes/IntervalNode";
 import { renderMQTTNode } from "./nodes/MQTTNode";
 import { renderButtonNode } from "./nodes/ButtonNode";
+
+type NodeGroup = {
+  label: string;
+  nodes: string[];
+};
 
 export function Graph({
   nodes,
@@ -64,9 +73,6 @@ export function Graph({
   const nodesRef = useRef(nodes);
 
   const nodeRenderers: Record<string, NodeRenderer> = {
-    // BUTTON: (g, d) => renderButtonNode(g, d, () => handleClickOption(d)),
-    // TITLE: (g, d) => renderTitleNode(g, d),
-    // ADD: (g, d) => renderProcessingNode(g, d),
     START: (g, d) => renderTitleNode(g, d),
     SET_VARIABLE: (g, d) => renderVarNode(g, d, () => handleClickOption(d)),
     CONDITION: (g, d) => renderProcessingNode(g, d),
@@ -82,6 +88,25 @@ export function Graph({
     TYPE_CONVERTER: (g, d) =>
       renderButtonNode(g, d, () => handleClickOption(d)),
   };
+
+  const nodeGroups: NodeGroup[] = [
+    {
+      label: "Default",
+      nodes: ["START", "LOG_MESSAGE"],
+    },
+    {
+      label: "Data",
+      nodes: ["SET_VARIABLE", "TYPE_CONVERTER"],
+    },
+    {
+      label: "Logic",
+      nodes: ["CALCULATION", "LOGIC_OPERATOR", "LOOP", "INTERVAL"],
+    },
+    {
+      label: "Communication",
+      nodes: ["HTTP_REQUEST", "MQTT_PUBLISH", "MQTT_SUBSCRIBE"],
+    },
+  ];
 
   const handleClickOption = (node: Node) => {
     setOpenedNode(node);
@@ -630,12 +655,24 @@ export function Graph({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent>
-            {Object.keys(nodeRenderers).map((item) => (
-              <DropdownMenuItem
-                onClick={() => handleAddNode(item as NodeTypes)}
-              >
-                {formatConstantCase(item)}
-              </DropdownMenuItem>
+            {nodeGroups.map((group) => (
+              <DropdownMenuSub key={group.label}>
+                <DropdownMenuSubTrigger>
+                  <span>{group.label}</span>
+                </DropdownMenuSubTrigger>
+                <DropdownMenuPortal>
+                  <DropdownMenuSubContent>
+                    {group.nodes.map((nodeType) => (
+                      <DropdownMenuItem
+                        key={nodeType}
+                        onClick={() => handleAddNode(nodeType as NodeTypes)}
+                      >
+                        {formatConstantCase(nodeType)}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuSubContent>
+                </DropdownMenuPortal>
+              </DropdownMenuSub>
             ))}
           </DropdownMenuContent>
         </DropdownMenu>
