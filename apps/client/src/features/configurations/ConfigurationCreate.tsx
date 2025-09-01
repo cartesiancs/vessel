@@ -55,7 +55,11 @@ export function ConfigurationCreate({
           </div>
           <div className='space-y-2'>
             <Label htmlFor='value'>Value</Label>
-            <Textarea id='value' {...register("value", { required: true })} />
+            <Textarea
+              id='value'
+              {...register("value", { required: true })}
+              className='break-all'
+            />
           </div>
           <div className='space-y-2'>
             <Label htmlFor='description'>Description</Label>
