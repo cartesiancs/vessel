@@ -57,7 +57,7 @@ export const DEFINITION_NODE: {
     },
     dataType: {
       variable: "ANY",
-      variableType: "SELECT[string,number,boolean]",
+      variableType: "SELECT[string,number,boolean,json]",
     },
   },
   CONDITION: {
