@@ -10,6 +10,7 @@ import (
 
 type RegisterRequest struct {
 	Topic string `json:"topic"`
+    MediaType string `json:"media_type"`
 }
 
 type RegisterResponse struct {
@@ -23,13 +24,14 @@ func main() {
 
     serverURL := "http://127.0.0.1:8080/api/streams/register"
     topic := "go_stream_1"
+	mediaType := "audio"
 
     if deviceId == "" || deviceToken == "" {
         fmt.Println("Error: Please set the deviceId and deviceToken variables.")
         return
     }
 
-    reqBody := RegisterRequest{Topic: topic}
+    reqBody := RegisterRequest{Topic: topic, MediaType: mediaType}
     jsonBody, err := json.Marshal(reqBody)
     if err != nil {
         fmt.Printf("Error marshalling request body: %v\n", err)

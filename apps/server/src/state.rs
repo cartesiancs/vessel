@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use tokio::sync::{broadcast, mpsc, RwLock};
 use webrtc::rtp::packet::Packet;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use bytes::Bytes;
 
 use diesel::sqlite::SqliteConnection;
@@ -13,7 +13,8 @@ use dashmap::DashMap;
 
 use crate::flow::manager_state::FlowManagerCommand;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
 pub enum MediaType {
     Audio,
     Video,

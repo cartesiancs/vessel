@@ -15,6 +15,7 @@ use crate::{
 #[derive(Deserialize)]
 pub struct RegisterStreamRequest {
     pub topic: String,
+    pub media_type: MediaType,
 }
 
 #[derive(Serialize)]
@@ -37,7 +38,7 @@ pub async fn register_stream(
         topic: payload.topic.clone(),
         user_id: auth.device_id,
         packet_tx,
-        media_type: MediaType::Audio
+        media_type: payload.media_type
     };
     
     state.streams.insert(ssrc, stream_info);

@@ -1,5 +1,6 @@
 use std::sync::Arc;
 use axum::{extract::{State}};
+use tracing::info;
 use crate::{db::{self}, error::AppError, state::{AppState, Protocol, TopicMapping}};
 
 
@@ -50,7 +51,9 @@ pub async fn remap_topics(State(state): State<Arc<AppState>>) -> Result<usize, A
     }
 
 
-    
+    info!("Mapping state");
+    info!("{:?}", new_mappings);
+
     let num_mappings = new_mappings.len();
     
     let mut map = state.topic_map.write().await;
