@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import {
@@ -7,18 +6,21 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { PlusCircle } from "lucide-react";
 import { useConfigStore } from "@/entities/configurations/store";
 import { SystemConfigurationPayload } from "@/entities/configurations/types";
 
-export function ConfigurationCreateButton() {
-  const [isOpen, setIsOpen] = useState(false);
+export function ConfigurationCreate({
+  isOpen,
+  onOpenChange,
+}: {
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
   const createConfig = useConfigStore((state) => state.createConfig);
   const { register, handleSubmit, reset, control } =
     useForm<SystemConfigurationPayload>({
@@ -32,18 +34,16 @@ export function ConfigurationCreateButton() {
 
   const onSubmit = async (data: SystemConfigurationPayload) => {
     await createConfig(data);
-    setIsOpen(false);
+    onOpenChange(false);
     reset();
   };
 
+  const handleOpenChange = (open: boolean) => {
+    onOpenChange(open);
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        <Button size={"sm"} variant='outline'>
-          <PlusCircle className='mr-2 h-4 w-4' />
-          Add Configuration
-        </Button>
-      </DialogTrigger>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Add New System Configuration</DialogTitle>
@@ -79,7 +79,7 @@ export function ConfigurationCreateButton() {
             <Button
               type='button'
               variant='outline'
-              onClick={() => setIsOpen(false)}
+              onClick={() => onOpenChange(false)}
             >
               Cancel
             </Button>

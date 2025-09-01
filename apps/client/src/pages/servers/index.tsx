@@ -22,8 +22,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { ConfigurationCreateButton } from "@/features/configurations/ui/ConfigurationCreateButton";
-import { ConfigurationActionButton } from "@/features/configurations/ui/ConfigurationActionButton";
+import { ConfigurationCreateButton } from "@/features/configurations/ConfigurationCreateButton";
+import { ConfigurationActionButton } from "@/features/configurations/ConfigurationActionButton";
 import { Separator } from "@/components/ui/separator";
 import { useConfigStore } from "@/entities/configurations/store";
 
