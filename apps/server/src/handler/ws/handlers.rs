@@ -402,10 +402,12 @@ impl WSActor {
             let video_track_clone = Arc::clone(&self.udp_video_track);
             let pc_clone = Arc::clone(&self.pc);
 
+            let video_track_for_task = Arc::clone(&self.udp_video_track);
+
             tokio::spawn(async move {
                 let video_sender = pc_clone.get_senders().await.into_iter().find(|s| {
                     if let Some(track) = s.track().now_or_never().and_then(|t| t) {
-                        track.kind() == RTPCodecType::Video
+                        track.id() == video_track_for_task.id()
                     } else { false }
                 }).expect("Video sender not found");
 

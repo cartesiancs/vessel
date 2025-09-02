@@ -5,6 +5,7 @@ export class WebRTCManager {
   private signaling: WebSocketChannel;
   public streams: Map<string, MediaStream>;
   private onStreamsChanged: (streams: Map<string, MediaStream>) => void;
+  private pendingTopics: string[];
 
   constructor(
     signaling: WebSocketChannel,
@@ -12,6 +13,7 @@ export class WebRTCManager {
   ) {
     this.signaling = signaling;
     this.streams = new Map();
+    this.pendingTopics = [];
     this.onStreamsChanged = onStreamsChanged;
     this.pc = new RTCPeerConnection({
       iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
@@ -32,15 +34,23 @@ export class WebRTCManager {
     };
 
     this.pc.ontrack = (event) => {
-      const stream = event.streams[0];
-      if (stream) {
-        console.log(
-          `Track received: ${event.track.kind}, Stream ID: ${stream.id}`,
-        );
-        if (!this.streams.has(stream.id)) {
-          this.streams.set(stream.id, stream);
-          this.onStreamsChanged(new Map(this.streams));
-        }
+      const topic = this.pendingTopics.shift();
+      if (!topic) {
+        console.warn("Track received but no pending topic found.");
+        return;
+      }
+
+      const track = event.track;
+
+      const stream = new MediaStream([track]);
+
+      console.log(
+        `Track received for topic "${topic}": ${track.kind}, New Stream ID: ${stream.id}`,
+      );
+
+      if (!this.streams.has(topic)) {
+        this.streams.set(topic, stream);
+        this.onStreamsChanged(new Map(this.streams));
       }
     };
   }
@@ -85,8 +95,11 @@ export class WebRTCManager {
 
   public async connect(): Promise<void> {
     try {
-      this.pc.addTransceiver("video", { direction: "recvonly" });
       this.pc.addTransceiver("audio", { direction: "recvonly" });
+      this.pc.addTransceiver("video", { direction: "recvonly" });
+      this.pc.addTransceiver("video", { direction: "recvonly" });
+      this.pc.addTransceiver("video", { direction: "recvonly" });
+      this.pc.addTransceiver("video", { direction: "recvonly" });
 
       const offer = await this.pc.createOffer();
       await this.pc.setLocalDescription(offer);
@@ -103,6 +116,8 @@ export class WebRTCManager {
 
   public subscribe(topic: string): void {
     console.log(`Subscribing to topic: ${topic}`);
+    this.pendingTopics.push(topic);
+
     this.signaling.send({
       type: "subscribe_stream",
       payload: { topic },

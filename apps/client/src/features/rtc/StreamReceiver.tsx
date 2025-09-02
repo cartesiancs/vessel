@@ -13,15 +13,8 @@ export function StreamReceiver({ topic, streamType }: StreamReceiverProps) {
   const [isSubscribed, setIsSubscribed] = useState(false);
 
   const stream = useMemo(() => {
-    for (const s of streams.values()) {
-      const tracks =
-        streamType === "video" ? s.getVideoTracks() : s.getAudioTracks();
-      if (tracks.length > 0) {
-        return s;
-      }
-    }
-    return null;
-  }, [streams, streamType]);
+    return streams.get(topic) || null;
+  }, [streams, topic]);
 
   useEffect(() => {
     if (stream && mediaRef.current) {
