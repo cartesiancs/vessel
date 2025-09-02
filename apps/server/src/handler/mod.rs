@@ -10,3 +10,4 @@ pub mod flows;
 pub mod stat;
 pub mod log;
 pub mod map;
+pub mod ha;
