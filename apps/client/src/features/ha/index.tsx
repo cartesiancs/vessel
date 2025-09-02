@@ -24,13 +24,15 @@ export const HaDashboard = () => {
 
   if (status === "failed") {
     return (
-      <Alert variant='destructive' className='m-4'>
-        <AlertTriangle className='h-4 w-4' />
-        <AlertTitle>Error</AlertTitle>
-        <AlertDescription>
-          {error || "An unknown error occurred."}
-        </AlertDescription>
-      </Alert>
+      <div className='flex flex-1 flex-col gap-4 w-full'>
+        <Alert variant='destructive' className='m-4 w-auto'>
+          <AlertTriangle className='h-4 w-4' />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>
+            {error || "An unknown error occurred."}
+          </AlertDescription>
+        </Alert>
+      </div>
     );
   }
 
