@@ -49,7 +49,11 @@ export class WebSocketChannel {
   }
 
   send(message: WebSocketMessage): void {
-    this.ws?.send(JSON.stringify(message));
+    try {
+      this.ws?.send(JSON.stringify(message));
+    } catch (error) {
+      console.log(error);
+    }
   }
 
   close(): void {

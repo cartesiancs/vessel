@@ -50,7 +50,7 @@ function Online() {
 export function AllEntities() {
   const [entities, setEntities] = useState<EntityAll[]>([]);
   const [streamsState, setStreamsState] = useState<StreamState[]>([]);
-  const { wsManager } = useWebSocket();
+  const { wsManager, isConnected } = useWebSocket();
 
   const getAllEntities = async () => {
     try {
@@ -73,7 +73,7 @@ export function AllEntities() {
   }, []);
 
   useEffect(() => {
-    if (wsManager) {
+    if (wsManager && isConnected) {
       wsManager.send({
         type: "get_all_stream_state",
         payload: {},
@@ -86,7 +86,7 @@ export function AllEntities() {
         });
       }, 5000);
     }
-  }, [wsManager]);
+  }, [wsManager, isConnected]);
 
   useWebSocketMessage(handleMessage);
 

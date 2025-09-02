@@ -30,6 +30,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { useConfigStore } from "@/entities/configurations/store";
+import { HaDashboard } from "@/features/ha";
 
 export function DashboardPage() {
   const [wsUrl, setWsUrl] = useState<string | null>(null);
@@ -136,6 +137,10 @@ export function DashboardPage() {
                     </div>
                   </div>
                 )}
+
+                <div className='@container/main flex flex-1 flex-col gap-2'>
+                  {selectedDashboard == "ha" && <HaDashboard />}
+                </div>
               </div>
             </div>
             <Footer />
