@@ -82,7 +82,8 @@ pub async fn web_server(addr: String, app_state: Arc<AppState>, mut shutdown_rx:
         .route("/map/layers/:id", get(map::get_layer).put(map::update_layer).delete(map::delete_layer))
         .route("/map/features", post(map::create_feature))
         .route("/map/features/:id", get(map::get_feature).put(map::update_feature).delete(map::delete_feature))
-        .route("/ha/states", get(ha::get_all_states));
+        .route("/ha/states", get(ha::get_all_states))
+        .route("/ha/states/:entity_id", post(ha::post_state));
 
 
     let app = Router::new()
