@@ -500,6 +500,18 @@ pub fn get_versions_for_flow(
     Ok(versions)
 }
 
+pub fn get_entity_by_entity_id(pool: &DbPool, target_entity_id: &str) -> Result<Entity, anyhow::Error> {
+    use crate::db::schema::entities::dsl::*;
+
+    let mut conn = pool.get()?;
+
+    let entity = entities
+        .filter(entity_id.eq(target_entity_id))
+        .select(Entity::as_select())
+        .first(&mut conn)?;
+
+    Ok(entity)
+}
 
 pub fn set_entity_state(
     pool: &DbPool,

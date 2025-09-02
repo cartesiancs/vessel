@@ -10,7 +10,7 @@ use tower_http::cors::{Any, CorsLayer};
 use tracing::{ info};
 
 use crate::{handler::{
-    auth::auth_with_password, configurations, device_tokens, devices, entities, flows, ha, log, map, stat, streams, users, ws::ws_handler
+    auth::auth_with_password, configurations, device_tokens, devices, entities, flows, ha, log, map, stat, state, streams, users, ws::ws_handler
 }, state::AppState};
 use rust_embed::Embed;
 
@@ -83,7 +83,9 @@ pub async fn web_server(addr: String, app_state: Arc<AppState>, mut shutdown_rx:
         .route("/map/features", post(map::create_feature))
         .route("/map/features/:id", get(map::get_feature).put(map::update_feature).delete(map::delete_feature))
         .route("/ha/states", get(ha::get_all_states))
-        .route("/ha/states/:entity_id", post(ha::post_state));
+        .route("/ha/states/:entity_id", post(ha::post_state))
+        .route("/states/:entity_id", post(state::set_state));
+
 
 
     let app = Router::new()
