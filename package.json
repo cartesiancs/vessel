@@ -21,21 +21,19 @@
     "apps/*"
   ],
   "dependencies": {
-    "concurrently": "^9.1.2",
     "@tailwindcss/vite": "^4.1.8",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "concurrently": "^9.1.2",
     "lucide-react": "^0.539.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
+    "react-error-boundary": "^6.0.0",
     "react-router": "^7.8.1",
     "tailwind-merge": "^3.3.1",
     "tailwindcss": "^4.1.8"
   },
   "devDependencies": {
-    "jest": "^30.0.5",
-    "supertest": "^7.1.4",
-    "vitepress": "^1.6.3",
     "@eslint/js": "^9.33.0",
     "@types/node": "^24.3.0",
     "@types/react": "^19.1.10",
@@ -45,9 +43,12 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^16.3.0",
+    "jest": "^30.0.5",
+    "supertest": "^7.1.4",
     "tw-animate-css": "^1.3.7",
     "typescript": "~5.8.3",
     "typescript-eslint": "^8.39.1",
-    "vite": "^7.1.2"
+    "vite": "^7.1.2",
+    "vitepress": "^1.6.3"
   }
 }

@@ -50,7 +50,9 @@ export class WebSocketChannel {
 
   send(message: WebSocketMessage): void {
     try {
-      this.ws?.send(JSON.stringify(message));
+      if (this.ws) {
+        this.ws.send(JSON.stringify(message));
+      }
     } catch (error) {
       console.log(error);
     }
