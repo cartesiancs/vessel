@@ -13,6 +13,8 @@ export type WebSocketMessage = {
     | "get_all_flows"
     | "get_all_flows_response"
     | "stop_flow"
+    | "get_all_stream_state"
+    | "stream_state"
     | "get_server";
   payload:
     | RTCSessionDescriptionInit

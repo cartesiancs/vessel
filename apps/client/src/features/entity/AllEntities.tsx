@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useState } from "react";
 import * as api from "../../entities/entity/api";
 import { EntityAll } from "@/entities/entity/types";
 import {
@@ -10,9 +10,47 @@ import {
 } from "@/components/ui/card";
 import { formatSimpleDateTime } from "@/lib/time";
 import { StreamReceiver } from "../rtc/StreamReceiver";
+import { useWebSocket, useWebSocketMessage } from "../ws/WebSocketProvider";
+import { WebSocketMessage } from "../ws/ws";
+
+type StreamState = {
+  topic: string;
+  is_online: boolean;
+};
+
+const isEnabledStream = (topic: string, streams: StreamState[]) => {
+  const index = streams.findIndex((item) => item.topic == topic);
+  if (index == -1) {
+    return false;
+  }
+
+  return streams[index].is_online;
+};
+
+function Dot({ color }: { color: string }) {
+  return <span className={`w-2 h-2 ${color} rounded`}></span>;
+}
+
+function Offline() {
+  return (
+    <span className='flex flex-row text-gray-600 justify-center items-center gap-1'>
+      <Dot color='bg-gray-600' /> Offline
+    </span>
+  );
+}
+
+function Online() {
+  return (
+    <span className='flex flex-row text-emerald-500 justify-center items-center gap-1 '>
+      <Dot color='bg-emerald-500' /> Online
+    </span>
+  );
+}
 
 export function AllEntities() {
   const [entities, setEntities] = useState<EntityAll[]>([]);
+  const [streamsState, setStreamsState] = useState<StreamState[]>([]);
+  const { wsManager } = useWebSocket();
 
   const getAllEntities = async () => {
     try {
@@ -22,6 +60,35 @@ export function AllEntities() {
       console.error("Failed to fetch all entities:", error);
     }
   };
+
+  const handleMessage = useCallback((msg: WebSocketMessage) => {
+    try {
+      if (msg.type === "stream_state") {
+        const loads = msg.payload as StreamState[];
+        setStreamsState(loads);
+      }
+    } catch (err) {
+      console.error("Error handling signaling message:", err);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (wsManager) {
+      wsManager.send({
+        type: "get_all_stream_state",
+        payload: {},
+      });
+
+      setInterval(() => {
+        wsManager.send({
+          type: "get_all_stream_state",
+          payload: {},
+        });
+      }, 5000);
+    }
+  }, [wsManager]);
+
+  useWebSocketMessage(handleMessage);
 
   useEffect(() => {
     getAllEntities();
@@ -49,7 +116,14 @@ export function AllEntities() {
           <CardFooter className='flex-col items-start gap-1 px-4 text-sm'>
             <div className='font-medium'>{item.platform}</div>
             <div className='text-muted-foreground'>
-              {item.state?.last_updated}
+              {isEnabledStream(
+                item.configuration.state_topic as string,
+                streamsState,
+              ) ? (
+                <Online />
+              ) : (
+                <Offline />
+              )}
             </div>
           </CardFooter>
         </Card>
@@ -77,7 +151,14 @@ export function AllEntities() {
           <CardFooter className='flex-col items-start gap-1 px-4 text-sm'>
             <div className='font-medium'>{item.platform}</div>
             <div className='text-muted-foreground'>
-              {item.state?.last_updated}
+              {isEnabledStream(
+                item.configuration.rtsp_url as string,
+                streamsState,
+              ) ? (
+                <Online />
+              ) : (
+                <Offline />
+              )}
             </div>
           </CardFooter>
         </Card>
@@ -105,7 +186,14 @@ export function AllEntities() {
           <CardFooter className='flex-col items-start gap-1 px-4 text-sm'>
             <div className='font-medium'>{item.platform}</div>
             <div className='text-muted-foreground'>
-              {item.state?.last_updated}
+              {isEnabledStream(
+                item.configuration.state_topic as string,
+                streamsState,
+              ) ? (
+                <Online />
+              ) : (
+                <Offline />
+              )}
             </div>
           </CardFooter>
         </Card>
