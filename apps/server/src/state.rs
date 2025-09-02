@@ -1,5 +1,6 @@
 use std::sync::Arc;
 use tokio::sync::{broadcast, mpsc, RwLock};
+use tokio::time::Instant;
 use webrtc::rtp::packet::Packet;
 use serde::{Deserialize, Serialize};
 use bytes::Bytes;
@@ -26,6 +27,8 @@ pub struct StreamInfo {
     pub user_id: String,
     pub packet_tx: broadcast::Sender<Packet>,
     pub media_type: MediaType,
+    pub last_seen: Arc<RwLock<Instant>>,
+    pub is_online: Arc<RwLock<bool>>,
 }
 
 

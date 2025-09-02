@@ -5,8 +5,9 @@ use axum::{
         ws::{Message, WebSocket},
     },
 };
-use futures_util::{stream::SplitSink, FutureExt, SinkExt, StreamExt};
+use futures_util::{future::join_all, stream::SplitSink, FutureExt, SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use std::{collections::HashMap, sync::Arc};
 use sysinfo::System;
 use tokio::{sync::{mpsc, oneshot, Mutex}};
@@ -56,6 +57,12 @@ struct ServerStats {
     memory_usage: f32,
 }
 
+#[derive(Serialize)]
+struct StreamState {
+    topic: String,
+    is_online: bool,
+}
+
 #[derive(Deserialize)]
 struct SubscribeStreamPayload {
     topic: String,
@@ -89,6 +96,9 @@ enum ActorCommand {
         payload: serde_json::Value,
     },
     ComputeFlow {
+        payload: serde_json::Value,
+    },
+    GetAllStreamState {
         payload: serde_json::Value,
     },
     StopFlow {
@@ -148,6 +158,9 @@ impl WSActor {
                 }
                 ActorCommand::StopFlow { flow_id } => {
                     self.handle_stop_flow(flow_id).await;
+                }
+                ActorCommand::GetAllStreamState { payload } => {
+                    self.handle_get_all_stream_state(payload).await;
                 }
                 ActorCommand::GetAllFlows { responder } => {
                     self.handle_get_all_flows(responder).await;
@@ -210,6 +223,38 @@ impl WSActor {
             })
         })
         .await?
+    }
+
+    async fn handle_get_all_stream_state(&self, payload: serde_json::Value) {
+
+        let stream_futures = self.state.streams.iter().map(|n|async move {
+            StreamState {
+                topic: n.topic.clone(),
+                is_online: *n.is_online.read().await
+            }
+        });
+ 
+        let collected_streams: Vec<StreamState> = join_all(stream_futures).await;
+
+
+        let ws_message = WsMessageOut {
+            msg_type: "stream_state",
+            payload: collected_streams
+        };
+
+
+        if let Ok(payload_str) = serde_json::to_string(&ws_message) {
+            if self
+                .ws_sender
+                .lock()
+                .await
+                .send(Message::Text(payload_str))
+                .await
+                .is_err()
+            {
+                error!("Failed to send health check response.");
+            }
+        }
     }
 
     async fn handle_offer(
@@ -721,6 +766,14 @@ pub async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                 }
                 "health_check" => {
                     let cmd = ActorCommand::HealthCheck {
+                        payload: ws_msg.payload,
+                    };
+                    if cmd_tx.send(cmd).await.is_err() {
+                        break;
+                    }
+                }
+                "get_all_stream_state" => {
+                    let cmd = ActorCommand::GetAllStreamState {
                         payload: ws_msg.payload,
                     };
                     if cmd_tx.send(cmd).await.is_err() {

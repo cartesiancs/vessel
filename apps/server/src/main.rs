@@ -10,7 +10,7 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilte
 
 const LOG_FILE_PATH: &str = "log/app.log";
 
-use crate::{ db::conn::establish_connection, flow::manager_state::FlowManagerActor, initial::{create_initial_admin, create_initial_configurations}, lib::entity_map::remap_topics, routes::web_server, rtp::rtp_receiver, state::{AppState, FrameData, MqttMessage, StreamInfo, StreamManager}};
+use crate::{ db::conn::establish_connection, flow::manager_state::FlowManagerActor, initial::{create_initial_admin, create_initial_configurations}, lib::{entity_map::remap_topics, stream_checker::stream_status_checker}, routes::web_server, rtp::rtp_receiver, state::{AppState, FrameData, MqttMessage, StreamInfo, StreamManager}};
 
 mod state;
 mod mqtt;
@@ -153,6 +153,10 @@ async fn main() -> Result<()> {
         } else {
             warn!("MQTT Broker configuration ('mqtt_broker_url') not found.");
         }
+
+        let app_state_for_checker = app_state.clone();
+        set.spawn(stream_status_checker(app_state_for_checker, shutdown_rx.clone()));
+
 
         let app_state_clone = app_state.clone();
         set.spawn( rtsp::start_rtsp_pipelines(app_state_clone, shutdown_rx.clone()));
