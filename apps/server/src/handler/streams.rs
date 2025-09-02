@@ -30,7 +30,7 @@ pub async fn register_stream(
     Json(payload): Json<RegisterStreamRequest>,
 ) -> impl IntoResponse {
 
-    let ssrc = rand::rng().random::<u32>();
+    let ssrc =rand::rngs::ThreadRng::default().random_range(0..=i32::MAX) as u32;
 
     let (packet_tx, _) = broadcast::channel::<Packet>(1024);
 
