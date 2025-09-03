@@ -1,11 +1,12 @@
+use bytes::Bytes;
+use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::sync::{broadcast, mpsc, RwLock};
+use tokio::time::Instant;
 use webrtc::rtp::packet::Packet;
-use serde::{Deserialize, Serialize};
-use bytes::Bytes;
 
-use diesel::sqlite::SqliteConnection;
 use diesel::r2d2::{self, ConnectionManager};
+use diesel::sqlite::SqliteConnection;
 
 pub type DbPool = r2d2::Pool<ConnectionManager<SqliteConnection>>;
 
@@ -20,16 +21,17 @@ pub enum MediaType {
     Video,
 }
 
-#[derive(Clone)] 
+#[derive(Clone)]
 pub struct StreamInfo {
     pub topic: String,
     pub user_id: String,
     pub packet_tx: broadcast::Sender<Packet>,
     pub media_type: MediaType,
+    pub last_seen: Arc<RwLock<Instant>>,
+    pub is_online: Arc<RwLock<bool>>,
 }
 
-
-pub type StreamManager = Arc<DashMap<u32, StreamInfo>>; 
+pub type StreamManager = Arc<DashMap<u32, StreamInfo>>;
 
 #[derive(Serialize, Clone, Debug)]
 pub struct MqttMessage {
@@ -48,7 +50,7 @@ pub enum Protocol {
     MQTT,
     Udp,
     Lora,
-    RTSP
+    RTSP,
 }
 
 #[derive(Serialize, Clone, Debug)]
@@ -61,10 +63,10 @@ pub struct TopicMapping {
 pub struct AppState {
     pub streams: StreamManager,
     pub mqtt_tx: broadcast::Sender<MqttMessage>,
-    pub jwt_secret: String, 
+    pub jwt_secret: String,
     pub pool: DbPool,
     pub topic_map: Arc<RwLock<Vec<TopicMapping>>>,
     pub rtsp_frame_tx: broadcast::Sender<FrameData>,
     pub flow_manager_tx: mpsc::Sender<FlowManagerCommand>,
-    pub flow_broadcast_tx: broadcast::Sender<String>,
+    pub broadcast_tx: broadcast::Sender<String>,
 }

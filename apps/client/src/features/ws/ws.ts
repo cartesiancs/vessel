@@ -13,6 +13,9 @@ export type WebSocketMessage = {
     | "get_all_flows"
     | "get_all_flows_response"
     | "stop_flow"
+    | "get_all_stream_state"
+    | "stream_state"
+    | "change_state"
     | "get_server";
   payload:
     | RTCSessionDescriptionInit
@@ -20,6 +23,7 @@ export type WebSocketMessage = {
     | RTCIceCandidateInit
     | string
     | number
+    | object
     | { topic: string }
     | { flow_id: number }
     | { timestamp: number }
@@ -47,7 +51,13 @@ export class WebSocketChannel {
   }
 
   send(message: WebSocketMessage): void {
-    this.ws?.send(JSON.stringify(message));
+    try {
+      if (this.ws) {
+        this.ws.send(JSON.stringify(message));
+      }
+    } catch (error) {
+      console.log(error);
+    }
   }
 
   close(): void {

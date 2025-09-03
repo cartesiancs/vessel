@@ -70,8 +70,26 @@ impl ExecutableNode for SetVariableNode {
                     }
                 }
             },
-            Some("string") | _ => {
+            Some("string") => {
                 json!(self.data.variable)
+            },
+            Some("json") | _ => {
+                match serde_json::from_str::<Value>(&self.data.variable) {
+                    Ok(json_value) => json_value,
+                    Err(_) => {
+                        let error_message = format!("Failed to parse '{}' as JSON.", self.data.variable);
+                        let ws_message = json!({
+                            "type": "log_message",
+                            "payload": error_message.clone(),
+                        });
+                        if let Ok(payload_str) = serde_json::to_string(&ws_message) {
+                            if broadcast_tx.send(payload_str).is_err() {
+                                error!("Failed to send websocket log message.");
+                            }
+                        }
+                        return Err(anyhow!(error_message));
+                    }
+                }
             }
         };
 

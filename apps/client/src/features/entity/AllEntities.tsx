@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useState } from "react";
 import * as api from "../../entities/entity/api";
 import { EntityAll } from "@/entities/entity/types";
 import {
@@ -10,9 +10,54 @@ import {
 } from "@/components/ui/card";
 import { formatSimpleDateTime } from "@/lib/time";
 import { StreamReceiver } from "../rtc/StreamReceiver";
+import { useWebSocket, useWebSocketMessage } from "../ws/WebSocketProvider";
+import { WebSocketMessage } from "../ws/ws";
+
+type StreamState = {
+  topic: string;
+  is_online: boolean;
+};
+
+type ChangeStatePayload = {
+  entity_id: string;
+  state: {
+    state: string;
+  };
+};
+
+const isEnabledStream = (topic: string, streams: StreamState[]) => {
+  const index = streams.findIndex((item) => item.topic == topic);
+  if (index == -1) {
+    return false;
+  }
+
+  return streams[index].is_online;
+};
+
+function Dot({ color }: { color: string }) {
+  return <span className={`w-2 h-2 ${color} rounded`}></span>;
+}
+
+function Offline() {
+  return (
+    <span className='flex flex-row text-gray-600 justify-center items-center gap-1'>
+      <Dot color='bg-gray-600' /> Offline
+    </span>
+  );
+}
+
+function Online() {
+  return (
+    <span className='flex flex-row text-emerald-500 justify-center items-center gap-1 '>
+      <Dot color='bg-emerald-500' /> Online
+    </span>
+  );
+}
 
 export function AllEntities() {
   const [entities, setEntities] = useState<EntityAll[]>([]);
+  const [streamsState, setStreamsState] = useState<StreamState[]>([]);
+  const { wsManager, isConnected } = useWebSocket();
 
   const getAllEntities = async () => {
     try {
@@ -22,6 +67,58 @@ export function AllEntities() {
       console.error("Failed to fetch all entities:", error);
     }
   };
+
+  const handleMessage = useCallback(
+    (msg: WebSocketMessage) => {
+      try {
+        if (msg.type === "stream_state") {
+          const loads = msg.payload as StreamState[];
+          setStreamsState(loads);
+        }
+
+        if (msg.type == "change_state") {
+          const index = entities.findIndex((item) => {
+            return (
+              item.entity_id == (msg.payload as ChangeStatePayload).entity_id
+            );
+          });
+
+          if (index == -1) {
+            return false;
+          }
+
+          if (entities[index].state) {
+            entities[index].state.state = (
+              msg.payload as ChangeStatePayload
+            ).state.state;
+
+            setEntities(entities);
+          }
+        }
+      } catch (err) {
+        console.error("Error handling signaling message:", err);
+      }
+    },
+    [entities],
+  );
+
+  useEffect(() => {
+    if (wsManager && isConnected) {
+      wsManager.send({
+        type: "get_all_stream_state",
+        payload: {},
+      });
+
+      setInterval(() => {
+        wsManager.send({
+          type: "get_all_stream_state",
+          payload: {},
+        });
+      }, 5000);
+    }
+  }, [wsManager, isConnected]);
+
+  useWebSocketMessage(handleMessage);
 
   useEffect(() => {
     getAllEntities();
@@ -49,7 +146,14 @@ export function AllEntities() {
           <CardFooter className='flex-col items-start gap-1 px-4 text-sm'>
             <div className='font-medium'>{item.platform}</div>
             <div className='text-muted-foreground'>
-              {item.state?.last_updated}
+              {isEnabledStream(
+                item.configuration.state_topic as string,
+                streamsState,
+              ) ? (
+                <Online />
+              ) : (
+                <Offline />
+              )}
             </div>
           </CardFooter>
         </Card>
@@ -76,9 +180,7 @@ export function AllEntities() {
           </CardHeader>
           <CardFooter className='flex-col items-start gap-1 px-4 text-sm'>
             <div className='font-medium'>{item.platform}</div>
-            <div className='text-muted-foreground'>
-              {item.state?.last_updated}
-            </div>
+            <div className='text-muted-foreground'></div>
           </CardFooter>
         </Card>
       );
@@ -105,7 +207,14 @@ export function AllEntities() {
           <CardFooter className='flex-col items-start gap-1 px-4 text-sm'>
             <div className='font-medium'>{item.platform}</div>
             <div className='text-muted-foreground'>
-              {item.state?.last_updated}
+              {isEnabledStream(
+                item.configuration.state_topic as string,
+                streamsState,
+              ) ? (
+                <Online />
+              ) : (
+                <Offline />
+              )}
             </div>
           </CardFooter>
         </Card>

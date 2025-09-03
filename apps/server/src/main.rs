@@ -1,24 +1,35 @@
 use anyhow::Result;
 use dashmap::DashMap;
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
+use dotenvy::dotenv;
 use rumqttc::{AsyncClient, MqttOptions};
 use std::{env, sync::Arc};
-use tokio::{sync::{broadcast, mpsc, watch, RwLock}, task::JoinSet};
+use tokio::{
+    sync::{broadcast, mpsc, watch, RwLock},
+    task::JoinSet,
+};
 use tracing::{error, info, warn};
-use dotenvy::dotenv;
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, fmt};
+use tracing_subscriber::{fmt, layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
 
 const LOG_FILE_PATH: &str = "log/app.log";
 
-use crate::{ db::conn::establish_connection, flow::manager_state::FlowManagerActor, initial::{create_initial_admin, create_initial_configurations}, lib::entity_map::remap_topics, routes::web_server, rtp::rtp_receiver, state::{AppState, FrameData, MqttMessage, StreamInfo, StreamManager}};
+use crate::{
+    db::conn::establish_connection,
+    flow::manager_state::FlowManagerActor,
+    initial::{create_initial_admin, create_initial_configurations},
+    lib::{entity_map::remap_topics, stream_checker::stream_status_checker},
+    routes::web_server,
+    rtp::rtp_receiver,
+    state::{AppState, FrameData, MqttMessage, StreamInfo, StreamManager},
+};
 
-mod state;
-mod mqtt;
-mod routes;
 mod handler;
 mod hash;
 mod initial;
+mod mqtt;
+mod routes;
 mod rtp;
+mod state;
 
 pub mod db;
 pub mod error;
@@ -29,7 +40,8 @@ pub mod rtsp;
 pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("./migrations");
 
 fn run_migrations(connection: &mut impl MigrationHarness<diesel::sqlite::Sqlite>) -> Result<()> {
-    connection.run_pending_migrations(MIGRATIONS)
+    connection
+        .run_pending_migrations(MIGRATIONS)
         .map_err(|e| anyhow::anyhow!(e))?;
     Ok(())
 }
@@ -62,15 +74,17 @@ async fn main() -> Result<()> {
     let pool = establish_connection();
 
     {
-        let mut conn = pool.get().expect("Failed to get a connection from the pool");
+        let mut conn = pool
+            .get()
+            .expect("Failed to get a connection from the pool");
         info!("Running database migrations...");
         run_migrations(&mut conn)?;
         info!("Migrations completed successfully.");
-        
+
         create_initial_admin(&mut conn);
-        create_initial_configurations(&mut conn); 
+        create_initial_configurations(&mut conn);
     }
-    
+
     let streams = Arc::new(DashMap::<u32, StreamInfo>::new());
 
     let (mqtt_tx, _) = broadcast::channel::<MqttMessage>(1024);
@@ -79,9 +93,7 @@ async fn main() -> Result<()> {
     let jwt_secret = dotenvy::var("JWT_SECRET")?;
 
     let (flow_manager_tx, flow_manager_rx) = mpsc::channel(100);
-    let (flow_broadcast_tx, _) = broadcast::channel(1024);
-
-
+    let (broadcast_tx, _) = broadcast::channel(1024);
 
     let app_state = Arc::new(AppState {
         streams: streams.clone(),
@@ -91,29 +103,32 @@ async fn main() -> Result<()> {
         topic_map: Arc::new(RwLock::new(Vec::new())),
         rtsp_frame_tx,
         flow_manager_tx,
-        flow_broadcast_tx
+        broadcast_tx,
     });
 
     let (shutdown_tx, shutdown_rx) = watch::channel(());
-
 
     let configs = db::repository::get_all_system_configs(&app_state.clone().pool)?;
 
     let mut set = JoinSet::new();
 
+    remap_topics(axum::extract::State(app_state.clone())).await;
 
-    remap_topics(axum::extract::State(app_state.clone()))
-        .await;
-    
-    let server_task = tokio::spawn(web_server("0.0.0.0:8080".to_string(), app_state.clone(), shutdown_rx.clone()));
+    let server_task = tokio::spawn(web_server(
+        "0.0.0.0:8080".to_string(),
+        app_state.clone(),
+        shutdown_rx.clone(),
+    ));
 
     let mut mqtt_client_for_flow: Option<AsyncClient> = None;
 
-    
     if !is_debug_mode {
         if let Some(rtp_config) = configs.iter().find(|c| c.key == "rtp_broker_port") {
             if rtp_config.enabled == 1 {
-                info!("RTP Receiver is enabled. Starting on {}.", &rtp_config.value);
+                info!(
+                    "RTP Receiver is enabled. Starting on {}.",
+                    &rtp_config.value
+                );
                 let rtp_listen_address = rtp_config.value.clone();
                 set.spawn(rtp_receiver(rtp_listen_address, streams));
             } else {
@@ -125,7 +140,10 @@ async fn main() -> Result<()> {
 
         if let Some(mqtt_config) = configs.iter().find(|c| c.key == "mqtt_broker_url") {
             if mqtt_config.enabled == 1 {
-                info!("MQTT Broker is enabled. Connecting to {}.", &mqtt_config.value);
+                info!(
+                    "MQTT Broker is enabled. Connecting to {}.",
+                    &mqtt_config.value
+                );
                 let mqtt_broker_url = mqtt_config.value.clone();
                 let parts: Vec<&str> = mqtt_broker_url.split(':').collect();
                 if parts.len() != 2 {
@@ -139,14 +157,18 @@ async fn main() -> Result<()> {
 
                 let mut mqttoptions = MqttOptions::new("rust-internal-client", host, port);
                 mqttoptions.set_keep_alive(std::time::Duration::from_secs(5));
-                
+
                 let (client, eventloop) = AsyncClient::new(mqttoptions, 10);
 
                 mqtt_client_for_flow = Some(client.clone());
                 let mqtt_tx_clone = mqtt_tx.clone();
 
-                set.spawn(mqtt::start_event_loop(client, eventloop, mqtt_tx_clone, app_state.clone()));
-
+                set.spawn(mqtt::start_event_loop(
+                    client,
+                    eventloop,
+                    mqtt_tx_clone,
+                    app_state.clone(),
+                ));
             } else {
                 warn!("MQTT Broker is disabled by configuration.");
             }
@@ -154,13 +176,21 @@ async fn main() -> Result<()> {
             warn!("MQTT Broker configuration ('mqtt_broker_url') not found.");
         }
 
+        let app_state_for_checker = app_state.clone();
+        set.spawn(stream_status_checker(
+            app_state_for_checker,
+            shutdown_rx.clone(),
+        ));
+
         let app_state_clone = app_state.clone();
-        set.spawn( rtsp::start_rtsp_pipelines(app_state_clone, shutdown_rx.clone()));
-       
-    
+        set.spawn(rtsp::start_rtsp_pipelines(
+            app_state_clone,
+            shutdown_rx.clone(),
+        ));
     }
 
-    let mut flow_manager = FlowManagerActor::new(flow_manager_rx, mqtt_client_for_flow, mqtt_tx.clone());
+    let mut flow_manager =
+        FlowManagerActor::new(flow_manager_rx, mqtt_client_for_flow, mqtt_tx.clone());
     tokio::spawn(async move {
         flow_manager.run().await;
     });
@@ -193,12 +223,12 @@ async fn main() -> Result<()> {
     }
 
     set.abort_all();
-        shutdown_tx.send(()).ok();
-    
+    shutdown_tx.send(()).ok();
+
     info!("Waiting for all tasks to complete...");
     while let Some(res) = set.join_next().await {
-         match res {
-            Ok(Ok(())) => {}, 
+        match res {
+            Ok(Ok(())) => {}
             Ok(Err(e)) => error!("A task shut down with an error: {}", e),
             Ok(Err(e)) => error!("A task failed to join during shutdown: {}", e),
             Err(e) => error!("A task panicked during shutdown: {}", e),
@@ -208,4 +238,3 @@ async fn main() -> Result<()> {
 
     Ok(())
 }
-

@@ -18,6 +18,8 @@ import { MapPage } from "./pages/map";
 import { isElectron } from "./lib/electron";
 import { IntegrationPage } from "./pages/integration";
 import { SetupPage } from "./pages/setup";
+import { ErrorBoundary } from "react-error-boundary";
+import { ErrorRender } from "./features/error";
 
 const router = createBrowserRouter([
   {
@@ -165,7 +167,11 @@ function TopBarWrapper(props: TopBarWrapType) {
       </>
     );
   } else {
-    return <PageWrapper>{props.children}</PageWrapper>;
+    return (
+      <ErrorBoundary fallbackRender={ErrorRender} onReset={() => {}}>
+        <PageWrapper>{props.children}</PageWrapper>
+      </ErrorBoundary>
+    );
   }
 }
 

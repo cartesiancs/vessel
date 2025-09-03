@@ -1,30 +1,32 @@
-
 use anyhow::{anyhow, Result};
-use axum::{
-    extract::{
-        ws::{Message, WebSocket},
-    },
-};
-use futures_util::{stream::SplitSink, FutureExt, SinkExt, StreamExt};
+use axum::extract::ws::{Message, WebSocket};
+use futures_util::{future::join_all, stream::SplitSink, FutureExt, SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use std::{collections::HashMap, sync::Arc};
 use sysinfo::System;
-use tokio::{sync::{mpsc, oneshot, Mutex}};
+use tokio::sync::{mpsc, oneshot, Mutex};
 use tracing::{error, info, warn};
 use webrtc::{
     api::{
         media_engine::{MediaEngine, MIME_TYPE_H264, MIME_TYPE_OPUS},
         setting_engine::SettingEngine,
         APIBuilder,
-    }, ice::network_type::NetworkType, ice_transport::{
+    },
+    ice::network_type::NetworkType,
+    ice_transport::{
         ice_candidate::{RTCIceCandidate, RTCIceCandidateInit},
         ice_server::RTCIceServer,
-    }, peer_connection::{
+    },
+    peer_connection::{
         configuration::RTCConfiguration, sdp::session_description::RTCSessionDescription,
         RTCPeerConnection,
-    }, rtp_transceiver::rtp_codec::{RTCRtpCodecCapability, RTCRtpCodecParameters, RTPCodecType}, track::track_local::{
-        track_local_static_rtp::TrackLocalStaticRTP, track_local_static_sample::TrackLocalStaticSample, TrackLocal, TrackLocalWriter
-    }
+    },
+    rtp_transceiver::rtp_codec::{RTCRtpCodecCapability, RTCRtpCodecParameters, RTPCodecType},
+    track::track_local::{
+        track_local_static_rtp::TrackLocalStaticRTP,
+        track_local_static_sample::TrackLocalStaticSample, TrackLocal, TrackLocalWriter,
+    },
 };
 
 use crate::{
@@ -32,9 +34,6 @@ use crate::{
     flow::manager_state::FlowManagerCommand,
     state::{AppState, MediaType},
 };
-
-
-
 
 #[derive(Serialize)]
 struct WsMessageOut<'a, T: Serialize> {
@@ -56,6 +55,12 @@ struct ServerStats {
     memory_usage: f32,
 }
 
+#[derive(Serialize)]
+struct StreamState {
+    topic: String,
+    is_online: bool,
+}
+
 #[derive(Deserialize)]
 struct SubscribeStreamPayload {
     topic: String,
@@ -73,7 +78,6 @@ struct FlowStatus {
     is_running: bool,
 }
 
-
 enum ActorCommand {
     SetRemoteOffer {
         offer: RTCSessionDescription,
@@ -89,6 +93,9 @@ enum ActorCommand {
         payload: serde_json::Value,
     },
     ComputeFlow {
+        payload: serde_json::Value,
+    },
+    GetAllStreamState {
         payload: serde_json::Value,
     },
     StopFlow {
@@ -113,9 +120,7 @@ struct WSActor {
     ws_sender: Arc<Mutex<SplitSink<WebSocket, Message>>>,
     receiver: mpsc::Receiver<ActorCommand>,
     state: Arc<AppState>,
-    audio_track: Arc<TrackLocalStaticRTP>,
-    rtsp_video_track: Arc<TrackLocalStaticSample>,
-    udp_video_track: Arc<TrackLocalStaticRTP>, 
+    active_tracks: HashMap<String, Arc<dyn TrackLocal + Send + Sync>>,
 }
 
 impl WSActor {
@@ -151,6 +156,9 @@ impl WSActor {
                 ActorCommand::StopFlow { flow_id } => {
                     self.handle_stop_flow(flow_id).await;
                 }
+                ActorCommand::GetAllStreamState { payload } => {
+                    self.handle_get_all_stream_state(payload).await;
+                }
                 ActorCommand::GetAllFlows { responder } => {
                     self.handle_get_all_flows(responder).await;
                 }
@@ -173,7 +181,10 @@ impl WSActor {
 
     async fn handle_get_all_flows(&self, responder: oneshot::Sender<Result<Vec<FlowStatus>>>) {
         let (manager_responder_tx, manager_responder_rx) = tokio::sync::oneshot::channel();
-        let cmd = FlowManagerCommand::GetAllFlows { responder: manager_responder_tx, pool: self.state.pool.clone() };
+        let cmd = FlowManagerCommand::GetAllFlows {
+            responder: manager_responder_tx,
+            pool: self.state.pool.clone(),
+        };
 
         if self.state.flow_manager_tx.send(cmd).await.is_err() {
             let _ = responder.send(Err(anyhow!("Failed to communicate with FlowManager")));
@@ -184,13 +195,14 @@ impl WSActor {
             let all_db_flows = db::repository::get_all_flows(&self.state.pool).unwrap_or_default();
             let status_map: HashMap<i32, bool> = status_tuples.into_iter().collect();
 
-            let result: Vec<FlowStatus> = all_db_flows.into_iter().map(|f| {
-                FlowStatus {
+            let result: Vec<FlowStatus> = all_db_flows
+                .into_iter()
+                .map(|f| FlowStatus {
                     id: f.id,
                     name: f.name,
                     is_running: *status_map.get(&f.id).unwrap_or(&false),
-                }
-            }).collect();
+                })
+                .collect();
 
             let _ = responder.send(Ok(result));
         } else {
@@ -212,6 +224,35 @@ impl WSActor {
             })
         })
         .await?
+    }
+
+    async fn handle_get_all_stream_state(&self, payload: serde_json::Value) {
+        let stream_futures = self.state.streams.iter().map(|n| async move {
+            StreamState {
+                topic: n.topic.clone(),
+                is_online: *n.is_online.read().await,
+            }
+        });
+
+        let collected_streams: Vec<StreamState> = join_all(stream_futures).await;
+
+        let ws_message = WsMessageOut {
+            msg_type: "stream_state",
+            payload: collected_streams,
+        };
+
+        if let Ok(payload_str) = serde_json::to_string(&ws_message) {
+            if self
+                .ws_sender
+                .lock()
+                .await
+                .send(Message::Text(payload_str))
+                .await
+                .is_err()
+            {
+                error!("Failed to send health check response.");
+            }
+        }
     }
 
     async fn handle_offer(
@@ -287,12 +328,10 @@ impl WSActor {
         let flow_id: i32 = value.as_i64().unwrap_or_default() as i32;
 
         let versions =
-            db::repository::get_versions_for_flow(&self.state.pool, flow_id as i32)
-                .expect("msg");
+            db::repository::get_versions_for_flow(&self.state.pool, flow_id as i32).expect("msg");
         if versions.is_empty() {
             return;
         }
-        
 
         let latest_version = versions[0].clone();
         let graph = match serde_json::from_str(&latest_version.graph_json) {
@@ -302,13 +341,13 @@ impl WSActor {
                 return;
             }
         };
-        
+
         println!("Start Flow");
-        
+
         let cmd = FlowManagerCommand::StartFlow {
             flow_id,
             graph,
-            broadcast_tx: self.state.flow_broadcast_tx.clone()
+            broadcast_tx: self.state.broadcast_tx.clone(),
         };
 
         if self.state.flow_manager_tx.send(cmd).await.is_err() {
@@ -323,42 +362,78 @@ impl WSActor {
         }
     }
 
-
-    async fn handle_subscribe(&self, topic: String) {
+    async fn handle_subscribe(&mut self, topic: String) {
         let mut subscribed = false;
+
+        if self.active_tracks.contains_key(&topic) {
+            warn!("Topic '{}' is already subscribed.", topic);
+            return;
+        }
 
         if let Some((ssrc, info)) = self
             .state
             .streams
             .iter()
-            .find(|entry| entry.value().topic == topic && entry.value().media_type == MediaType::Audio)
+            .find(|entry| {
+                entry.value().topic == topic && entry.value().media_type == MediaType::Audio
+            })
             .map(|entry| (*entry.key(), entry.value().clone()))
         {
             subscribed = true;
-            info!("[Audio] Subscribing to topic '{}' with SSRC {}", topic, ssrc);
-            
-            let rtp_sender = self.pc.add_track(
-                Arc::clone(&self.audio_track) as Arc<dyn TrackLocal + Send + Sync>
-            ).await.unwrap();
-            
+            info!(
+                "[Audio] Subscribing to topic '{}' with SSRC {}",
+                topic, ssrc
+            );
+
+            let new_audio_track = Arc::new(TrackLocalStaticRTP::new(
+                RTCRtpCodecCapability {
+                    mime_type: MIME_TYPE_OPUS.to_owned(),
+                    ..Default::default()
+                },
+                format!("audio-{}", &topic),
+                format!("webrtc-stream-audio-{}", &topic),
+            ));
+
+            let rtp_sender = self
+                .pc
+                .add_track(Arc::clone(&new_audio_track) as Arc<dyn TrackLocal + Send + Sync>)
+                .await
+                .unwrap();
+
+            self.active_tracks.insert(
+                topic.clone(),
+                new_audio_track.clone() as Arc<dyn TrackLocal + Send + Sync>,
+            );
+
             tokio::spawn(async move {
                 let mut rtcp_buf = vec![0u8; 1500];
                 while rtp_sender.read(&mut rtcp_buf).await.is_ok() {}
             });
 
             let mut rx = info.packet_tx.subscribe();
-            let audio_track_clone = Arc::clone(&self.audio_track);
             let pc_clone = Arc::clone(&self.pc);
 
             tokio::spawn(async move {
-                let audio_sender = pc_clone.get_senders().await.into_iter().find(|s| {
-                    if let Some(track) = s.track().now_or_never().and_then(|t| t) {
-                        track.kind() == RTPCodecType::Audio
-                    } else { false }
-                }).expect("Audio sender not found");
+                let audio_sender = pc_clone
+                    .get_senders()
+                    .await
+                    .into_iter()
+                    .find(|s| {
+                        if let Some(track) = s.track().now_or_never().and_then(|t| t) {
+                            track.id() == new_audio_track.id()
+                        } else {
+                            false
+                        }
+                    })
+                    .expect("Audio sender not found for the specific track");
 
                 let parameters = audio_sender.get_parameters().await;
-                let negotiated_pt = parameters.rtp_parameters.codecs.get(0).unwrap().payload_type;
+                let negotiated_pt = parameters
+                    .rtp_parameters
+                    .codecs
+                    .get(0)
+                    .unwrap()
+                    .payload_type;
                 let negotiated_ssrc = parameters.encodings.get(0).unwrap().ssrc;
 
                 info!(
@@ -370,8 +445,11 @@ impl WSActor {
                     pkt.header.payload_type = negotiated_pt;
                     pkt.header.ssrc = negotiated_ssrc;
 
-                    if audio_track_clone.write_rtp(&pkt).await.is_err() {
-                        warn!("[Audio] RTP packet write failed for SSRC {}, stopping.", ssrc);
+                    if new_audio_track.write_rtp(&pkt).await.is_err() {
+                        warn!(
+                            "[Audio] RTP packet write failed for SSRC {}, stopping.",
+                            ssrc
+                        );
                         break;
                     }
                 }
@@ -383,34 +461,66 @@ impl WSActor {
             .state
             .streams
             .iter()
-            .find(|entry| entry.value().topic == topic && entry.value().media_type == MediaType::Video)
+            .find(|entry| {
+                entry.value().topic == topic && entry.value().media_type == MediaType::Video
+            })
             .map(|entry| (*entry.key(), entry.value().clone()))
         {
             subscribed = true;
-            info!("[Video-UDP] Subscribing to topic '{}' with SSRC {}", topic, ssrc);
+            info!(
+                "[Video-UDP] Subscribing to topic '{}' with SSRC {}",
+                topic, ssrc
+            );
 
-            let rtp_sender = self.pc.add_track(
-                Arc::clone(&self.udp_video_track) as Arc<dyn TrackLocal + Send + Sync>
-            ).await.unwrap();
-            
+            let new_udp_video_track = Arc::new(TrackLocalStaticRTP::new(
+                RTCRtpCodecCapability {
+                    mime_type: MIME_TYPE_H264.to_owned(),
+                    ..Default::default()
+                },
+                format!("video-udp-{}", &topic),
+                format!("webrtc-stream-udp-{}", &topic),
+            ));
+
+            let rtp_sender = self
+                .pc
+                .add_track(Arc::clone(&new_udp_video_track) as Arc<dyn TrackLocal + Send + Sync>)
+                .await
+                .unwrap();
+
+            self.active_tracks.insert(
+                topic.clone(),
+                new_udp_video_track.clone() as Arc<dyn TrackLocal + Send + Sync>,
+            );
+
             tokio::spawn(async move {
                 let mut rtcp_buf = vec![0u8; 1500];
                 while rtp_sender.read(&mut rtcp_buf).await.is_ok() {}
             });
 
             let mut rx = info.packet_tx.subscribe();
-            let video_track_clone = Arc::clone(&self.udp_video_track);
             let pc_clone = Arc::clone(&self.pc);
 
             tokio::spawn(async move {
-                let video_sender = pc_clone.get_senders().await.into_iter().find(|s| {
-                    if let Some(track) = s.track().now_or_never().and_then(|t| t) {
-                        track.kind() == RTPCodecType::Video
-                    } else { false }
-                }).expect("Video sender not found");
+                let video_sender = pc_clone
+                    .get_senders()
+                    .await
+                    .into_iter()
+                    .find(|s| {
+                        if let Some(track) = s.track().now_or_never().and_then(|t| t) {
+                            track.id() == new_udp_video_track.id()
+                        } else {
+                            false
+                        }
+                    })
+                    .expect("Video sender not found for the specific UDP track");
 
                 let parameters = video_sender.get_parameters().await;
-                let negotiated_pt = parameters.rtp_parameters.codecs.get(0).unwrap().payload_type;
+                let negotiated_pt = parameters
+                    .rtp_parameters
+                    .codecs
+                    .get(0)
+                    .unwrap()
+                    .payload_type;
                 let negotiated_ssrc = parameters.encodings.get(0).unwrap().ssrc;
 
                 info!(
@@ -422,22 +532,51 @@ impl WSActor {
                     pkt.header.payload_type = negotiated_pt;
                     pkt.header.ssrc = negotiated_ssrc;
 
-                    if video_track_clone.write_rtp(&pkt).await.is_err() {
-                        warn!("[Video-UDP] RTP packet write failed for SSRC {}, stopping.", ssrc);
+                    if new_udp_video_track.write_rtp(&pkt).await.is_err() {
+                        warn!(
+                            "[Video-UDP] RTP packet write failed for SSRC {}, stopping.",
+                            ssrc
+                        );
                         break;
                     }
                 }
-                info!("[Video-UDP] RTP packet forwarding stopped for SSRC: {}", ssrc);
+                info!(
+                    "[Video-UDP] RTP packet forwarding stopped for SSRC: {}",
+                    ssrc
+                );
             });
         }
 
-        if self.state.topic_map.read().await.iter().any(|m| m.topic == topic && m.protocol == crate::state::Protocol::RTSP) {
+        if self
+            .state
+            .topic_map
+            .read()
+            .await
+            .iter()
+            .any(|m| m.topic == topic && m.protocol == crate::state::Protocol::RTSP)
+        {
             subscribed = true;
             info!("[Video] Subscribing to topic '{}'", topic);
 
-            let rtp_sender = self.pc.add_track(
-                Arc::clone(&self.rtsp_video_track) as Arc<dyn TrackLocal + Send + Sync>
-            ).await.unwrap();
+            let new_rtsp_video_track = Arc::new(TrackLocalStaticSample::new(
+                RTCRtpCodecCapability {
+                    mime_type: MIME_TYPE_H264.to_owned(),
+                    ..Default::default()
+                },
+                format!("video-rtsp-{}", &topic),
+                format!("webrtc-stream-rtsp-{}", &topic),
+            ));
+
+            let rtp_sender = self
+                .pc
+                .add_track(Arc::clone(&new_rtsp_video_track) as Arc<dyn TrackLocal + Send + Sync>)
+                .await
+                .unwrap();
+
+            self.active_tracks.insert(
+                topic.clone(),
+                new_rtsp_video_track.clone() as Arc<dyn TrackLocal + Send + Sync>,
+            );
 
             tokio::spawn(async move {
                 let mut rtcp_buf = vec![0u8; 1500];
@@ -445,10 +584,13 @@ impl WSActor {
             });
 
             let mut rx = self.state.rtsp_frame_tx.subscribe();
-            let video_track_clone = Arc::clone(&self.rtsp_video_track);
             let topic_clone = topic.clone();
+
             tokio::spawn(async move {
-                info!("[Video] Frame forwarding started for topic: {}", topic_clone);
+                info!(
+                    "[Video] Frame forwarding started for topic: {}",
+                    topic_clone
+                );
                 while let Ok(frame) = rx.recv().await {
                     if frame.topic == topic_clone {
                         let sample = webrtc::media::Sample {
@@ -456,13 +598,19 @@ impl WSActor {
                             duration: std::time::Duration::from_millis(33),
                             ..Default::default()
                         };
-                        if video_track_clone.write_sample(&sample).await.is_err() {
-                            warn!("[Video] Frame write failed for topic {}, stopping.", topic_clone);
+                        if new_rtsp_video_track.write_sample(&sample).await.is_err() {
+                            warn!(
+                                "[Video] Frame write failed for topic {}, stopping.",
+                                topic_clone
+                            );
                             break;
                         }
                     }
                 }
-                info!("[Video] Frame forwarding stopped for topic: {}", topic_clone);
+                info!(
+                    "[Video] Frame forwarding stopped for topic: {}",
+                    topic_clone
+                );
             });
         }
 
@@ -472,9 +620,19 @@ impl WSActor {
                 Ok(offer) => {
                     if self.pc.set_local_description(offer).await.is_ok() {
                         if let Some(local_desc) = self.pc.local_description().await {
-                            let msg = WsMessageOut { msg_type: "offer", payload: local_desc };
+                            let msg = WsMessageOut {
+                                msg_type: "offer",
+                                payload: local_desc,
+                            };
                             if let Ok(payload_str) = serde_json::to_string(&msg) {
-                                if self.ws_sender.lock().await.send(Message::Text(payload_str)).await.is_err() {
+                                if self
+                                    .ws_sender
+                                    .lock()
+                                    .await
+                                    .send(Message::Text(payload_str))
+                                    .await
+                                    .is_err()
+                                {
                                     error!("Failed to send renegotiation offer to client.");
                                 } else {
                                     info!("Renegotiation offer sent to client.");
@@ -486,7 +644,10 @@ impl WSActor {
                 Err(e) => error!("Failed to create renegotiation offer: {}", e),
             }
         } else {
-            warn!("Could not find any stream to subscribe for topic: {}", topic);
+            warn!(
+                "Could not find any stream to subscribe for topic: {}",
+                topic
+            );
         }
     }
 }
@@ -517,11 +678,17 @@ pub async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
         }
     });
 
-    let mut flow_rx = state.flow_broadcast_tx.subscribe();
-    let ws_sender_for_flow = Arc::clone(&ws_sender);
+    let mut broadcast_rx = state.broadcast_tx.subscribe();
+    let ws_sender_broadcast = Arc::clone(&ws_sender);
     tokio::spawn(async move {
-        while let Ok(msg) = flow_rx.recv().await {
-            if ws_sender_for_flow.lock().await.send(Message::Text(msg)).await.is_err() {
+        while let Ok(msg) = broadcast_rx.recv().await {
+            if ws_sender_broadcast
+                .lock()
+                .await
+                .send(Message::Text(msg))
+                .await
+                .is_err()
+            {
                 break;
             }
         }
@@ -572,7 +739,6 @@ pub async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
             let mut s = SettingEngine::default();
             s.set_network_types(vec![NetworkType::Udp4]);
 
-
             let api = APIBuilder::new()
                 .with_media_engine(m)
                 .with_setting_engine(s)
@@ -586,33 +752,6 @@ pub async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                 ..Default::default()
             };
             let pc = Arc::new(api.new_peer_connection(config).await.unwrap());
-
-            let audio_track = Arc::new(TrackLocalStaticRTP::new(
-                RTCRtpCodecCapability {
-                    mime_type: MIME_TYPE_OPUS.to_owned(),
-                    ..Default::default()
-                },
-                "audio".to_owned(),
-                "webrtc-stream-audio".to_owned(),
-            ));
-            
-            let rtsp_video_track = Arc::new(TrackLocalStaticSample::new(
-                RTCRtpCodecCapability {
-                    mime_type: MIME_TYPE_H264.to_owned(),
-                    ..Default::default()
-                },
-                "video".to_owned(),
-                "webrtc-stream-video".to_owned(),
-            ));
-
-            let udp_video_track = Arc::new(TrackLocalStaticRTP::new(
-                RTCRtpCodecCapability {
-                    mime_type: MIME_TYPE_H264.to_owned(),
-                    ..Default::default()
-                },
-                "video-udp".to_owned(), 
-                "webrtc-stream-video-udp".to_owned(),
-            ));
 
             let ws_sender_for_ice = Arc::clone(&ws_sender);
             pc.on_ice_candidate(Box::new(move |c: Option<RTCIceCandidate>| {
@@ -645,9 +784,7 @@ pub async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                 ws_sender,
                 receiver: cmd_rx,
                 state: Arc::clone(&state),
-                audio_track,
-                rtsp_video_track,
-                udp_video_track
+                active_tracks: HashMap::new(),
             };
             actor.run().await;
         }
@@ -711,6 +848,14 @@ pub async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                 }
                 "health_check" => {
                     let cmd = ActorCommand::HealthCheck {
+                        payload: ws_msg.payload,
+                    };
+                    if cmd_tx.send(cmd).await.is_err() {
+                        break;
+                    }
+                }
+                "get_all_stream_state" => {
+                    let cmd = ActorCommand::GetAllStreamState {
                         payload: ws_msg.payload,
                     };
                     if cmd_tx.send(cmd).await.is_err() {

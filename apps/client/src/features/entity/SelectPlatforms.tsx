@@ -6,6 +6,7 @@ export function EntitySelectPlatforms() {
       <SelectItem value='MQTT'>MQTT</SelectItem>
       <SelectItem value='UDP'>RTP over UDP</SelectItem>
       <SelectItem value='RTSP'>RTSP</SelectItem>
+      <SelectItem value='HTTP'>HTTP</SelectItem>
     </>
   );
 }
