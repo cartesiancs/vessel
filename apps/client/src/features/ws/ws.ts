@@ -15,6 +15,7 @@ export type WebSocketMessage = {
     | "stop_flow"
     | "get_all_stream_state"
     | "stream_state"
+    | "change_state"
     | "get_server";
   payload:
     | RTCSessionDescriptionInit
@@ -22,6 +23,7 @@ export type WebSocketMessage = {
     | RTCIceCandidateInit
     | string
     | number
+    | object
     | { topic: string }
     | { flow_id: number }
     | { timestamp: number }

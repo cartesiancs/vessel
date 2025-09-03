@@ -18,6 +18,13 @@ type StreamState = {
   is_online: boolean;
 };
 
+type ChangeStatePayload = {
+  entity_id: string;
+  state: {
+    state: string;
+  };
+};
+
 const isEnabledStream = (topic: string, streams: StreamState[]) => {
   const index = streams.findIndex((item) => item.topic == topic);
   if (index == -1) {
@@ -61,16 +68,39 @@ export function AllEntities() {
     }
   };
 
-  const handleMessage = useCallback((msg: WebSocketMessage) => {
-    try {
-      if (msg.type === "stream_state") {
-        const loads = msg.payload as StreamState[];
-        setStreamsState(loads);
+  const handleMessage = useCallback(
+    (msg: WebSocketMessage) => {
+      try {
+        if (msg.type === "stream_state") {
+          const loads = msg.payload as StreamState[];
+          setStreamsState(loads);
+        }
+
+        if (msg.type == "change_state") {
+          const index = entities.findIndex((item) => {
+            return (
+              item.entity_id == (msg.payload as ChangeStatePayload).entity_id
+            );
+          });
+
+          if (index == -1) {
+            return false;
+          }
+
+          if (entities[index].state) {
+            entities[index].state.state = (
+              msg.payload as ChangeStatePayload
+            ).state.state;
+
+            setEntities(entities);
+          }
+        }
+      } catch (err) {
+        console.error("Error handling signaling message:", err);
       }
-    } catch (err) {
-      console.error("Error handling signaling message:", err);
-    }
-  }, []);
+    },
+    [entities],
+  );
 
   useEffect(() => {
     if (wsManager && isConnected) {

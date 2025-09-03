@@ -54,7 +54,10 @@ pub async fn start_event_loop(
                     {
                         let ws_message = json!({
                             "type": "change_state",
-                            "payload": s.clone()
+                            "payload": {
+                                "entity_id": entity_id,
+                                "state": s.clone()
+                            }
                         });
                         if let Ok(payload_str) = serde_json::to_string(&ws_message) {
                             if state.broadcast_tx.send(payload_str).is_err() {

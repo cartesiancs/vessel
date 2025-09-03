@@ -45,7 +45,10 @@ pub async fn set_state(
             if let Ok(s) = set_entity_state(&state.pool, &entity.entity_id, &payload.state, None) {
                 let ws_message = json!({
                     "type": "change_state",
-                    "payload": s.clone()
+                    "payload": {
+                        "entity_id": entity.entity_id,
+                        "state": s.clone()
+                    }
                 });
                 if let Ok(payload_str) = serde_json::to_string(&ws_message) {
                     if state.broadcast_tx.send(payload_str).is_err() {
