@@ -1,14 +1,16 @@
-
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 use rand::Rng;
 use rtp::packet::Packet;
 use serde::{Deserialize, Serialize};
-use tracing::info;
 use std::sync::Arc;
-use tokio::{sync::{broadcast, RwLock}, time::Instant};
+use tokio::{
+    sync::{broadcast, RwLock},
+    time::Instant,
+};
+use tracing::info;
 
 use crate::{
-    handler::auth::{DeviceTokenAuth},
+    handler::auth::DeviceTokenAuth,
     state::{AppState, MediaType, StreamInfo},
 };
 
@@ -26,11 +28,10 @@ pub struct RegisterStreamResponse {
 
 pub async fn register_stream(
     State(state): State<Arc<AppState>>,
-    DeviceTokenAuth { device: auth }: DeviceTokenAuth, 
+    DeviceTokenAuth { device: auth }: DeviceTokenAuth,
     Json(payload): Json<RegisterStreamRequest>,
 ) -> impl IntoResponse {
-
-    let ssrc =rand::rngs::ThreadRng::default().random_range(0..=i32::MAX) as u32;
+    let ssrc = rand::rngs::ThreadRng::default().random_range(0..=i32::MAX) as u32;
 
     let (packet_tx, _) = broadcast::channel::<Packet>(1024);
 
@@ -42,7 +43,7 @@ pub async fn register_stream(
         last_seen: Arc::new(RwLock::new(Instant::now())),
         is_online: Arc::new(RwLock::new(false)),
     };
-    
+
     state.streams.insert(ssrc, stream_info);
 
     info!(
