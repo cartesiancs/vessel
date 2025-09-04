@@ -23,7 +23,7 @@ export function MapPage() {
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset>
-        <header className='flex h-12 shrink-0 items-center gap-2 border-b px-4 fixed w-full bg-background/60 backdrop-blur-md z-[999999]'>
+        <header className='flex h-12 shrink-0 items-center gap-2 border-b px-4 fixed w-full bg-background/60 backdrop-blur-md z-[999]'>
           <SidebarTrigger className='-ml-1' />
           <Separator
             orientation='vertical'

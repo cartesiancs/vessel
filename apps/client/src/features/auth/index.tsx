@@ -22,7 +22,6 @@ export function LoginForm({
   const handleConnect = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    toast.info("Connecting to server...");
     const processedUrl = url.replace(/\/$/, "");
 
     try {
@@ -65,7 +64,6 @@ export function LoginForm({
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    toast.info("Trying to authenticate...");
     const processedUrl = url.replace(/\/$/, "");
 
     try {
