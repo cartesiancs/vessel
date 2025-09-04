@@ -16,38 +16,6 @@ export const DEFINITION_NODE: {
     data: undefined,
     dataType: undefined,
   },
-  TITLE: {
-    connectors: [{ id: `id`, name: "out", type: "out" }],
-    nodeType: "TITLE",
-    data: undefined,
-    dataType: undefined,
-  },
-  BUTTON: {
-    connectors: [{ id: `id`, name: "out", type: "out" }],
-    nodeType: "BUTTON",
-    data: undefined,
-    dataType: undefined,
-  },
-  NUMBER: {
-    connectors: [{ id: `id`, name: "number", type: "out" }],
-    nodeType: "NUMBER",
-    data: {
-      number: 0,
-    },
-    dataType: {
-      number: "NUMBER",
-    },
-  },
-  ADD: {
-    connectors: [
-      { id: `id`, name: "a", type: "in" },
-      { id: `id`, name: "b", type: "in" },
-      { id: `id`, name: "number", type: "out" },
-    ],
-    nodeType: "ADD",
-    data: undefined,
-    dataType: undefined,
-  },
   SET_VARIABLE: {
     connectors: [{ id: `id`, name: "out", type: "out" }],
     nodeType: "SET_VARIABLE",
@@ -185,6 +153,49 @@ export const DEFINITION_NODE: {
     },
     dataType: {
       targetType: "SELECT[string,number,boolean]",
+    },
+  },
+  RTP_STREAM_IN: {
+    connectors: [{ id: `id`, name: "payload", type: "out" }],
+    nodeType: "RTP_STREAM_IN",
+    data: {
+      topic: "default/audio",
+    },
+    dataType: {
+      topic: "STRING",
+    },
+  },
+  DECODE_OPUS: {
+    connectors: [
+      { id: `id`, name: "payload", type: "in" },
+      { id: `id`, name: "info", type: "out" },
+    ],
+    nodeType: "DECODE_OPUS",
+    data: undefined,
+    dataType: undefined,
+  },
+  BRANCH: {
+    connectors: [
+      { id: `id`, name: "data", type: "in" },
+      { id: `id`, name: "condition", type: "in" },
+      { id: `id`, name: "true_output", type: "out" },
+      { id: `id`, name: "false_output", type: "out" },
+    ],
+    nodeType: "BRANCH",
+    data: undefined,
+    dataType: undefined,
+  },
+  JSON_SELECTOR: {
+    connectors: [
+      { id: `id`, name: "json", type: "in" },
+      { id: `id`, name: "value", type: "out" },
+    ],
+    nodeType: "JSON_SELECTOR",
+    data: {
+      path: "path.to.value",
+    },
+    dataType: {
+      path: "STRING",
     },
   },
 };

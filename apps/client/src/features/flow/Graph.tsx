@@ -24,14 +24,12 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { renderNumberNode } from "./nodes/NumberNode";
 import { renderProcessingNode } from "./nodes/ProcessingNode";
 import { getDefalutNode } from "./flowUtils";
 import { renderVarNode } from "./nodes/VarNode";
 import { renderCalcNode } from "./nodes/CalcNode";
 import { renderHttpNode } from "./nodes/HttpNode";
 import { formatConstantCase } from "@/lib/string";
-import { renderLoopNode } from "./nodes/LoopNode";
 import { renderLogicNode } from "./nodes/LogicNode";
 import { renderIntervalNode } from "./nodes/IntervalNode";
 import { renderMQTTNode } from "./nodes/MQTTNode";
@@ -77,16 +75,18 @@ export function Graph({
     SET_VARIABLE: (g, d) => renderVarNode(g, d, () => handleClickOption(d)),
     CONDITION: (g, d) => renderProcessingNode(g, d),
     LOG_MESSAGE: (g, d) => renderProcessingNode(g, d),
-    NUMBER: (g, d) => renderNumberNode(g, d, () => handleClickOption(d)),
     CALCULATION: (g, d) => renderCalcNode(g, d, () => handleClickOption(d)),
     HTTP_REQUEST: (g, d) => renderHttpNode(g, d, () => handleClickOption(d)),
-    LOOP: (g, d) => renderLoopNode(g, d, () => handleClickOption(d)),
     INTERVAL: (g, d) => renderIntervalNode(g, d, () => handleClickOption(d)),
     LOGIC_OPERATOR: (g, d) => renderLogicNode(g, d, () => handleClickOption(d)),
     MQTT_PUBLISH: (g, d) => renderMQTTNode(g, d, () => handleClickOption(d)),
     MQTT_SUBSCRIBE: (g, d) => renderMQTTNode(g, d, () => handleClickOption(d)),
     TYPE_CONVERTER: (g, d) =>
       renderButtonNode(g, d, () => handleClickOption(d)),
+    RTP_STREAM_IN: (g, d) => renderButtonNode(g, d, () => handleClickOption(d)),
+    DECODE_OPUS: (g, d) => renderProcessingNode(g, d),
+    BRANCH: (g, d) => renderProcessingNode(g, d),
+    JSON_SELECTOR: (g, d) => renderButtonNode(g, d, () => handleClickOption(d)),
   };
 
   const nodeGroups: NodeGroup[] = [
@@ -96,11 +96,17 @@ export function Graph({
     },
     {
       label: "Data",
-      nodes: ["SET_VARIABLE", "TYPE_CONVERTER"],
+      nodes: ["SET_VARIABLE", "TYPE_CONVERTER", "RTP_STREAM_IN", "DECODE_OPUS"],
     },
     {
       label: "Logic",
-      nodes: ["CALCULATION", "LOGIC_OPERATOR", "LOOP", "INTERVAL"],
+      nodes: [
+        "CALCULATION",
+        "LOGIC_OPERATOR",
+        "INTERVAL",
+        "BRANCH",
+        "JSON_SELECTOR",
+      ],
     },
     {
       label: "Communication",

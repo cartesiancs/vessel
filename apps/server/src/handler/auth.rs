@@ -1,3 +1,4 @@
+use anyhow::anyhow;
 use async_trait::async_trait;
 use axum::{
     extract::{FromRef, FromRequestParts, State},
@@ -12,14 +13,18 @@ use axum_extra::{
 use jsonwebtoken::{decode, DecodingKey, Validation};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use tracing::info;
 use std::sync::Arc;
-use anyhow::anyhow;
+use tracing::info;
 
 use crate::{
     db::{
-        self, models::{Device, User}, repository::{get_user_by_name}
-    },  hash::{self, verify_password}, AppState, error::AppError
+        self,
+        models::{Device, User},
+        repository::get_user_by_name,
+    },
+    error::AppError,
+    hash::{self, verify_password},
+    AppState,
 };
 
 #[derive(Debug, Serialize)]
@@ -40,7 +45,7 @@ pub enum AuthError {
     MissingCredentials,
     TokenCreation,
     InvalidToken,
-    UserNotFound, 
+    UserNotFound,
 }
 
 impl IntoResponse for AuthError {
@@ -109,17 +114,15 @@ where
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
         let claims = JwtAuth::from_request_parts(parts, state).await?.0;
-        
+
         let state = Arc::<AppState>::from_ref(state);
 
-        let user = get_user_by_name(&state.pool, &claims.sub)
-            .map_err(|_| AuthError::UserNotFound)?;
+        let user =
+            get_user_by_name(&state.pool, &claims.sub).map_err(|_| AuthError::UserNotFound)?;
 
         Ok(AuthUser(user))
     }
 }
-
-
 
 async fn get_token_from_header(parts: &mut Parts) -> Option<String> {
     parts
@@ -134,7 +137,7 @@ async fn get_token_from_query(parts: &mut Parts) -> Option<String> {
     struct QueryParams {
         token: String,
     }
-    
+
     parts
         .extract::<axum::extract::Query<QueryParams>>()
         .await
@@ -157,7 +160,8 @@ pub async fn auth_with_password(
                     if is_valid {
                         let claims = Claims {
                             sub: payload.id,
-                            exp: (chrono::Utc::now() + chrono::Duration::hours(1)).timestamp() as usize,
+                            exp: (chrono::Utc::now() + chrono::Duration::hours(1)).timestamp()
+                                as usize,
                         };
 
                         let token = jsonwebtoken::encode(
@@ -180,8 +184,6 @@ pub async fn auth_with_password(
         Err(_) => Err(AuthError::UserNotFound),
     }
 }
-
-
 
 pub struct DeviceTokenAuth {
     pub device: Device,

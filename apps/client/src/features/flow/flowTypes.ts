@@ -12,8 +12,6 @@ export type NodeRenderer = (
 export type NodeTypes =
   | "BUTTON"
   | "TITLE"
-  | "NUMBER"
-  | "ADD"
   | "START"
   | "SET_VARIABLE"
   | "CONDITION"
@@ -25,7 +23,11 @@ export type NodeTypes =
   | "INTERVAL"
   | "TYPE_CONVERTER"
   | "MQTT_SUBSCRIBE"
-  | "MQTT_PUBLISH";
+  | "MQTT_PUBLISH"
+  | "RTP_STREAM_IN"
+  | "BRANCH"
+  | "JSON_SELECTOR"
+  | "DECODE_OPUS";
 
 export type NumberNodeType = {
   number: number;
@@ -98,6 +100,14 @@ export type TypeConverterNodeType = {
   targetType: "string" | "number" | "boolean";
 };
 
+export type RtpStreamInNodeType = {
+  topic: string;
+};
+
+export type JsonSelectorNodeType = {
+  path: string;
+};
+
 export type DataNodeType =
   | NumberNodeType
   | TextNodeType
@@ -111,6 +121,8 @@ export type DataNodeType =
   | MqttPublishNodeType
   | MqttSubscribeNodeType
   | TypeConverterNodeType
+  | RtpStreamInNodeType
+  | JsonSelectorNodeType
   | CalculationNodeType;
 
 export type DataNodeTypeType = Record<string, string>;

@@ -1,10 +1,10 @@
+use crate::flow::engine::ExecutionContext;
+use anyhow::{anyhow, Result};
 use async_trait::async_trait;
-use tokio::sync::{broadcast};
-use std::{collections::HashMap};
-use anyhow::{Result, anyhow};
 use serde::Deserialize;
 use serde_json::Value;
-use crate::flow::engine::ExecutionContext;
+use std::collections::HashMap;
+use tokio::sync::broadcast;
 
 use super::{ExecutableNode, ExecutionResult};
 
@@ -35,8 +35,15 @@ impl ConditionNode {
 
 #[async_trait]
 impl ExecutableNode for ConditionNode {
-    async fn execute(&self, _context: &mut ExecutionContext, inputs: HashMap<String, Value>, _broadcast_tx: broadcast::Sender<String>,) -> Result<ExecutionResult> {
-        let input_val = inputs.get("input").and_then(Value::as_f64).ok_or_else(|| anyhow!("Conditional input is not a valid number"))?;
+    async fn execute(
+        &self,
+        _context: &mut ExecutionContext,
+        inputs: HashMap<String, Value>,
+    ) -> Result<ExecutionResult> {
+        let input_val = inputs
+            .get("input")
+            .and_then(Value::as_f64)
+            .ok_or_else(|| anyhow!("Conditional input is not a valid number"))?;
 
         let condition_met = match self.data.operator {
             Operator::GreaterThan => input_val > self.data.operand,
@@ -51,6 +58,9 @@ impl ExecutableNode for ConditionNode {
             outputs.insert("false".to_string(), inputs.get("input").unwrap().clone());
         }
 
-        Ok(ExecutionResult { outputs, ..Default::default()  })
+        Ok(ExecutionResult {
+            outputs,
+            ..Default::default()
+        })
     }
 }

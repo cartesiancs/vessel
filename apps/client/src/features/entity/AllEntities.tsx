@@ -1,6 +1,6 @@
 import { Fragment, useCallback, useEffect, useState } from "react";
 import * as api from "../../entities/entity/api";
-import { EntityAll } from "@/entities/entity/types";
+import { EntityAll, State } from "@/entities/entity/types";
 import {
   Card,
   CardHeader,
@@ -20,9 +20,7 @@ type StreamState = {
 
 type ChangeStatePayload = {
   entity_id: string;
-  state: {
-    state: string;
-  };
+  state: State;
 };
 
 const isEnabledStream = (topic: string, streams: StreamState[]) => {
@@ -88,11 +86,9 @@ export function AllEntities() {
           }
 
           if (entities[index].state) {
-            entities[index].state.state = (
-              msg.payload as ChangeStatePayload
-            ).state.state;
+            entities[index].state = (msg.payload as ChangeStatePayload).state;
 
-            setEntities(entities);
+            setEntities([...entities]);
           }
         }
       } catch (err) {

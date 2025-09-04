@@ -46,6 +46,7 @@ ort = "=2.0.0-rc.10"
 ndarray = "0.15"
 image = "0.25"
 once_cell = "1.19"
+opus = "0.3"
 
 [[bin]]
 name = "server"

@@ -1,14 +1,13 @@
+use crate::flow::engine::ExecutionContext;
+use anyhow::{anyhow, Result};
 use async_trait::async_trait;
-use tokio::sync::{broadcast};
-use std::{collections::HashMap};
-use anyhow::{Result, anyhow};
+use reqwest::Client;
 use serde::Deserialize;
 use serde_json::Value;
-use reqwest::{Client};
-use crate::flow::engine::ExecutionContext;
+use std::collections::HashMap;
+use tokio::sync::broadcast;
 
 use super::{ExecutableNode, ExecutionResult};
-
 
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -34,7 +33,6 @@ impl ExecutableNode for HttpNode {
         &self,
         _context: &mut ExecutionContext,
         inputs: HashMap<String, Value>,
-        _broadcast_tx: broadcast::Sender<String>,
     ) -> Result<ExecutionResult> {
         let client = Client::new();
         let url = &self.data.url;
@@ -52,7 +50,10 @@ impl ExecutableNode for HttpNode {
             }
             "DELETE" => client.delete(url).send().await?,
             _ => {
-                return Err(anyhow!("Unsupported HTTP method: {}", self.data.http_method));
+                return Err(anyhow!(
+                    "Unsupported HTTP method: {}",
+                    self.data.http_method
+                ));
             }
         };
 
@@ -68,6 +69,9 @@ impl ExecutableNode for HttpNode {
         let mut outputs = HashMap::new();
         outputs.insert("result".to_string(), Value::from(result_body));
 
-        Ok(ExecutionResult { outputs, ..Default::default()  })
+        Ok(ExecutionResult {
+            outputs,
+            ..Default::default()
+        })
     }
 }

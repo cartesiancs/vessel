@@ -6,6 +6,7 @@ import {
   BreadcrumbSeparator,
   BreadcrumbPage,
 } from "@/components/ui/breadcrumb";
+import { Separator } from "@/components/ui/separator";
 import {
   SidebarInset,
   SidebarProvider,
@@ -14,7 +15,6 @@ import {
 import Flow, { FlowHeader, FlowSidebar } from "@/features/flow/Flow";
 import { AppSidebar } from "@/features/sidebar";
 import { WebSocketProvider } from "@/features/ws/WebSocketProvider";
-import { Separator } from "@radix-ui/react-separator";
 import Cookies from "js-cookie";
 import { useState, useEffect } from "react";
 
@@ -39,26 +39,26 @@ export function FlowPage() {
         <AppSidebar />
         <SidebarInset>
           <header className='flex h-12 shrink-0 items-center gap-2 border-b px-4 justify-between'>
-            <div className='flex shrink-0 items-center gap-2'>
-              <SidebarTrigger className='-ml-1' />
-              <Separator
-                orientation='vertical'
-                className='mr-2 data-[orientation=vertical]:h-4'
-              />
-              <Breadcrumb>
-                <BreadcrumbList>
-                  <BreadcrumbItem className='hidden md:block'>
-                    <BreadcrumbLink href='#'>/</BreadcrumbLink>
-                  </BreadcrumbItem>
-                  <BreadcrumbSeparator className='hidden md:block' />
-                  <BreadcrumbItem>
-                    <BreadcrumbPage>Flow</BreadcrumbPage>
-                  </BreadcrumbItem>
-                </BreadcrumbList>
-              </Breadcrumb>
-            </div>
+            <SidebarTrigger className='-ml-1' />
+            <Separator
+              orientation='vertical'
+              className='mr-2 data-[orientation=vertical]:h-4'
+            />
+            <Breadcrumb>
+              <BreadcrumbList>
+                <BreadcrumbItem className='hidden md:block'>
+                  <BreadcrumbLink href='#'>/</BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator className='hidden md:block' />
+                <BreadcrumbItem>
+                  <BreadcrumbPage>Flow</BreadcrumbPage>
+                </BreadcrumbItem>
+              </BreadcrumbList>
+            </Breadcrumb>
 
-            <FlowHeader />
+            <div className='ml-auto'>
+              <FlowHeader />
+            </div>
           </header>
           <div className='flex flex-1 flex-row'>
             <FlowSidebar />

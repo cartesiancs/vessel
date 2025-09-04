@@ -1,47 +1,44 @@
-use std::collections::{HashMap, VecDeque};
+use anyhow::{anyhow, Result};
+use rumqttc::AsyncClient;
+use serde::Deserialize;
+use serde_json::{json, Value};
+use std::collections::HashMap;
+use std::collections::VecDeque;
 use std::sync::Arc;
 use std::time::Duration;
-use anyhow::{Result, anyhow};
-use rumqttc::AsyncClient;
-use serde::Deserialize; 
-use serde_json::{Value, json};
-use tokio::sync::{broadcast, watch, Mutex};
+use tokio::sync::{broadcast, mpsc, watch, Mutex};
 use tokio::task::JoinHandle;
 use tokio::time;
-use tracing::{error, info, warn};
+use tracing::{error, info};
 
+use crate::flow::nodes::branch::BranchNode;
+use crate::flow::nodes::decode_opus::DecodeOpusNode;
+use crate::flow::nodes::json_selector::JsonSelectorNode;
 use crate::flow::nodes::mqtt_publish::MqttPublishNode;
 use crate::flow::nodes::mqtt_subscribe::MqttSubscribeNode;
+use crate::flow::nodes::rtp_stream_in::RtpStreamInNode;
 use crate::flow::nodes::type_converter::TypeConverterNode;
-use crate::flow::types::{Graph, Node};
 use crate::flow::nodes::{
-    ExecutableNode,
-    start::StartNode,
-    log_message::LogMessageNode,
-    add_numbers::AddNumbersNode,
-    set_variable::SetVariableNode,
-    condition::ConditionNode,
-    number::NumberNode,
-    calc::CalcNode,
-    http::HttpNode,
-    loop_node::LoopNode,
-    logic_operator::LogicOpetatorNode,
-    interval::IntervalNode,
+    calc::CalcNode, condition::ConditionNode, http::HttpNode, interval::IntervalNode,
+    log_message::LogMessageNode, logic_operator::LogicOpetatorNode, set_variable::SetVariableNode,
+    start::StartNode, ExecutableNode,
 };
+use crate::flow::types::{Graph, Node};
 use crate::state::MqttMessage;
+use crate::state::StreamManager;
 
-#[derive(Default)]
 pub struct ExecutionContext {
     variables: HashMap<String, Value>,
     mqtt_client: Option<AsyncClient>,
-
+    broadcast_tx: broadcast::Sender<String>,
 }
 
 impl ExecutionContext {
-    pub fn new(mqtt_client: Option<AsyncClient>) -> Self {
+    pub fn new(mqtt_client: Option<AsyncClient>, broadcast_tx: broadcast::Sender<String>) -> Self {
         Self {
             variables: HashMap::new(),
             mqtt_client,
+            broadcast_tx,
         }
     }
 
@@ -51,6 +48,10 @@ impl ExecutionContext {
 
     pub fn get_variable(&self, name: &str) -> Option<&Value> {
         self.variables.get(name)
+    }
+
+    pub fn get_broadcast(&self) -> broadcast::Sender<String> {
+        self.broadcast_tx.clone()
     }
 
     pub fn mqtt_client(&self) -> &Option<AsyncClient> {
@@ -68,15 +69,26 @@ impl FlowController {
     }
 }
 
+#[derive(Debug)]
+pub struct TriggerCommand {
+    pub node_id: String,
+    pub inputs: HashMap<String, Value>,
+}
+
 pub struct FlowEngine {
-    nodes: HashMap<String, Node>,
+    pub nodes: HashMap<String, Node>,
     data_flow_graph: HashMap<String, Vec<(String, String, String)>>,
     expected_input_counts: HashMap<String, usize>,
+    mqtt_tx: Option<broadcast::Sender<MqttMessage>>,
+    stream_manager: StreamManager,
 }
 
 impl FlowEngine {
-    pub fn new(graph: Graph) -> Result<Self> {
-
+    pub fn new(
+        graph: Graph,
+        mqtt_tx: Option<broadcast::Sender<MqttMessage>>,
+        stream_manager: StreamManager,
+    ) -> Result<Self> {
         let nodes_map: HashMap<String, Node> =
             graph.nodes.into_iter().map(|n| (n.id.clone(), n)).collect();
 
@@ -93,11 +105,19 @@ impl FlowEngine {
         let mut expected_input_counts: HashMap<String, usize> = HashMap::new();
 
         for edge in &graph.edges {
-            let source_node_id = connector_to_node_map.get(&edge.source).ok_or_else(|| anyhow!("Node for source connector '{}' not found", edge.source))?;
-            let target_node_id = connector_to_node_map.get(&edge.target).ok_or_else(|| anyhow!("Node for target connector '{}' not found", edge.target))?;
+            let source_node_id = connector_to_node_map
+                .get(&edge.source)
+                .ok_or_else(|| anyhow!("Node for source connector '{}' not found", edge.source))?;
+            let target_node_id = connector_to_node_map
+                .get(&edge.target)
+                .ok_or_else(|| anyhow!("Node for target connector '{}' not found", edge.target))?;
 
-            let source_connector_name = connector_name_map.get(&edge.source).ok_or_else(|| anyhow!("Name for source connector '{}' not found", edge.source))?;
-            let target_connector_name = connector_name_map.get(&edge.target).ok_or_else(|| anyhow!("Name for target connector '{}' not found", edge.target))?;
+            let source_connector_name = connector_name_map
+                .get(&edge.source)
+                .ok_or_else(|| anyhow!("Name for source connector '{}' not found", edge.source))?;
+            let target_connector_name = connector_name_map
+                .get(&edge.target)
+                .ok_or_else(|| anyhow!("Name for target connector '{}' not found", edge.target))?;
 
             data_flow_graph
                 .entry(source_node_id.clone())
@@ -105,235 +125,212 @@ impl FlowEngine {
                 .push((
                     source_connector_name.clone(),
                     target_node_id.clone(),
-                    target_connector_name.clone()
+                    target_connector_name.clone(),
                 ));
-            
-            *expected_input_counts.entry(target_node_id.clone()).or_insert(0) += 1;
+
+            *expected_input_counts
+                .entry(target_node_id.clone())
+                .or_insert(0) += 1;
         }
 
         Ok(Self {
             nodes: nodes_map,
             data_flow_graph,
             expected_input_counts,
+            mqtt_tx,
+            stream_manager,
         })
     }
 
-    fn get_node_instance(&self, node_id: &str) -> Result<Box<dyn ExecutableNode>> {
-        let node = self.nodes.get(node_id).ok_or_else(|| anyhow!("Node not found: '{}'", node_id))?;
+    pub fn get_node_by_id(&self, node_id: &str) -> Option<&Node> {
+        self.nodes.get(node_id)
+    }
+
+    pub fn get_start_nodes(&self) -> Vec<String> {
+        self.nodes
+            .keys()
+            .filter(|node_id| *self.expected_input_counts.get(*node_id).unwrap_or(&0) == 0)
+            .cloned()
+            .collect()
+    }
+
+    pub fn get_source_node_ids(&self) -> Vec<String> {
+        self.nodes
+            .iter()
+            .filter(|(id, _)| *self.expected_input_counts.get(*id).unwrap_or(&0) == 0)
+            .map(|(id, _)| id.clone())
+            .collect()
+    }
+
+    pub fn get_node_instance(
+        &self,
+        node_id: &str,
+        source_node_ids: Vec<String>,
+    ) -> Result<Box<dyn ExecutableNode>> {
+        let node = self
+            .nodes
+            .get(node_id)
+            .ok_or_else(|| anyhow!("Node not found: '{}'", node_id))?;
         match node.node_type.as_str() {
             "START" => Ok(Box::new(StartNode)),
-            "NUMBER" => Ok(Box::new(NumberNode::new(&node.data)?)),
-            "ADD" => Ok(Box::new(AddNumbersNode)),
             "SET_VARIABLE" => Ok(Box::new(SetVariableNode::new(&node.data)?)),
             "CONDITION" => Ok(Box::new(ConditionNode::new(&node.data)?)),
             "LOG_MESSAGE" => Ok(Box::new(LogMessageNode)),
             "CALCULATION" => Ok(Box::new(CalcNode::new(&node.data)?)),
             "HTTP_REQUEST" => Ok(Box::new(HttpNode::new(&node.data)?)),
-            "LOOP" => Ok(Box::new(LoopNode::new(&node.data)?)),
             "LOGIC_OPERATOR" => Ok(Box::new(LogicOpetatorNode::new(&node.data)?)),
             "INTERVAL" => Ok(Box::new(IntervalNode::new(&node.data)?)),
-            "MQTT_PUBLISH" => Ok(Box::new(MqttPublishNode::new(&node.data)?)), 
-            "MQTT_SUBSCRIBE" => Ok(Box::new(MqttSubscribeNode::new(&node.data)?)), 
-            "TYPE_CONVERTER" => Ok(Box::new(TypeConverterNode::new(&node.data)?)), 
+            "MQTT_PUBLISH" => Ok(Box::new(MqttPublishNode::new(&node.data)?)),
+            "MQTT_SUBSCRIBE" => {
+                let rx = self
+                    .mqtt_tx
+                    .as_ref()
+                    .ok_or_else(|| {
+                        anyhow!("MQTT client is not configured for MQTT_SUBSCRIBE node")
+                    })?
+                    .subscribe();
+                Ok(Box::new(MqttSubscribeNode::new(
+                    &node.data,
+                    rx,
+                    source_node_ids,
+                )?))
+            }
+            "TYPE_CONVERTER" => Ok(Box::new(TypeConverterNode::new(&node.data)?)),
+            "RTP_STREAM_IN" => Ok(Box::new(RtpStreamInNode::new(
+                &node.data,
+                self.stream_manager.clone(),
+                source_node_ids,
+            )?)),
+            "DECODE_OPUS" => Ok(Box::new(DecodeOpusNode::new()?)),
+            "BRANCH" => Ok(Box::new(BranchNode)),
+            "JSON_SELECTOR" => Ok(Box::new(JsonSelectorNode::new(&node.data)?)),
 
-            _ => Err(anyhow!("Unknown or unimplemented node type: {}", node.node_type)),
+            _ => Err(anyhow!(
+                "Unknown or unimplemented node type: {}",
+                node.node_type
+            )),
         }
     }
 
     pub async fn start(
-        self: Arc<Self>, 
-        broadcast_tx: broadcast::Sender<String>, 
+        self: Arc<Self>,
+        broadcast_tx: broadcast::Sender<String>,
         mqtt_client: Option<AsyncClient>,
-        mqtt_tx: Option<broadcast::Sender<MqttMessage>>,
-    ) -> (FlowController, JoinHandle<Result<()>>) {
+    ) -> (
+        FlowController,
+        JoinHandle<Result<()>>,
+        mpsc::Sender<TriggerCommand>,
+    ) {
         let (shutdown_tx, mut shutdown_rx) = watch::channel(false);
+        let (trigger_tx, mut trigger_rx) = mpsc::channel::<TriggerCommand>(100);
         let execution_queue = Arc::new(Mutex::new(VecDeque::new()));
-        let node_input_data = Arc::new(Mutex::new(HashMap::<String, HashMap<String, Value>>::new()));
-        
-        #[derive(Deserialize)]
-        struct IntervalData {
-            interval: u64,
-            unit: String,
-        }
-
+        let node_input_data =
+            Arc::new(Mutex::new(HashMap::<String, HashMap<String, Value>>::new()));
         let ws_message = json!({
             "type": "log_message",
             "payload": "Executing flow..."
         });
-        
         if let Ok(payload_str) = serde_json::to_string(&ws_message) {
             if broadcast_tx.clone().send(payload_str).is_err() {
                 error!("Failed to send health check response.");
             }
         }
-        
-        let mut mqtt_subscriptions = HashMap::<String, Vec<String>>::new();
-        for (node_id, node) in &self.nodes {
-            if node.node_type == "MQTT_SUBSCRIBE" {
-                if let Ok(data) = serde_json::from_value::<serde_json::Value>(node.data.clone()) {
-                    if let Some(topic) = data.get("topic").and_then(|t| t.as_str()) {
-                        mqtt_subscriptions
-                            .entry(topic.to_string())
-                            .or_default()
-                            .push(node_id.clone());
-                    }
-                }
-            }
-        }
-
-        if !mqtt_subscriptions.is_empty() {
-            if let Some(tx) = mqtt_tx {
-                let mut mqtt_rx = tx.subscribe();
-                let queue_clone = Arc::clone(&execution_queue);
-                let node_input_data_clone = Arc::clone(&node_input_data);
-
-                tokio::spawn(async move {
-                    while let Ok(msg) = mqtt_rx.recv().await {
-                        if let Some(node_ids) = mqtt_subscriptions.get(&msg.topic) {
-                            for node_id in node_ids {
-                                let mut input_data = node_input_data_clone.lock().await;
-                                let entry = input_data.entry(node_id.clone()).or_default();
-                                let payload_value = match serde_json::from_slice(&msg.bytes) {
-                                    Ok(p) => p,
-                                    Err(_e) => {
-                                        Value::String(String::from_utf8_lossy(&msg.bytes).to_string())
-                                    }
-                                };
-                                entry.insert("payload".to_string(), payload_value);
-
-                                queue_clone.lock().await.push_back(node_id.clone());
-                            }
-                        }
-                    }
-                });
-            } else {
-                warn!("MQTT is not enabled.");
-            }
-        }
-
         {
             let mut queue = execution_queue.lock().await;
-            for (node_id, node) in &self.nodes {
-                if *self.expected_input_counts.get(node_id).unwrap_or(&0) == 0 {
-                    if node.node_type == "INTERVAL" {
-                        if let Ok(data) =
-                            serde_json::from_value::<IntervalData>(node.data.clone())
-                        {
-                            let duration = match data.unit.as_str() {
-                                "milliseconds" => Duration::from_millis(data.interval),
-                                "seconds" => Duration::from_secs(data.interval),
-                                "minutes" => Duration::from_secs(data.interval * 60),
-                                _ => continue,
-                            };
-
-                            let mut interval_shutdown_rx = shutdown_rx.clone();
-                            let queue_clone = Arc::clone(&execution_queue);
-                            let node_id_clone = node_id.clone();
-                            tokio::spawn(async move {
-                                let mut interval = time::interval(duration);
-                                loop {
-                                    tokio::select! {
-                                        _ = interval.tick() => {
-                                            queue_clone.lock().await.push_back(node_id_clone.clone());
-                                        }
-                                        _ = interval_shutdown_rx.changed() => {
-                                            if *interval_shutdown_rx.borrow() { break; }
-                                        }
-                                    }
-                                }
-                            });
-                        }
-                    } else {
+            for node_id in self.get_source_node_ids() {
+                if let Ok(instance) = self.get_node_instance(&node_id, vec![]) {
+                    if !instance.is_trigger() {
                         queue.push_back(node_id.clone());
                     }
                 }
             }
         }
-
         let engine_clone = Arc::clone(&self);
         let handle = tokio::spawn(async move {
             let self_ = engine_clone;
-            let mut context = ExecutionContext::new(mqtt_client);
-
+            let mut context = ExecutionContext::new(mqtt_client, broadcast_tx);
             info!("Flow Engine task started. Entering main execution loop...");
-
-            while !*shutdown_rx.borrow() {
+            loop {
+                if *shutdown_rx.borrow() {
+                    break;
+                }
                 let maybe_node_id = execution_queue.lock().await.pop_front();
-
                 if let Some(node_id) = maybe_node_id {
-                    let node_instance = self_.get_node_instance(&node_id)?;
-                    let mut inputs =
-                        node_input_data.lock().await.remove(&node_id).unwrap_or_default();
-
-                    if let Some(node) = self_.nodes.get(&node_id) {
-                        if node.node_type == "LOOP" {
+                    let node_instance = match self_.get_node_instance(&node_id, vec![]) {
+                        Ok(instance) => instance,
+                        Err(e) => {
+                            error!("Failed to create instance for node {}: {}", node_id, e);
+                            continue;
+                        }
+                    };
+                    let inputs = node_input_data
+                        .lock()
+                        .await
+                        .remove(&node_id)
+                        .unwrap_or_default();
+                    match node_instance.execute(&mut context, inputs).await {
+                        Ok(result) => {
+                            for trigger in result.triggers {
+                                let mut queue = execution_queue.lock().await;
+                                node_input_data
+                                    .lock()
+                                    .await
+                                    .entry(trigger.node_id.clone())
+                                    .or_default()
+                                    .extend(trigger.inputs);
+                                queue.push_back(trigger.node_id);
+                            }
                             if let Some(connections) = self_.data_flow_graph.get(&node_id) {
-                                if let Some((_, target_node_id, target_connector_name)) =
-                                    connections.iter().find(|(c, _, _)| c == "body")
+                                for (source_connector, target_node_id, target_connector) in
+                                    connections
                                 {
-                                    inputs.insert(
-                                        "body_node_id".to_string(),
-                                        json!(target_node_id),
-                                    );
-                                    inputs.insert(
-                                        "body_input_name".to_string(),
-                                        json!(target_connector_name),
-                                    );
+                                    if let Some(output_value) = result.outputs.get(source_connector)
+                                    {
+                                        let mut data_map = node_input_data.lock().await;
+                                        let target_inputs =
+                                            data_map.entry(target_node_id.clone()).or_default();
+                                        target_inputs
+                                            .insert(target_connector.clone(), output_value.clone());
+                                        let expected_count = *self_
+                                            .expected_input_counts
+                                            .get(target_node_id)
+                                            .unwrap_or(&0);
+                                        if target_inputs.len() >= expected_count {
+                                            execution_queue
+                                                .lock()
+                                                .await
+                                                .push_back(target_node_id.clone());
+                                        }
+                                    }
                                 }
                             }
                         }
-                    }
-
-                    let result = node_instance
-                        .execute(&mut context, inputs, broadcast_tx.clone())
-                        .await?;
-
-                    for trigger in result.triggers {
-                        let mut queue = execution_queue.lock().await;
-                        node_input_data
-                            .lock()
-                            .await
-                            .entry(trigger.node_id.clone())
-                            .or_default()
-                            .extend(trigger.inputs);
-                        queue.push_back(trigger.node_id);
-                    }
-
-                    if let Some(connections) = self_.data_flow_graph.get(&node_id) {
-                        for (source_connector_name, target_node_id, target_connector_name) in
-                            connections
-                        {
-                            if let Some(output_value) = result.outputs.get(source_connector_name) {
-                                let mut data_map = node_input_data.lock().await;
-                                let target_inputs =
-                                    data_map.entry(target_node_id.clone()).or_default();
-                                target_inputs
-                                    .insert(target_connector_name.clone(), output_value.clone());
-
-                                let expected_count = *self_
-                                    .expected_input_counts
-                                    .get(target_node_id)
-                                    .unwrap_or(&0);
-                                if target_inputs.len() >= expected_count {
-                                    execution_queue.lock().await.push_back(target_node_id.clone());
-                                }
-                            }
+                        Err(e) => {
+                            error!("Error executing node {}: {}", node_id, e);
                         }
                     }
                 } else {
-                    let timeout_duration = Duration::from_millis(50);
-                    let _ = time::timeout(timeout_duration, shutdown_rx.changed()).await;
-
-                    if *shutdown_rx.borrow() {
-                        break;
+                    tokio::select! {
+                        biased;
+                        _ = shutdown_rx.changed() => {
+                            if *shutdown_rx.borrow() {
+                                break;
+                            }
+                        },
+                        Some(command) = trigger_rx.recv() => {
+                            let mut data_map = node_input_data.lock().await;
+                            data_map.entry(command.node_id.clone()).or_default().extend(command.inputs);
+                            execution_queue.lock().await.push_back(command.node_id);
+                        },
+                        else => {
+                            break;
+                        }
                     }
                 }
             }
-
             info!("Flow execution loop stopped.");
             Ok(())
         });
-
-        (FlowController { shutdown_tx }, handle)
+        (FlowController { shutdown_tx }, handle, trigger_tx)
     }
 }
