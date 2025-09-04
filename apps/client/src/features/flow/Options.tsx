@@ -100,7 +100,7 @@ export function Options({ open, selectedNode, setOpen }: OptionsProps) {
               <SelectTrigger id={inputId} className='col-span-3'>
                 <SelectValue placeholder={`Select ${key}`} />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className='z-[9999]'>
                 <>
                   {match[1].split(",").map((item) => (
                     <SelectItem value={item}>{item}</SelectItem>

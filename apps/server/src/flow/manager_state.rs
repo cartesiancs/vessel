@@ -72,7 +72,6 @@ impl FlowManagerActor {
                         error!("Flow with ID {} is already running.", flow_id);
                         continue;
                     }
-
                     info!("Starting flow execution for flow_id: {}", flow_id);
                     match FlowEngine::new(
                         graph,
@@ -81,14 +80,16 @@ impl FlowManagerActor {
                     ) {
                         Ok(engine) => {
                             let engine = Arc::new(engine);
+                            let source_node_ids = engine.get_source_node_ids();
                             let (controller, handle, trigger_tx) = engine
                                 .clone()
                                 .start(broadcast_tx, self.mqtt_client.clone())
                                 .await;
-
                             let mut trigger_tasks = Vec::new();
                             for node_id in engine.nodes.keys() {
-                                if let Ok(node_instance) = engine.get_node_instance(node_id) {
+                                if let Ok(mut node_instance) =
+                                    engine.get_node_instance(node_id, source_node_ids.clone())
+                                {
                                     if node_instance.is_trigger() {
                                         match node_instance
                                             .start_trigger(node_id.clone(), trigger_tx.clone())
@@ -102,7 +103,6 @@ impl FlowManagerActor {
                                     }
                                 }
                             }
-
                             self.active_flows.insert(
                                 flow_id,
                                 ActiveFlow {

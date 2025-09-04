@@ -85,6 +85,7 @@ export function Graph({
       renderButtonNode(g, d, () => handleClickOption(d)),
     RTP_STREAM_IN: (g, d) => renderButtonNode(g, d, () => handleClickOption(d)),
     DECODE_OPUS: (g, d) => renderProcessingNode(g, d),
+    BRANCH: (g, d) => renderProcessingNode(g, d),
   };
 
   const nodeGroups: NodeGroup[] = [
@@ -98,7 +99,7 @@ export function Graph({
     },
     {
       label: "Logic",
-      nodes: ["CALCULATION", "LOGIC_OPERATOR", "INTERVAL"],
+      nodes: ["CALCULATION", "LOGIC_OPERATOR", "INTERVAL", "BRANCH"],
     },
     {
       label: "Communication",

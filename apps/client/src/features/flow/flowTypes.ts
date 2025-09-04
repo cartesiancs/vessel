@@ -25,6 +25,7 @@ export type NodeTypes =
   | "MQTT_SUBSCRIBE"
   | "MQTT_PUBLISH"
   | "RTP_STREAM_IN"
+  | "BRANCH"
   | "DECODE_OPUS";
 
 export type NumberNodeType = {

@@ -6,14 +6,12 @@ use std::collections::HashMap;
 use tokio::{
     sync::{broadcast, mpsc},
     task::JoinHandle,
-    time,
 };
+use tracing::warn;
 
 use super::{ExecutableNode, ExecutionResult};
-use crate::{
-    flow::engine::{ExecutionContext, TriggerCommand},
-    state::MqttMessage,
-};
+use crate::flow::engine::{ExecutionContext, TriggerCommand};
+use crate::state::MqttMessage;
 
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -24,12 +22,21 @@ pub struct MqttSubscribeNodeData {
 pub struct MqttSubscribeNode {
     pub data: MqttSubscribeNodeData,
     mqtt_rx: broadcast::Receiver<MqttMessage>,
+    source_node_ids: Vec<String>,
 }
 
 impl MqttSubscribeNode {
-    pub fn new(node_data: &Value, mqtt_rx: broadcast::Receiver<MqttMessage>) -> Result<Self> {
+    pub fn new(
+        node_data: &Value,
+        mqtt_rx: broadcast::Receiver<MqttMessage>,
+        source_node_ids: Vec<String>,
+    ) -> Result<Self> {
         let data: MqttSubscribeNodeData = serde_json::from_value(node_data.clone())?;
-        Ok(Self { data, mqtt_rx })
+        Ok(Self {
+            data,
+            mqtt_rx,
+            source_node_ids,
+        })
     }
 }
 
@@ -61,23 +68,49 @@ impl ExecutableNode for MqttSubscribeNode {
     ) -> Result<JoinHandle<()>> {
         let mut rx = self.mqtt_rx.resubscribe();
         let topic_to_match = self.data.topic.clone();
+        let source_ids = self.source_node_ids.clone();
 
         let handle = tokio::spawn(async move {
-            while let Ok(msg) = rx.recv().await {
-                if msg.topic == topic_to_match {
-                    let payload_value = match serde_json::from_slice(&msg.bytes) {
-                        Ok(p) => p,
-                        Err(_) => Value::String(String::from_utf8_lossy(&msg.bytes).to_string()),
-                    };
-                    let mut inputs = HashMap::new();
-                    inputs.insert("payload".to_string(), payload_value);
+            loop {
+                match rx.recv().await {
+                    Ok(msg) => {
+                        if msg.topic == topic_to_match {
+                            for source_id in &source_ids {
+                                if *source_id != node_id {
+                                    let cmd = TriggerCommand {
+                                        node_id: source_id.clone(),
+                                        inputs: HashMap::new(),
+                                    };
+                                    if trigger_tx.send(cmd).await.is_err() {
+                                        return;
+                                    }
+                                }
+                            }
 
-                    let cmd = TriggerCommand {
-                        node_id: node_id.clone(),
-                        inputs,
-                    };
+                            let payload_value = match serde_json::from_slice(&msg.bytes) {
+                                Ok(p) => p,
+                                Err(_) => {
+                                    Value::String(String::from_utf8_lossy(&msg.bytes).to_string())
+                                }
+                            };
+                            let mut inputs = HashMap::new();
+                            inputs.insert("payload".to_string(), payload_value);
 
-                    if trigger_tx.send(cmd).await.is_err() {
+                            let cmd = TriggerCommand {
+                                node_id: node_id.clone(),
+                                inputs,
+                            };
+
+                            if trigger_tx.send(cmd).await.is_err() {
+                                break;
+                            }
+                        }
+                    }
+                    Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => {
+                        warn!("MQTT trigger lagged. Some messages may have been missed.");
+                        continue;
+                    }
+                    Err(_) => {
                         break;
                     }
                 }

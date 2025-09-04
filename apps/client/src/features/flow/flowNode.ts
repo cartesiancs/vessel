@@ -174,4 +174,15 @@ export const DEFINITION_NODE: {
     data: undefined,
     dataType: undefined,
   },
+  BRANCH: {
+    connectors: [
+      { id: `id`, name: "data", type: "in" },
+      { id: `id`, name: "condition", type: "in" },
+      { id: `id`, name: "true_output", type: "out" },
+      { id: `id`, name: "false_output", type: "out" },
+    ],
+    nodeType: "BRANCH",
+    data: undefined,
+    dataType: undefined,
+  },
 };

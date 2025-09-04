@@ -4,6 +4,7 @@ use serde::Deserialize;
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use tokio::{sync::mpsc, task::JoinHandle};
+use tracing::warn;
 
 use super::{ExecutableNode, ExecutionResult};
 use crate::{
@@ -19,14 +20,20 @@ pub struct RtpStreamInData {
 pub struct RtpStreamInNode {
     data: RtpStreamInData,
     stream_manager: StreamManager,
+    source_node_ids: Vec<String>,
 }
 
 impl RtpStreamInNode {
-    pub fn new(node_data: &Value, stream_manager: StreamManager) -> Result<Self> {
+    pub fn new(
+        node_data: &Value,
+        stream_manager: StreamManager,
+        source_node_ids: Vec<String>,
+    ) -> Result<Self> {
         let data: RtpStreamInData = serde_json::from_value(node_data.clone())?;
         Ok(Self {
             data,
             stream_manager,
+            source_node_ids,
         })
     }
 }
@@ -65,20 +72,44 @@ impl ExecutableNode for RtpStreamInNode {
             .ok_or_else(|| anyhow!("Stream with topic '{}' not found", self.data.topic))?;
 
         let mut packet_rx = stream_info.packet_tx.subscribe();
+        let source_ids = self.source_node_ids.clone();
 
         let handle = tokio::spawn(async move {
-            while let Ok(packet) = packet_rx.recv().await {
-                let payload_base64 = base64::encode(&packet.payload);
-                let mut inputs = HashMap::new();
-                inputs.insert("payload".to_string(), json!(payload_base64));
+            loop {
+                match packet_rx.recv().await {
+                    Ok(packet) => {
+                        for source_id in &source_ids {
+                            if *source_id != node_id {
+                                let cmd = TriggerCommand {
+                                    node_id: source_id.clone(),
+                                    inputs: HashMap::new(),
+                                };
+                                if trigger_tx.send(cmd).await.is_err() {
+                                    return;
+                                }
+                            }
+                        }
 
-                let cmd = TriggerCommand {
-                    node_id: node_id.clone(),
-                    inputs,
-                };
+                        let payload_base64 = base64::encode(&packet.payload);
+                        let mut inputs = HashMap::new();
+                        inputs.insert("payload".to_string(), json!(payload_base64));
 
-                if trigger_tx.send(cmd).await.is_err() {
-                    break;
+                        let cmd = TriggerCommand {
+                            node_id: node_id.clone(),
+                            inputs,
+                        };
+
+                        if trigger_tx.send(cmd).await.is_err() {
+                            break;
+                        }
+                    }
+                    Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => {
+                        warn!("RTP trigger lagged. Some packets may have been missed.");
+                        continue;
+                    }
+                    Err(_) => {
+                        break;
+                    }
                 }
             }
         });

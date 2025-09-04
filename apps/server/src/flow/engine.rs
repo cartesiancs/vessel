@@ -11,6 +11,7 @@ use tokio::task::JoinHandle;
 use tokio::time;
 use tracing::{error, info};
 
+use crate::flow::nodes::branch::BranchNode;
 use crate::flow::nodes::decode_opus::DecodeOpusNode;
 use crate::flow::nodes::mqtt_publish::MqttPublishNode;
 use crate::flow::nodes::mqtt_subscribe::MqttSubscribeNode;
@@ -152,7 +153,19 @@ impl FlowEngine {
             .collect()
     }
 
-    pub fn get_node_instance(&self, node_id: &str) -> Result<Box<dyn ExecutableNode>> {
+    pub fn get_source_node_ids(&self) -> Vec<String> {
+        self.nodes
+            .iter()
+            .filter(|(id, _)| *self.expected_input_counts.get(*id).unwrap_or(&0) == 0)
+            .map(|(id, _)| id.clone())
+            .collect()
+    }
+
+    pub fn get_node_instance(
+        &self,
+        node_id: &str,
+        source_node_ids: Vec<String>,
+    ) -> Result<Box<dyn ExecutableNode>> {
         let node = self
             .nodes
             .get(node_id)
@@ -175,14 +188,20 @@ impl FlowEngine {
                         anyhow!("MQTT client is not configured for MQTT_SUBSCRIBE node")
                     })?
                     .subscribe();
-                Ok(Box::new(MqttSubscribeNode::new(&node.data, rx)?))
+                Ok(Box::new(MqttSubscribeNode::new(
+                    &node.data,
+                    rx,
+                    source_node_ids,
+                )?))
             }
             "TYPE_CONVERTER" => Ok(Box::new(TypeConverterNode::new(&node.data)?)),
             "RTP_STREAM_IN" => Ok(Box::new(RtpStreamInNode::new(
                 &node.data,
                 self.stream_manager.clone(),
+                source_node_ids,
             )?)),
             "DECODE_OPUS" => Ok(Box::new(DecodeOpusNode::new()?)),
+            "BRANCH" => Ok(Box::new(BranchNode)),
 
             _ => Err(anyhow!(
                 "Unknown or unimplemented node type: {}",
@@ -202,61 +221,51 @@ impl FlowEngine {
     ) {
         let (shutdown_tx, mut shutdown_rx) = watch::channel(false);
         let (trigger_tx, mut trigger_rx) = mpsc::channel::<TriggerCommand>(100);
-
         let execution_queue = Arc::new(Mutex::new(VecDeque::new()));
         let node_input_data =
             Arc::new(Mutex::new(HashMap::<String, HashMap<String, Value>>::new()));
-
         let ws_message = json!({
             "type": "log_message",
             "payload": "Executing flow..."
         });
-
         if let Ok(payload_str) = serde_json::to_string(&ws_message) {
             if broadcast_tx.clone().send(payload_str).is_err() {
                 error!("Failed to send health check response.");
             }
         }
-
         {
             let mut queue = execution_queue.lock().await;
-            for node_id in self.get_start_nodes() {
-                if let Some(node) = self.get_node_by_id(&node_id) {
-                    if node.node_type != "INTERVAL" && node.node_type != "MQTT_SUBSCRIBE" {
+            for node_id in self.get_source_node_ids() {
+                if let Ok(instance) = self.get_node_instance(&node_id, vec![]) {
+                    if !instance.is_trigger() {
                         queue.push_back(node_id.clone());
                     }
                 }
             }
         }
-
         let engine_clone = Arc::clone(&self);
         let handle = tokio::spawn(async move {
             let self_ = engine_clone;
             let mut context = ExecutionContext::new(mqtt_client, broadcast_tx);
             info!("Flow Engine task started. Entering main execution loop...");
-
             loop {
                 if *shutdown_rx.borrow() {
                     break;
                 }
-
                 let maybe_node_id = execution_queue.lock().await.pop_front();
-
                 if let Some(node_id) = maybe_node_id {
-                    let node_instance = match self_.get_node_instance(&node_id) {
+                    let node_instance = match self_.get_node_instance(&node_id, vec![]) {
                         Ok(instance) => instance,
                         Err(e) => {
                             error!("Failed to create instance for node {}: {}", node_id, e);
                             continue;
                         }
                     };
-
                     let inputs = node_input_data
                         .lock()
                         .await
                         .remove(&node_id)
                         .unwrap_or_default();
-
                     match node_instance.execute(&mut context, inputs).await {
                         Ok(result) => {
                             for trigger in result.triggers {
@@ -269,7 +278,6 @@ impl FlowEngine {
                                     .extend(trigger.inputs);
                                 queue.push_back(trigger.node_id);
                             }
-
                             if let Some(connections) = self_.data_flow_graph.get(&node_id) {
                                 for (source_connector, target_node_id, target_connector) in
                                     connections
@@ -281,7 +289,6 @@ impl FlowEngine {
                                             data_map.entry(target_node_id.clone()).or_default();
                                         target_inputs
                                             .insert(target_connector.clone(), output_value.clone());
-
                                         let expected_count = *self_
                                             .expected_input_counts
                                             .get(target_node_id)
@@ -303,7 +310,6 @@ impl FlowEngine {
                 } else {
                     tokio::select! {
                         biased;
-
                         _ = shutdown_rx.changed() => {
                             if *shutdown_rx.borrow() {
                                 break;
@@ -320,11 +326,9 @@ impl FlowEngine {
                     }
                 }
             }
-
             info!("Flow execution loop stopped.");
             Ok(())
         });
-
         (FlowController { shutdown_tx }, handle, trigger_tx)
     }
 }
