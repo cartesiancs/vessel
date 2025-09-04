@@ -12,7 +12,7 @@ interface DynamicConfig {
   [key: string]: unknown;
 }
 
-interface State {
+export interface State {
   state_id: number;
   metadata_id: number;
   state: string;
