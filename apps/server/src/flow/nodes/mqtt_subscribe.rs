@@ -1,12 +1,12 @@
+use anyhow::Result;
 use async_trait::async_trait;
 use serde::Deserialize;
 use serde_json::Value;
-use anyhow::Result;
-use tokio::sync::broadcast;
 use std::collections::HashMap;
+use tokio::sync::broadcast;
 
-use crate::flow::engine::ExecutionContext;
 use super::{ExecutableNode, ExecutionResult};
+use crate::flow::engine::ExecutionContext;
 
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -31,12 +31,14 @@ impl ExecutableNode for MqttSubscribeNode {
         &self,
         _context: &mut ExecutionContext,
         inputs: HashMap<String, Value>,
-        _broadcast_tx: broadcast::Sender<String>,
     ) -> Result<ExecutionResult> {
         let mut outputs = HashMap::new();
         if let Some(payload) = inputs.get("payload") {
             outputs.insert("payload".to_string(), payload.clone());
         }
-        Ok(ExecutionResult { outputs, ..Default::default() })
+        Ok(ExecutionResult {
+            outputs,
+            ..Default::default()
+        })
     }
 }

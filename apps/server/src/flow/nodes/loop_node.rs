@@ -1,14 +1,13 @@
+use anyhow::{anyhow, Result};
 use async_trait::async_trait;
-use tokio::sync::{broadcast};
-use std::{collections::HashMap};
-use anyhow::{Result, anyhow};
 use serde::Deserialize;
-use serde_json::{Value, json};
+use serde_json::{json, Value};
+use std::collections::HashMap;
+use tokio::sync::broadcast;
 
 use crate::flow::{engine::ExecutionContext, types::Trigger};
 
 use super::{ExecutableNode, ExecutionResult};
-
 
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -33,7 +32,6 @@ impl ExecutableNode for LoopNode {
         &self,
         _context: &mut ExecutionContext,
         inputs: HashMap<String, Value>,
-        _broadcast_tx: broadcast::Sender<String>,
     ) -> Result<ExecutionResult> {
         let mut result = ExecutionResult::default();
 
@@ -58,7 +56,7 @@ impl ExecutableNode for LoopNode {
                 inputs: inputs_for_body,
             });
         }
-        
+
         Ok(result)
     }
 }

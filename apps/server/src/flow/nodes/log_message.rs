@@ -1,10 +1,10 @@
-use async_trait::async_trait;
-use tokio::sync::{broadcast};
-use std::{collections::HashMap};
-use anyhow::Result;
-use serde_json::{json, Value};
 use crate::flow::engine::ExecutionContext;
-use tracing::{error};
+use anyhow::Result;
+use async_trait::async_trait;
+use serde_json::{json, Value};
+use std::collections::HashMap;
+use tokio::sync::broadcast;
+use tracing::error;
 
 use super::{ExecutableNode, ExecutionResult};
 
@@ -14,9 +14,8 @@ pub struct LogMessageNode;
 impl ExecutableNode for LogMessageNode {
     async fn execute(
         &self,
-        _context: &mut ExecutionContext,
+        context: &mut ExecutionContext,
         inputs: HashMap<String, Value>,
-        broadcast_tx: broadcast::Sender<String>,
     ) -> Result<ExecutionResult> {
         println!("[LOG]: {:?}", inputs);
 
@@ -25,7 +24,7 @@ impl ExecutableNode for LogMessageNode {
             "payload": inputs.clone()
         });
         if let Ok(payload_str) = serde_json::to_string(&ws_message) {
-            if broadcast_tx.send(payload_str).is_err() {
+            if context.get_broadcast().send(payload_str).is_err() {
                 error!("Failed to send health check response.");
             }
         }

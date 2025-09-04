@@ -1,33 +1,47 @@
+use crate::{
+    db,
+    flow::{
+        engine::{FlowController, FlowEngine},
+        types::Graph,
+    },
+    state::{DbPool, MqttMessage},
+};
 use anyhow::Result;
-use std::{collections::HashMap, sync::Arc};
-use tokio::{sync::{broadcast, mpsc}, task::JoinHandle};
-use crate::{db, flow::{engine::{FlowController, FlowEngine}, types::Graph}, state::{DbPool, MqttMessage}};
 use rumqttc::AsyncClient;
+use std::{collections::HashMap, sync::Arc};
+use tokio::{
+    sync::{broadcast, mpsc},
+    task::JoinHandle,
+};
 
 pub enum FlowManagerCommand {
     StartFlow {
         flow_id: i32,
         graph: Graph,
-        broadcast_tx: broadcast::Sender<String>
+        broadcast_tx: broadcast::Sender<String>,
     },
     StopFlow {
         flow_id: i32,
     },
     GetAllFlows {
         responder: tokio::sync::oneshot::Sender<Vec<(i32, bool)>>,
-        pool: DbPool
+        pool: DbPool,
     },
 }
 
 pub struct FlowManagerActor {
     receiver: mpsc::Receiver<FlowManagerCommand>,
     active_flows: HashMap<i32, (FlowController, JoinHandle<Result<()>>)>,
-    mqtt_client: Option<AsyncClient>, 
+    mqtt_client: Option<AsyncClient>,
     mqtt_tx: broadcast::Sender<MqttMessage>,
 }
 
 impl FlowManagerActor {
-    pub fn new(receiver: mpsc::Receiver<FlowManagerCommand>, mqtt_client: Option<AsyncClient>, mqtt_tx: broadcast::Sender<MqttMessage>,) -> Self {
+    pub fn new(
+        receiver: mpsc::Receiver<FlowManagerCommand>,
+        mqtt_client: Option<AsyncClient>,
+        mqtt_tx: broadcast::Sender<MqttMessage>,
+    ) -> Self {
         Self {
             receiver,
             active_flows: HashMap::new(),
@@ -39,7 +53,11 @@ impl FlowManagerActor {
     pub async fn run(&mut self) {
         while let Some(cmd) = self.receiver.recv().await {
             match cmd {
-                FlowManagerCommand::StartFlow { flow_id, graph, broadcast_tx } => {
+                FlowManagerCommand::StartFlow {
+                    flow_id,
+                    graph,
+                    broadcast_tx,
+                } => {
                     if self.active_flows.contains_key(&flow_id) {
                         tracing::error!("Flow with ID {} is already running.", flow_id);
                         continue;
@@ -47,7 +65,13 @@ impl FlowManagerActor {
 
                     tracing::info!("Starting flow execution globally for flow_id: {}", flow_id);
                     let engine = Arc::new(FlowEngine::new(graph).unwrap());
-                    let (controller, handle) = engine.start(broadcast_tx, self.mqtt_client.clone(), Some(self.mqtt_tx.clone())).await;
+                    let (controller, handle) = engine
+                        .start(
+                            broadcast_tx,
+                            self.mqtt_client.clone(),
+                            Some(self.mqtt_tx.clone()),
+                        )
+                        .await;
                     self.active_flows.insert(flow_id, (controller, handle));
                 }
                 FlowManagerCommand::StopFlow { flow_id } => {
@@ -58,10 +82,10 @@ impl FlowManagerActor {
                 }
                 FlowManagerCommand::GetAllFlows { responder, pool } => {
                     let all_db_flows = db::repository::get_all_flows(&pool).unwrap_or_default();
-                    let status: Vec<(i32, bool)> = all_db_flows.into_iter()
-                        .map(|f| {
-                            (f.id, self.active_flows.contains_key(&f.id))
-                        }).collect();
+                    let status: Vec<(i32, bool)> = all_db_flows
+                        .into_iter()
+                        .map(|f| (f.id, self.active_flows.contains_key(&f.id)))
+                        .collect();
                     let _ = responder.send(status);
                 }
             }

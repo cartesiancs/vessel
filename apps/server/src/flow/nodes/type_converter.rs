@@ -1,11 +1,11 @@
+use super::{ExecutableNode, ExecutionResult};
+use crate::flow::engine::ExecutionContext;
+use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use serde::Deserialize;
-use serde_json::{Value, Number};
-use tokio::sync::broadcast;
-use anyhow::{Result, anyhow};
+use serde_json::{Number, Value};
 use std::collections::HashMap;
-use crate::flow::engine::ExecutionContext;
-use super::{ExecutableNode, ExecutionResult};
+use tokio::sync::broadcast;
 
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -30,9 +30,10 @@ impl ExecutableNode for TypeConverterNode {
         &self,
         _context: &mut ExecutionContext,
         inputs: HashMap<String, Value>,
-        _broadcast_tx: broadcast::Sender<String>,
     ) -> Result<ExecutionResult> {
-        let input_value = inputs.get("in").ok_or_else(|| anyhow!("'in' input is missing for TypeConverterNode"))?;
+        let input_value = inputs
+            .get("in")
+            .ok_or_else(|| anyhow!("'in' input is missing for TypeConverterNode"))?;
 
         let converted_value = match self.data.target_type.as_str() {
             "string" => {
@@ -44,16 +45,27 @@ impl ExecutableNode for TypeConverterNode {
                     _ => serde_json::to_string(input_value)?,
                 };
                 Value::String(s.replace('\"', ""))
-            },
+            }
             "number" => {
                 let num = match input_value {
                     Value::Number(n) => n.as_f64().unwrap_or(0.0),
-                    Value::String(s) => s.parse::<f64>().map_err(|_| anyhow!("Failed to parse string '{}' to number", s))?,
-                    Value::Bool(b) => if *b { 1.0 } else { 0.0 },
+                    Value::String(s) => s
+                        .parse::<f64>()
+                        .map_err(|_| anyhow!("Failed to parse string '{}' to number", s))?,
+                    Value::Bool(b) => {
+                        if *b {
+                            1.0
+                        } else {
+                            0.0
+                        }
+                    }
                     _ => return Err(anyhow!("Cannot convert type to a number")),
                 };
-                Value::Number(Number::from_f64(num).ok_or_else(|| anyhow!("Invalid f64 value for conversion"))?)
-            },
+                Value::Number(
+                    Number::from_f64(num)
+                        .ok_or_else(|| anyhow!("Invalid f64 value for conversion"))?,
+                )
+            }
             "boolean" => {
                 let b = match input_value {
                     Value::Bool(b) => *b,
@@ -62,12 +74,20 @@ impl ExecutableNode for TypeConverterNode {
                     _ => false,
                 };
                 Value::Bool(b)
-            },
-            _ => return Err(anyhow!("Unsupported target type: {}", self.data.target_type)),
+            }
+            _ => {
+                return Err(anyhow!(
+                    "Unsupported target type: {}",
+                    self.data.target_type
+                ))
+            }
         };
 
         let mut outputs = HashMap::new();
         outputs.insert("out".to_string(), converted_value);
-        Ok(ExecutionResult { outputs, ..Default::default() })
+        Ok(ExecutionResult {
+            outputs,
+            ..Default::default()
+        })
     }
 }

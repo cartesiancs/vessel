@@ -1,13 +1,12 @@
-use async_trait::async_trait;
-use tokio::sync::{broadcast};
-use std::{collections::HashMap};
+use crate::flow::engine::ExecutionContext;
 use anyhow::{anyhow, Result};
+use async_trait::async_trait;
 use serde::Deserialize;
 use serde_json::{json, Value};
-use crate::flow::engine::ExecutionContext;
+use std::collections::HashMap;
+use tokio::sync::broadcast;
 
 use super::{ExecutableNode, ExecutionResult};
-
 
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -31,8 +30,10 @@ impl LogicOpetatorNode {
         inputs: &HashMap<String, Value>,
         broadcast_tx: &broadcast::Sender<String>,
     ) -> Result<bool> {
-        let input_val = inputs.get(key).ok_or_else(|| anyhow!("Input '{}' is missing", key))?;
-        
+        let input_val = inputs
+            .get(key)
+            .ok_or_else(|| anyhow!("Input '{}' is missing", key))?;
+
         if let Some(b) = input_val.as_bool() {
             return Ok(b);
         }
@@ -41,7 +42,9 @@ impl LogicOpetatorNode {
         }
 
         let err = anyhow!("Input '{}' is not a valid boolean or number", key);
-        if let Ok(payload_str) = serde_json::to_string(&json!({ "type": "log_message", "payload": err.to_string() })) {
+        if let Ok(payload_str) =
+            serde_json::to_string(&json!({ "type": "log_message", "payload": err.to_string() }))
+        {
             let _ = broadcast_tx.send(payload_str);
         }
         Err(err)
@@ -58,7 +61,9 @@ impl LogicOpetatorNode {
         }
 
         let err = anyhow!("Input '{}' is not a valid number for comparison", key);
-        if let Ok(payload_str) = serde_json::to_string(&json!({ "type": "log_message", "payload": err.to_string() })) {
+        if let Ok(payload_str) =
+            serde_json::to_string(&json!({ "type": "log_message", "payload": err.to_string() }))
+        {
             let _ = broadcast_tx.send(payload_str);
         }
         Err(err)
@@ -67,13 +72,21 @@ impl LogicOpetatorNode {
 
 #[async_trait]
 impl ExecutableNode for LogicOpetatorNode {
-    async fn execute(&self, _context: &mut ExecutionContext, inputs: HashMap<String, Value>, broadcast_tx: broadcast::Sender<String>,) -> Result<ExecutionResult> {
+    async fn execute(
+        &self,
+        context: &mut ExecutionContext,
+        inputs: HashMap<String, Value>,
+    ) -> Result<ExecutionResult> {
         let op = self.data.operator.as_str();
 
         let result_bool = match op {
             "AND" | "OR" | "XOR" | "NAND" | "NOR" | "XNOR" => {
-                let a = self.get_input_as_bool("a", &inputs, &broadcast_tx).await?;
-                let b = self.get_input_as_bool("b", &inputs, &broadcast_tx).await?;
+                let a = self
+                    .get_input_as_bool("a", &inputs, &context.get_broadcast())
+                    .await?;
+                let b = self
+                    .get_input_as_bool("b", &inputs, &context.get_broadcast())
+                    .await?;
 
                 match op {
                     "AND" => a && b,
@@ -84,10 +97,14 @@ impl ExecutableNode for LogicOpetatorNode {
                     "XNOR" => !(a ^ b),
                     _ => unreachable!(),
                 }
-            },
+            }
             ">" | "<" | "==" | "!=" | ">=" | "<=" => {
-                let a = self.get_input_as_f64("a", &inputs, &broadcast_tx).await?;
-                let b = self.get_input_as_f64("b", &inputs, &broadcast_tx).await?;
+                let a = self
+                    .get_input_as_f64("a", &inputs, &context.get_broadcast())
+                    .await?;
+                let b = self
+                    .get_input_as_f64("b", &inputs, &context.get_broadcast())
+                    .await?;
 
                 match op {
                     ">" => a > b,
@@ -98,11 +115,13 @@ impl ExecutableNode for LogicOpetatorNode {
                     "<=" => a <= b,
                     _ => unreachable!(),
                 }
-            },
+            }
             _ => {
                 let err = anyhow!("Unsupported operator: {}", op);
-                if let Ok(payload_str) = serde_json::to_string(&json!({ "type": "log_message", "payload": err.to_string() })) {
-                    let _ = broadcast_tx.send(payload_str);
+                if let Ok(payload_str) = serde_json::to_string(
+                    &json!({ "type": "log_message", "payload": err.to_string() }),
+                ) {
+                    let _ = context.get_broadcast().send(payload_str);
                 }
                 return Err(err);
             }
@@ -110,6 +129,9 @@ impl ExecutableNode for LogicOpetatorNode {
 
         let mut outputs = HashMap::new();
         outputs.insert("bool".to_string(), Value::from(result_bool));
-        Ok(ExecutionResult { outputs, ..Default::default() })
+        Ok(ExecutionResult {
+            outputs,
+            ..Default::default()
+        })
     }
 }

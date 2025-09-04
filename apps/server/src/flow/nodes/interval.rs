@@ -1,10 +1,10 @@
+use crate::flow::engine::ExecutionContext;
+use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use serde::Deserialize;
-use serde_json::{Value};
-use tokio::sync::{broadcast};
-use anyhow::{Result, anyhow};
+use serde_json::Value;
 use std::{collections::HashMap, time::Duration};
-use crate::flow::engine::ExecutionContext;
+use tokio::sync::broadcast;
 
 use super::{ExecutableNode, ExecutionResult};
 
@@ -40,7 +40,6 @@ impl ExecutableNode for IntervalNode {
         &self,
         _context: &mut ExecutionContext,
         _inputs: HashMap<String, Value>,
-        _broadcast_tx: broadcast::Sender<String>,
     ) -> Result<ExecutionResult> {
         let mut outputs = HashMap::new();
         outputs.insert("exec".to_string(), Value::Null);

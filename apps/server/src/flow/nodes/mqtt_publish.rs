@@ -1,21 +1,20 @@
+use anyhow::{anyhow, Result};
 use async_trait::async_trait;
+use rumqttc::QoS;
 use serde::Deserialize;
 use serde_json::{json, to_string, Value};
-use anyhow::{Result, anyhow};
+use std::collections::HashMap;
 use tokio::sync::broadcast;
-use std::{collections::HashMap};
-use rumqttc::{QoS};
 use tracing::{error, warn};
 
-use super::{ExecutableNode};
+use super::ExecutableNode;
 use crate::flow::{engine::ExecutionContext, types::ExecutionResult};
-
 
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 struct MqttPublishNodeData {
     topic: String,
-    qos: Option<u8>, 
+    qos: Option<u8>,
     retain: Option<bool>,
 }
 
@@ -36,12 +35,11 @@ impl ExecutableNode for MqttPublishNode {
         &self,
         context: &mut ExecutionContext,
         inputs: HashMap<String, Value>,
-        broadcast_tx: broadcast::Sender<String>,
     ) -> Result<ExecutionResult> {
         let Some(payload) = inputs.get("payload") else {
             return Err(anyhow!("'payload' input is missing for MQTT_PUBLISH node"));
         };
-        
+
         let payload_bytes = match payload {
             Value::String(s) => s.clone().into_bytes(),
             _ => to_string(payload)?.into_bytes(),
@@ -57,7 +55,10 @@ impl ExecutableNode for MqttPublishNode {
         let retain = self.data.retain.unwrap_or(false);
 
         if let Some(client) = context.mqtt_client() {
-            match client.publish(&self.data.topic, qos, retain, payload_bytes).await {
+            match client
+                .publish(&self.data.topic, qos, retain, payload_bytes)
+                .await
+            {
                 Ok(_) => (),
                 Err(e) => return Err(anyhow!("Failed to publish MQTT message: {}", e)),
             }
@@ -70,7 +71,7 @@ impl ExecutableNode for MqttPublishNode {
             "payload": "Publish MQTT Topic"
         });
         if let Ok(payload_str) = serde_json::to_string(&ws_message) {
-            if broadcast_tx.send(payload_str).is_err() {
+            if context.get_broadcast().send(payload_str).is_err() {
                 error!("Failed to send health check response.");
             }
         }

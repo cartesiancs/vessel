@@ -12,8 +12,6 @@ export type NodeRenderer = (
 export type NodeTypes =
   | "BUTTON"
   | "TITLE"
-  | "NUMBER"
-  | "ADD"
   | "START"
   | "SET_VARIABLE"
   | "CONDITION"

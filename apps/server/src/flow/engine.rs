@@ -1,10 +1,11 @@
-use std::collections::{HashMap, VecDeque};
+use anyhow::{anyhow, Result};
+use rumqttc::AsyncClient;
+use serde::Deserialize;
+use serde_json::{json, Value};
+use std::collections::HashMap;
+use std::collections::VecDeque;
 use std::sync::Arc;
 use std::time::Duration;
-use anyhow::{Result, anyhow};
-use rumqttc::AsyncClient;
-use serde::Deserialize; 
-use serde_json::{Value, json};
 use tokio::sync::{broadcast, watch, Mutex};
 use tokio::task::JoinHandle;
 use tokio::time;
@@ -13,35 +14,26 @@ use tracing::{error, info, warn};
 use crate::flow::nodes::mqtt_publish::MqttPublishNode;
 use crate::flow::nodes::mqtt_subscribe::MqttSubscribeNode;
 use crate::flow::nodes::type_converter::TypeConverterNode;
-use crate::flow::types::{Graph, Node};
 use crate::flow::nodes::{
-    ExecutableNode,
-    start::StartNode,
-    log_message::LogMessageNode,
-    add_numbers::AddNumbersNode,
-    set_variable::SetVariableNode,
-    condition::ConditionNode,
-    number::NumberNode,
-    calc::CalcNode,
-    http::HttpNode,
-    loop_node::LoopNode,
-    logic_operator::LogicOpetatorNode,
-    interval::IntervalNode,
+    calc::CalcNode, condition::ConditionNode, http::HttpNode, interval::IntervalNode,
+    log_message::LogMessageNode, logic_operator::LogicOpetatorNode, loop_node::LoopNode,
+    set_variable::SetVariableNode, start::StartNode, ExecutableNode,
 };
+use crate::flow::types::{Graph, Node};
 use crate::state::MqttMessage;
 
-#[derive(Default)]
 pub struct ExecutionContext {
     variables: HashMap<String, Value>,
     mqtt_client: Option<AsyncClient>,
-
+    broadcast_tx: broadcast::Sender<String>,
 }
 
 impl ExecutionContext {
-    pub fn new(mqtt_client: Option<AsyncClient>) -> Self {
+    pub fn new(mqtt_client: Option<AsyncClient>, broadcast_tx: broadcast::Sender<String>) -> Self {
         Self {
             variables: HashMap::new(),
             mqtt_client,
+            broadcast_tx,
         }
     }
 
@@ -51,6 +43,10 @@ impl ExecutionContext {
 
     pub fn get_variable(&self, name: &str) -> Option<&Value> {
         self.variables.get(name)
+    }
+
+    pub fn get_broadcast(&self) -> broadcast::Sender<String> {
+        self.broadcast_tx.clone()
     }
 
     pub fn mqtt_client(&self) -> &Option<AsyncClient> {
@@ -76,7 +72,6 @@ pub struct FlowEngine {
 
 impl FlowEngine {
     pub fn new(graph: Graph) -> Result<Self> {
-
         let nodes_map: HashMap<String, Node> =
             graph.nodes.into_iter().map(|n| (n.id.clone(), n)).collect();
 
@@ -93,11 +88,19 @@ impl FlowEngine {
         let mut expected_input_counts: HashMap<String, usize> = HashMap::new();
 
         for edge in &graph.edges {
-            let source_node_id = connector_to_node_map.get(&edge.source).ok_or_else(|| anyhow!("Node for source connector '{}' not found", edge.source))?;
-            let target_node_id = connector_to_node_map.get(&edge.target).ok_or_else(|| anyhow!("Node for target connector '{}' not found", edge.target))?;
+            let source_node_id = connector_to_node_map
+                .get(&edge.source)
+                .ok_or_else(|| anyhow!("Node for source connector '{}' not found", edge.source))?;
+            let target_node_id = connector_to_node_map
+                .get(&edge.target)
+                .ok_or_else(|| anyhow!("Node for target connector '{}' not found", edge.target))?;
 
-            let source_connector_name = connector_name_map.get(&edge.source).ok_or_else(|| anyhow!("Name for source connector '{}' not found", edge.source))?;
-            let target_connector_name = connector_name_map.get(&edge.target).ok_or_else(|| anyhow!("Name for target connector '{}' not found", edge.target))?;
+            let source_connector_name = connector_name_map
+                .get(&edge.source)
+                .ok_or_else(|| anyhow!("Name for source connector '{}' not found", edge.source))?;
+            let target_connector_name = connector_name_map
+                .get(&edge.target)
+                .ok_or_else(|| anyhow!("Name for target connector '{}' not found", edge.target))?;
 
             data_flow_graph
                 .entry(source_node_id.clone())
@@ -105,10 +108,12 @@ impl FlowEngine {
                 .push((
                     source_connector_name.clone(),
                     target_node_id.clone(),
-                    target_connector_name.clone()
+                    target_connector_name.clone(),
                 ));
-            
-            *expected_input_counts.entry(target_node_id.clone()).or_insert(0) += 1;
+
+            *expected_input_counts
+                .entry(target_node_id.clone())
+                .or_insert(0) += 1;
         }
 
         Ok(Self {
@@ -119,11 +124,12 @@ impl FlowEngine {
     }
 
     fn get_node_instance(&self, node_id: &str) -> Result<Box<dyn ExecutableNode>> {
-        let node = self.nodes.get(node_id).ok_or_else(|| anyhow!("Node not found: '{}'", node_id))?;
+        let node = self
+            .nodes
+            .get(node_id)
+            .ok_or_else(|| anyhow!("Node not found: '{}'", node_id))?;
         match node.node_type.as_str() {
             "START" => Ok(Box::new(StartNode)),
-            "NUMBER" => Ok(Box::new(NumberNode::new(&node.data)?)),
-            "ADD" => Ok(Box::new(AddNumbersNode)),
             "SET_VARIABLE" => Ok(Box::new(SetVariableNode::new(&node.data)?)),
             "CONDITION" => Ok(Box::new(ConditionNode::new(&node.data)?)),
             "LOG_MESSAGE" => Ok(Box::new(LogMessageNode)),
@@ -132,24 +138,28 @@ impl FlowEngine {
             "LOOP" => Ok(Box::new(LoopNode::new(&node.data)?)),
             "LOGIC_OPERATOR" => Ok(Box::new(LogicOpetatorNode::new(&node.data)?)),
             "INTERVAL" => Ok(Box::new(IntervalNode::new(&node.data)?)),
-            "MQTT_PUBLISH" => Ok(Box::new(MqttPublishNode::new(&node.data)?)), 
-            "MQTT_SUBSCRIBE" => Ok(Box::new(MqttSubscribeNode::new(&node.data)?)), 
-            "TYPE_CONVERTER" => Ok(Box::new(TypeConverterNode::new(&node.data)?)), 
+            "MQTT_PUBLISH" => Ok(Box::new(MqttPublishNode::new(&node.data)?)),
+            "MQTT_SUBSCRIBE" => Ok(Box::new(MqttSubscribeNode::new(&node.data)?)),
+            "TYPE_CONVERTER" => Ok(Box::new(TypeConverterNode::new(&node.data)?)),
 
-            _ => Err(anyhow!("Unknown or unimplemented node type: {}", node.node_type)),
+            _ => Err(anyhow!(
+                "Unknown or unimplemented node type: {}",
+                node.node_type
+            )),
         }
     }
 
     pub async fn start(
-        self: Arc<Self>, 
-        broadcast_tx: broadcast::Sender<String>, 
+        self: Arc<Self>,
+        broadcast_tx: broadcast::Sender<String>,
         mqtt_client: Option<AsyncClient>,
         mqtt_tx: Option<broadcast::Sender<MqttMessage>>,
     ) -> (FlowController, JoinHandle<Result<()>>) {
         let (shutdown_tx, mut shutdown_rx) = watch::channel(false);
         let execution_queue = Arc::new(Mutex::new(VecDeque::new()));
-        let node_input_data = Arc::new(Mutex::new(HashMap::<String, HashMap<String, Value>>::new()));
-        
+        let node_input_data =
+            Arc::new(Mutex::new(HashMap::<String, HashMap<String, Value>>::new()));
+
         #[derive(Deserialize)]
         struct IntervalData {
             interval: u64,
@@ -160,13 +170,13 @@ impl FlowEngine {
             "type": "log_message",
             "payload": "Executing flow..."
         });
-        
+
         if let Ok(payload_str) = serde_json::to_string(&ws_message) {
             if broadcast_tx.clone().send(payload_str).is_err() {
                 error!("Failed to send health check response.");
             }
         }
-        
+
         let mut mqtt_subscriptions = HashMap::<String, Vec<String>>::new();
         for (node_id, node) in &self.nodes {
             if node.node_type == "MQTT_SUBSCRIBE" {
@@ -195,9 +205,9 @@ impl FlowEngine {
                                 let entry = input_data.entry(node_id.clone()).or_default();
                                 let payload_value = match serde_json::from_slice(&msg.bytes) {
                                     Ok(p) => p,
-                                    Err(_e) => {
-                                        Value::String(String::from_utf8_lossy(&msg.bytes).to_string())
-                                    }
+                                    Err(_e) => Value::String(
+                                        String::from_utf8_lossy(&msg.bytes).to_string(),
+                                    ),
                                 };
                                 entry.insert("payload".to_string(), payload_value);
 
@@ -216,8 +226,7 @@ impl FlowEngine {
             for (node_id, node) in &self.nodes {
                 if *self.expected_input_counts.get(node_id).unwrap_or(&0) == 0 {
                     if node.node_type == "INTERVAL" {
-                        if let Ok(data) =
-                            serde_json::from_value::<IntervalData>(node.data.clone())
+                        if let Ok(data) = serde_json::from_value::<IntervalData>(node.data.clone())
                         {
                             let duration = match data.unit.as_str() {
                                 "milliseconds" => Duration::from_millis(data.interval),
@@ -253,7 +262,7 @@ impl FlowEngine {
         let engine_clone = Arc::clone(&self);
         let handle = tokio::spawn(async move {
             let self_ = engine_clone;
-            let mut context = ExecutionContext::new(mqtt_client);
+            let mut context = ExecutionContext::new(mqtt_client, broadcast_tx);
 
             info!("Flow Engine task started. Entering main execution loop...");
 
@@ -262,8 +271,11 @@ impl FlowEngine {
 
                 if let Some(node_id) = maybe_node_id {
                     let node_instance = self_.get_node_instance(&node_id)?;
-                    let mut inputs =
-                        node_input_data.lock().await.remove(&node_id).unwrap_or_default();
+                    let mut inputs = node_input_data
+                        .lock()
+                        .await
+                        .remove(&node_id)
+                        .unwrap_or_default();
 
                     if let Some(node) = self_.nodes.get(&node_id) {
                         if node.node_type == "LOOP" {
@@ -271,10 +283,8 @@ impl FlowEngine {
                                 if let Some((_, target_node_id, target_connector_name)) =
                                     connections.iter().find(|(c, _, _)| c == "body")
                                 {
-                                    inputs.insert(
-                                        "body_node_id".to_string(),
-                                        json!(target_node_id),
-                                    );
+                                    inputs
+                                        .insert("body_node_id".to_string(), json!(target_node_id));
                                     inputs.insert(
                                         "body_input_name".to_string(),
                                         json!(target_connector_name),
@@ -284,9 +294,7 @@ impl FlowEngine {
                         }
                     }
 
-                    let result = node_instance
-                        .execute(&mut context, inputs, broadcast_tx.clone())
-                        .await?;
+                    let result = node_instance.execute(&mut context, inputs).await?;
 
                     for trigger in result.triggers {
                         let mut queue = execution_queue.lock().await;
@@ -315,7 +323,10 @@ impl FlowEngine {
                                     .get(target_node_id)
                                     .unwrap_or(&0);
                                 if target_inputs.len() >= expected_count {
-                                    execution_queue.lock().await.push_back(target_node_id.clone());
+                                    execution_queue
+                                        .lock()
+                                        .await
+                                        .push_back(target_node_id.clone());
                                 }
                             }
                         }

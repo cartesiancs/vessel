@@ -16,38 +16,6 @@ export const DEFINITION_NODE: {
     data: undefined,
     dataType: undefined,
   },
-  TITLE: {
-    connectors: [{ id: `id`, name: "out", type: "out" }],
-    nodeType: "TITLE",
-    data: undefined,
-    dataType: undefined,
-  },
-  BUTTON: {
-    connectors: [{ id: `id`, name: "out", type: "out" }],
-    nodeType: "BUTTON",
-    data: undefined,
-    dataType: undefined,
-  },
-  NUMBER: {
-    connectors: [{ id: `id`, name: "number", type: "out" }],
-    nodeType: "NUMBER",
-    data: {
-      number: 0,
-    },
-    dataType: {
-      number: "NUMBER",
-    },
-  },
-  ADD: {
-    connectors: [
-      { id: `id`, name: "a", type: "in" },
-      { id: `id`, name: "b", type: "in" },
-      { id: `id`, name: "number", type: "out" },
-    ],
-    nodeType: "ADD",
-    data: undefined,
-    dataType: undefined,
-  },
   SET_VARIABLE: {
     connectors: [{ id: `id`, name: "out", type: "out" }],
     nodeType: "SET_VARIABLE",

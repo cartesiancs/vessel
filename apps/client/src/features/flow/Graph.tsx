@@ -24,7 +24,6 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { renderNumberNode } from "./nodes/NumberNode";
 import { renderProcessingNode } from "./nodes/ProcessingNode";
 import { getDefalutNode } from "./flowUtils";
 import { renderVarNode } from "./nodes/VarNode";
@@ -77,7 +76,6 @@ export function Graph({
     SET_VARIABLE: (g, d) => renderVarNode(g, d, () => handleClickOption(d)),
     CONDITION: (g, d) => renderProcessingNode(g, d),
     LOG_MESSAGE: (g, d) => renderProcessingNode(g, d),
-    NUMBER: (g, d) => renderNumberNode(g, d, () => handleClickOption(d)),
     CALCULATION: (g, d) => renderCalcNode(g, d, () => handleClickOption(d)),
     HTTP_REQUEST: (g, d) => renderHttpNode(g, d, () => handleClickOption(d)),
     LOOP: (g, d) => renderLoopNode(g, d, () => handleClickOption(d)),
