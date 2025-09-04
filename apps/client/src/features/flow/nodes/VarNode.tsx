@@ -1,4 +1,4 @@
-import { Node, SetVariableNodeType } from "../flowTypes";
+import { Node } from "../flowTypes";
 
 export function renderVarNode(
   g: d3.Selection<SVGGElement, Node, null, undefined>,
@@ -27,7 +27,7 @@ export function renderVarNode(
     .attr("dominant-baseline", "middle")
     .attr("font-size", 8)
     .attr("fill", "#fff")
-    .text(`Edit Variable ${(d.data as SetVariableNodeType).variable ?? ""}`);
+    .text(`Edit Variable`);
   group.on("click", (e) => {
     e.stopPropagation();
     onOpen();

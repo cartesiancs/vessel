@@ -185,4 +185,17 @@ export const DEFINITION_NODE: {
     data: undefined,
     dataType: undefined,
   },
+  JSON_SELECTOR: {
+    connectors: [
+      { id: `id`, name: "json", type: "in" },
+      { id: `id`, name: "value", type: "out" },
+    ],
+    nodeType: "JSON_SELECTOR",
+    data: {
+      path: "path.to.value",
+    },
+    dataType: {
+      path: "STRING",
+    },
+  },
 };

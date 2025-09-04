@@ -13,6 +13,7 @@ use tracing::{error, info};
 
 use crate::flow::nodes::branch::BranchNode;
 use crate::flow::nodes::decode_opus::DecodeOpusNode;
+use crate::flow::nodes::json_selector::JsonSelectorNode;
 use crate::flow::nodes::mqtt_publish::MqttPublishNode;
 use crate::flow::nodes::mqtt_subscribe::MqttSubscribeNode;
 use crate::flow::nodes::rtp_stream_in::RtpStreamInNode;
@@ -202,6 +203,7 @@ impl FlowEngine {
             )?)),
             "DECODE_OPUS" => Ok(Box::new(DecodeOpusNode::new()?)),
             "BRANCH" => Ok(Box::new(BranchNode)),
+            "JSON_SELECTOR" => Ok(Box::new(JsonSelectorNode::new(&node.data)?)),
 
             _ => Err(anyhow!(
                 "Unknown or unimplemented node type: {}",
