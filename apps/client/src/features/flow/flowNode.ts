@@ -155,4 +155,23 @@ export const DEFINITION_NODE: {
       targetType: "SELECT[string,number,boolean]",
     },
   },
+  RTP_STREAM_IN: {
+    connectors: [{ id: `id`, name: "payload", type: "out" }],
+    nodeType: "RTP_STREAM_IN",
+    data: {
+      topic: "default/audio",
+    },
+    dataType: {
+      topic: "STRING",
+    },
+  },
+  DECODE_OPUS: {
+    connectors: [
+      { id: `id`, name: "payload", type: "in" },
+      { id: `id`, name: "info", type: "out" },
+    ],
+    nodeType: "DECODE_OPUS",
+    data: undefined,
+    dataType: undefined,
+  },
 };

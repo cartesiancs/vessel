@@ -130,7 +130,7 @@ async fn main() -> Result<()> {
                     &rtp_config.value
                 );
                 let rtp_listen_address = rtp_config.value.clone();
-                set.spawn(rtp_receiver(rtp_listen_address, streams));
+                set.spawn(rtp_receiver(rtp_listen_address, streams.clone()));
             } else {
                 warn!("RTP Receiver is disabled by configuration.");
             }
@@ -189,8 +189,12 @@ async fn main() -> Result<()> {
         ));
     }
 
-    let mut flow_manager =
-        FlowManagerActor::new(flow_manager_rx, mqtt_client_for_flow, mqtt_tx.clone());
+    let mut flow_manager = FlowManagerActor::new(
+        flow_manager_rx,
+        mqtt_client_for_flow,
+        mqtt_tx.clone(),
+        streams.clone(),
+    );
     tokio::spawn(async move {
         flow_manager.run().await;
     });

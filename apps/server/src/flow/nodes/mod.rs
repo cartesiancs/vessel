@@ -35,12 +35,14 @@ pub trait ExecutableNode: Send + Sync {
 
 pub mod calc;
 pub mod condition;
+pub mod decode_opus;
 pub mod http;
 pub mod interval;
 pub mod log_message;
 pub mod logic_operator;
 pub mod mqtt_publish;
 pub mod mqtt_subscribe;
+pub mod rtp_stream_in;
 pub mod set_variable;
 pub mod start;
 pub mod type_converter;

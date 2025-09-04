@@ -83,6 +83,8 @@ export function Graph({
     MQTT_SUBSCRIBE: (g, d) => renderMQTTNode(g, d, () => handleClickOption(d)),
     TYPE_CONVERTER: (g, d) =>
       renderButtonNode(g, d, () => handleClickOption(d)),
+    RTP_STREAM_IN: (g, d) => renderButtonNode(g, d, () => handleClickOption(d)),
+    DECODE_OPUS: (g, d) => renderProcessingNode(g, d),
   };
 
   const nodeGroups: NodeGroup[] = [
@@ -92,7 +94,7 @@ export function Graph({
     },
     {
       label: "Data",
-      nodes: ["SET_VARIABLE", "TYPE_CONVERTER"],
+      nodes: ["SET_VARIABLE", "TYPE_CONVERTER", "RTP_STREAM_IN", "DECODE_OPUS"],
     },
     {
       label: "Logic",

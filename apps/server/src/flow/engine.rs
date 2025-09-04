@@ -11,8 +11,10 @@ use tokio::task::JoinHandle;
 use tokio::time;
 use tracing::{error, info};
 
+use crate::flow::nodes::decode_opus::DecodeOpusNode;
 use crate::flow::nodes::mqtt_publish::MqttPublishNode;
 use crate::flow::nodes::mqtt_subscribe::MqttSubscribeNode;
+use crate::flow::nodes::rtp_stream_in::RtpStreamInNode;
 use crate::flow::nodes::type_converter::TypeConverterNode;
 use crate::flow::nodes::{
     calc::CalcNode, condition::ConditionNode, http::HttpNode, interval::IntervalNode,
@@ -21,6 +23,7 @@ use crate::flow::nodes::{
 };
 use crate::flow::types::{Graph, Node};
 use crate::state::MqttMessage;
+use crate::state::StreamManager;
 
 pub struct ExecutionContext {
     variables: HashMap<String, Value>,
@@ -75,10 +78,15 @@ pub struct FlowEngine {
     data_flow_graph: HashMap<String, Vec<(String, String, String)>>,
     expected_input_counts: HashMap<String, usize>,
     mqtt_tx: Option<broadcast::Sender<MqttMessage>>,
+    stream_manager: StreamManager,
 }
 
 impl FlowEngine {
-    pub fn new(graph: Graph, mqtt_tx: Option<broadcast::Sender<MqttMessage>>) -> Result<Self> {
+    pub fn new(
+        graph: Graph,
+        mqtt_tx: Option<broadcast::Sender<MqttMessage>>,
+        stream_manager: StreamManager,
+    ) -> Result<Self> {
         let nodes_map: HashMap<String, Node> =
             graph.nodes.into_iter().map(|n| (n.id.clone(), n)).collect();
 
@@ -128,6 +136,7 @@ impl FlowEngine {
             data_flow_graph,
             expected_input_counts,
             mqtt_tx,
+            stream_manager,
         })
     }
 
@@ -169,6 +178,11 @@ impl FlowEngine {
                 Ok(Box::new(MqttSubscribeNode::new(&node.data, rx)?))
             }
             "TYPE_CONVERTER" => Ok(Box::new(TypeConverterNode::new(&node.data)?)),
+            "RTP_STREAM_IN" => Ok(Box::new(RtpStreamInNode::new(
+                &node.data,
+                self.stream_manager.clone(),
+            )?)),
+            "DECODE_OPUS" => Ok(Box::new(DecodeOpusNode::new()?)),
 
             _ => Err(anyhow!(
                 "Unknown or unimplemented node type: {}",

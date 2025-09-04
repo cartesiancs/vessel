@@ -4,7 +4,7 @@ use crate::{
         engine::{FlowController, FlowEngine},
         types::Graph,
     },
-    state::{DbPool, MqttMessage},
+    state::{DbPool, MqttMessage, StreamManager},
 };
 use anyhow::Result;
 use rumqttc::AsyncClient;
@@ -41,6 +41,7 @@ pub struct FlowManagerActor {
     active_flows: HashMap<i32, ActiveFlow>,
     mqtt_client: Option<AsyncClient>,
     mqtt_tx: broadcast::Sender<MqttMessage>,
+    stream_manager: StreamManager,
 }
 
 impl FlowManagerActor {
@@ -48,12 +49,14 @@ impl FlowManagerActor {
         receiver: mpsc::Receiver<FlowManagerCommand>,
         mqtt_client: Option<AsyncClient>,
         mqtt_tx: broadcast::Sender<MqttMessage>,
+        stream_manager: StreamManager,
     ) -> Self {
         Self {
             receiver,
             active_flows: HashMap::new(),
             mqtt_client,
             mqtt_tx,
+            stream_manager,
         }
     }
 
@@ -71,7 +74,11 @@ impl FlowManagerActor {
                     }
 
                     info!("Starting flow execution for flow_id: {}", flow_id);
-                    match FlowEngine::new(graph, Some(self.mqtt_tx.clone())) {
+                    match FlowEngine::new(
+                        graph,
+                        Some(self.mqtt_tx.clone()),
+                        self.stream_manager.clone(),
+                    ) {
                         Ok(engine) => {
                             let engine = Arc::new(engine);
                             let (controller, handle, trigger_tx) = engine
