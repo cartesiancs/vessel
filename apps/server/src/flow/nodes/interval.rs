@@ -1,10 +1,10 @@
-use crate::flow::engine::ExecutionContext;
+use crate::flow::engine::{ExecutionContext, TriggerCommand};
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use serde::Deserialize;
 use serde_json::Value;
 use std::{collections::HashMap, time::Duration};
-use tokio::sync::broadcast;
+use tokio::{sync::mpsc, task::JoinHandle, time};
 
 use super::{ExecutableNode, ExecutionResult};
 
@@ -47,5 +47,31 @@ impl ExecutableNode for IntervalNode {
             outputs,
             ..Default::default()
         })
+    }
+
+    fn is_trigger(&self) -> bool {
+        true
+    }
+
+    fn start_trigger(
+        &self,
+        node_id: String,
+        trigger_tx: mpsc::Sender<TriggerCommand>,
+    ) -> Result<JoinHandle<()>> {
+        let duration = self.get_duration()?;
+        let handle = tokio::spawn(async move {
+            let mut interval = time::interval(duration);
+            loop {
+                interval.tick().await;
+                let cmd = TriggerCommand {
+                    node_id: node_id.clone(),
+                    inputs: HashMap::new(),
+                };
+                if trigger_tx.send(cmd).await.is_err() {
+                    break;
+                }
+            }
+        });
+        Ok(handle)
     }
 }

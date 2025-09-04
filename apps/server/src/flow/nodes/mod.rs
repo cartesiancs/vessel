@@ -1,10 +1,16 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use serde_json::Value;
 use std::collections::HashMap;
-use tokio::sync::broadcast;
+use tokio::{
+    sync::{broadcast, mpsc},
+    task::JoinHandle,
+};
 
-use crate::flow::{engine::ExecutionContext, types::ExecutionResult};
+use crate::flow::{
+    engine::{ExecutionContext, TriggerCommand},
+    types::ExecutionResult,
+};
 
 #[async_trait]
 pub trait ExecutableNode: Send + Sync {
@@ -13,6 +19,18 @@ pub trait ExecutableNode: Send + Sync {
         context: &mut ExecutionContext,
         inputs: HashMap<String, Value>,
     ) -> Result<ExecutionResult>;
+
+    fn is_trigger(&self) -> bool {
+        false
+    }
+
+    fn start_trigger(
+        &self,
+        _node_id: String,
+        _trigger_tx: mpsc::Sender<TriggerCommand>,
+    ) -> Result<JoinHandle<()>> {
+        Err(anyhow!("Node is not a trigger"))
+    }
 }
 
 pub mod calc;

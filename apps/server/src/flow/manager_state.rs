@@ -13,6 +13,7 @@ use tokio::{
     sync::{broadcast, mpsc},
     task::JoinHandle,
 };
+use tracing::{error, info};
 
 pub enum FlowManagerCommand {
     StartFlow {
@@ -29,9 +30,15 @@ pub enum FlowManagerCommand {
     },
 }
 
+struct ActiveFlow {
+    controller: FlowController,
+    _handle: JoinHandle<Result<()>>,
+    trigger_tasks: Vec<JoinHandle<()>>,
+}
+
 pub struct FlowManagerActor {
     receiver: mpsc::Receiver<FlowManagerCommand>,
-    active_flows: HashMap<i32, (FlowController, JoinHandle<Result<()>>)>,
+    active_flows: HashMap<i32, ActiveFlow>,
     mqtt_client: Option<AsyncClient>,
     mqtt_tx: broadcast::Sender<MqttMessage>,
 }
@@ -59,25 +66,57 @@ impl FlowManagerActor {
                     broadcast_tx,
                 } => {
                     if self.active_flows.contains_key(&flow_id) {
-                        tracing::error!("Flow with ID {} is already running.", flow_id);
+                        error!("Flow with ID {} is already running.", flow_id);
                         continue;
                     }
 
-                    tracing::info!("Starting flow execution globally for flow_id: {}", flow_id);
-                    let engine = Arc::new(FlowEngine::new(graph).unwrap());
-                    let (controller, handle) = engine
-                        .start(
-                            broadcast_tx,
-                            self.mqtt_client.clone(),
-                            Some(self.mqtt_tx.clone()),
-                        )
-                        .await;
-                    self.active_flows.insert(flow_id, (controller, handle));
+                    info!("Starting flow execution for flow_id: {}", flow_id);
+                    match FlowEngine::new(graph, Some(self.mqtt_tx.clone())) {
+                        Ok(engine) => {
+                            let engine = Arc::new(engine);
+                            let (controller, handle, trigger_tx) = engine
+                                .clone()
+                                .start(broadcast_tx, self.mqtt_client.clone())
+                                .await;
+
+                            let mut trigger_tasks = Vec::new();
+                            for node_id in engine.nodes.keys() {
+                                if let Ok(node_instance) = engine.get_node_instance(node_id) {
+                                    if node_instance.is_trigger() {
+                                        match node_instance
+                                            .start_trigger(node_id.clone(), trigger_tx.clone())
+                                        {
+                                            Ok(task_handle) => trigger_tasks.push(task_handle),
+                                            Err(e) => error!(
+                                                "Failed to start trigger for node {}: {}",
+                                                node_id, e
+                                            ),
+                                        }
+                                    }
+                                }
+                            }
+
+                            self.active_flows.insert(
+                                flow_id,
+                                ActiveFlow {
+                                    controller,
+                                    _handle: handle,
+                                    trigger_tasks,
+                                },
+                            );
+                        }
+                        Err(e) => {
+                            error!("Failed to create flow engine for flow {}: {}", flow_id, e);
+                        }
+                    }
                 }
                 FlowManagerCommand::StopFlow { flow_id } => {
-                    if let Some((controller, _handle)) = self.active_flows.remove(&flow_id) {
-                        tracing::info!("Stop signal sent to global flow_id: {}", flow_id);
-                        controller.stop();
+                    if let Some(active_flow) = self.active_flows.remove(&flow_id) {
+                        info!("Stop signal sent to flow_id: {}", flow_id);
+                        active_flow.controller.stop();
+                        for task in active_flow.trigger_tasks {
+                            task.abort();
+                        }
                     }
                 }
                 FlowManagerCommand::GetAllFlows { responder, pool } => {
