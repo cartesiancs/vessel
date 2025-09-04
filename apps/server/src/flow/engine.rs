@@ -16,8 +16,8 @@ use crate::flow::nodes::mqtt_subscribe::MqttSubscribeNode;
 use crate::flow::nodes::type_converter::TypeConverterNode;
 use crate::flow::nodes::{
     calc::CalcNode, condition::ConditionNode, http::HttpNode, interval::IntervalNode,
-    log_message::LogMessageNode, logic_operator::LogicOpetatorNode, loop_node::LoopNode,
-    set_variable::SetVariableNode, start::StartNode, ExecutableNode,
+    log_message::LogMessageNode, logic_operator::LogicOpetatorNode, set_variable::SetVariableNode,
+    start::StartNode, ExecutableNode,
 };
 use crate::flow::types::{Graph, Node};
 use crate::state::MqttMessage;
@@ -135,7 +135,6 @@ impl FlowEngine {
             "LOG_MESSAGE" => Ok(Box::new(LogMessageNode)),
             "CALCULATION" => Ok(Box::new(CalcNode::new(&node.data)?)),
             "HTTP_REQUEST" => Ok(Box::new(HttpNode::new(&node.data)?)),
-            "LOOP" => Ok(Box::new(LoopNode::new(&node.data)?)),
             "LOGIC_OPERATOR" => Ok(Box::new(LogicOpetatorNode::new(&node.data)?)),
             "INTERVAL" => Ok(Box::new(IntervalNode::new(&node.data)?)),
             "MQTT_PUBLISH" => Ok(Box::new(MqttPublishNode::new(&node.data)?)),
@@ -276,23 +275,6 @@ impl FlowEngine {
                         .await
                         .remove(&node_id)
                         .unwrap_or_default();
-
-                    if let Some(node) = self_.nodes.get(&node_id) {
-                        if node.node_type == "LOOP" {
-                            if let Some(connections) = self_.data_flow_graph.get(&node_id) {
-                                if let Some((_, target_node_id, target_connector_name)) =
-                                    connections.iter().find(|(c, _, _)| c == "body")
-                                {
-                                    inputs
-                                        .insert("body_node_id".to_string(), json!(target_node_id));
-                                    inputs.insert(
-                                        "body_input_name".to_string(),
-                                        json!(target_connector_name),
-                                    );
-                                }
-                            }
-                        }
-                    }
 
                     let result = node_instance.execute(&mut context, inputs).await?;
 

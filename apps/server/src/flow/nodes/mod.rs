@@ -21,7 +21,6 @@ pub mod http;
 pub mod interval;
 pub mod log_message;
 pub mod logic_operator;
-pub mod loop_node;
 pub mod mqtt_publish;
 pub mod mqtt_subscribe;
 pub mod set_variable;

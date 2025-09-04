@@ -30,7 +30,6 @@ import { renderVarNode } from "./nodes/VarNode";
 import { renderCalcNode } from "./nodes/CalcNode";
 import { renderHttpNode } from "./nodes/HttpNode";
 import { formatConstantCase } from "@/lib/string";
-import { renderLoopNode } from "./nodes/LoopNode";
 import { renderLogicNode } from "./nodes/LogicNode";
 import { renderIntervalNode } from "./nodes/IntervalNode";
 import { renderMQTTNode } from "./nodes/MQTTNode";
@@ -78,7 +77,6 @@ export function Graph({
     LOG_MESSAGE: (g, d) => renderProcessingNode(g, d),
     CALCULATION: (g, d) => renderCalcNode(g, d, () => handleClickOption(d)),
     HTTP_REQUEST: (g, d) => renderHttpNode(g, d, () => handleClickOption(d)),
-    LOOP: (g, d) => renderLoopNode(g, d, () => handleClickOption(d)),
     INTERVAL: (g, d) => renderIntervalNode(g, d, () => handleClickOption(d)),
     LOGIC_OPERATOR: (g, d) => renderLogicNode(g, d, () => handleClickOption(d)),
     MQTT_PUBLISH: (g, d) => renderMQTTNode(g, d, () => handleClickOption(d)),
@@ -98,7 +96,7 @@ export function Graph({
     },
     {
       label: "Logic",
-      nodes: ["CALCULATION", "LOGIC_OPERATOR", "LOOP", "INTERVAL"],
+      nodes: ["CALCULATION", "LOGIC_OPERATOR", "INTERVAL"],
     },
     {
       label: "Communication",
