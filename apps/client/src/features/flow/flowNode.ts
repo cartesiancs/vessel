@@ -198,4 +198,34 @@ export const DEFINITION_NODE: {
       path: "STRING",
     },
   },
+  DECODE_H264: {
+    connectors: [
+      { id: `id`, name: "payload", type: "in" },
+      { id: `id`, name: "frame", type: "out" },
+    ],
+    nodeType: "DECODE_H264",
+    data: undefined,
+    dataType: undefined,
+  },
+  YOLO_DETECT: {
+    connectors: [
+      { id: `id`, name: "frame", type: "in" },
+      { id: `id`, name: "detections", type: "out" },
+    ],
+    nodeType: "YOLO_DETECT",
+    data: {
+      model_path: "assets/yolov8n.onnx",
+      labels_path: "assets/coco.names",
+      confidence_threshold: 0.5,
+      nms_threshold: 0.4,
+      input_size: 640,
+    },
+    dataType: {
+      model_path: "STRING",
+      labels_path: "STRING",
+      confidence_threshold: "NUMBER",
+      nms_threshold: "NUMBER",
+      input_size: "NUMBER",
+    },
+  },
 };

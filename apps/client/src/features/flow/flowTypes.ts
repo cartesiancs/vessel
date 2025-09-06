@@ -27,6 +27,8 @@ export type NodeTypes =
   | "RTP_STREAM_IN"
   | "BRANCH"
   | "JSON_SELECTOR"
+  | "DECODE_H264"
+  | "YOLO_DETECT"
   | "DECODE_OPUS";
 
 export type NumberNodeType = {
@@ -108,6 +110,14 @@ export type JsonSelectorNodeType = {
   path: string;
 };
 
+export type YoloDetectNodeType = {
+  model_path: string;
+  labels_path: string;
+  confidence_threshold: number;
+  nms_threshold: number;
+  input_size: number;
+};
+
 export type DataNodeType =
   | NumberNodeType
   | TextNodeType
@@ -123,6 +133,7 @@ export type DataNodeType =
   | TypeConverterNodeType
   | RtpStreamInNodeType
   | JsonSelectorNodeType
+  | YoloDetectNodeType
   | CalculationNodeType;
 
 export type DataNodeTypeType = Record<string, string>;

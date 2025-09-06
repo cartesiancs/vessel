@@ -47,6 +47,9 @@ ndarray = "0.15"
 image = "0.25"
 once_cell = "1.19"
 opus = "0.3"
+tract-onnx = "0.22"
+ffmpeg-next = "8.0.0"
+lazy_static = "1.5.0"
 
 [[bin]]
 name = "server"

@@ -1,4 +1,3 @@
--- Your SQL goes here
 
 CREATE TABLE map_layers (
     id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
@@ -15,7 +14,7 @@ CREATE TABLE map_layers (
 CREATE TABLE map_features (
     id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     layer_id INTEGER NOT NULL,
-    feature_type VARCHAR(10) NOT NULL CHECK(feature_type IN ('POINT', 'LINE', 'POLYGON')), -- 피처 유형: 점, 선, 공간(폴리곤)
+    feature_type VARCHAR(10) NOT NULL CHECK(feature_type IN ('POINT', 'LINE', 'POLYGON')), 
     name VARCHAR(255),
     style_properties TEXT,
     created_by_user_id INTEGER NOT NULL,
