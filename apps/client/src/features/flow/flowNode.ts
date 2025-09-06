@@ -156,7 +156,10 @@ export const DEFINITION_NODE: {
     },
   },
   RTP_STREAM_IN: {
-    connectors: [{ id: `id`, name: "payload", type: "out" }],
+    connectors: [
+      { id: `id`, name: "payload", type: "out" },
+      { id: `id`, name: "raw_packet", type: "out" },
+    ],
     nodeType: "RTP_STREAM_IN",
     data: {
       topic: "default/audio",
