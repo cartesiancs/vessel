@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import {
@@ -38,18 +38,27 @@ export function EntityUpdateButton({ entity }: Props) {
   const [isOpen, setIsOpen] = useState(false);
   const [jsonError, setJsonError] = useState<string | null>(null);
   const updateEntity = useEntityStore((state) => state.updateEntity);
-  const { register, handleSubmit, control } = useForm<EntityFormValues>({
-    defaultValues: {
-      entity_id: entity.entity_id,
-      device_id: entity.device_id,
-      friendly_name: entity.friendly_name ?? "",
-      platform: entity.platform ?? "",
-      entity_type: entity.entity_type ?? "",
-      configuration: entity.configuration
-        ? JSON.stringify(entity.configuration, null, 2)
-        : "",
-    },
-  });
+  const { register, handleSubmit, control, watch, setValue } =
+    useForm<EntityFormValues>({
+      defaultValues: {
+        entity_id: entity.entity_id,
+        device_id: entity.device_id,
+        friendly_name: entity.friendly_name ?? "",
+        platform: entity.platform ?? "",
+        entity_type: entity.entity_type ?? "",
+        configuration: entity.configuration
+          ? JSON.stringify(entity.configuration, null, 2)
+          : "",
+      },
+    });
+
+  const entityId = watch("entity_id");
+
+  useEffect(() => {
+    if (entityId && entityId.includes(" ")) {
+      setValue("entity_id", entityId.replace(/ /g, "-"));
+    }
+  }, [entityId, setValue]);
 
   const onSubmit = async (data: EntityFormValues) => {
     setJsonError(null);
