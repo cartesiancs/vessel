@@ -35,9 +35,9 @@ export function FlowPage() {
 
   return (
     <WebSocketProvider url={wsUrl || ""}>
-      <SidebarProvider>
+      <SidebarProvider className='h-full'>
         <AppSidebar />
-        <SidebarInset>
+        <SidebarInset className='h-full'>
           <header className='flex h-12 shrink-0 items-center gap-2 border-b px-4 justify-between'>
             <SidebarTrigger className='-ml-1' />
             <Separator
@@ -60,7 +60,7 @@ export function FlowPage() {
               <FlowHeader />
             </div>
           </header>
-          <div className='flex flex-1 flex-row'>
+          <div className='flex flex-1 flex-row h-[calc(100vh-48px)] overflow-hidden'>
             <FlowSidebar />
             <Flow />
           </div>
