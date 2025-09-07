@@ -90,6 +90,7 @@ export function Graph({
     BRANCH: (g, d) => renderProcessingNode(g, d),
     JSON_SELECTOR: (g, d) => renderButtonNode(g, d, () => handleClickOption(d)),
     YOLO_DETECT: (g, d) => renderButtonNode(g, d, () => handleClickOption(d)),
+    GST_DECODER: (g, d) => renderButtonNode(g, d, () => handleClickOption(d)),
   };
 
   const nodeGroups: NodeGroup[] = [
@@ -104,7 +105,7 @@ export function Graph({
         "TYPE_CONVERTER",
         "RTP_STREAM_IN",
         "DECODE_OPUS",
-        "DECODE_H264",
+        "GST_DECODER",
       ],
     },
     {

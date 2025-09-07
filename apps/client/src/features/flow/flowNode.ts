@@ -231,4 +231,14 @@ export const DEFINITION_NODE: {
       input_size: "NUMBER",
     },
   },
+  GST_DECODER: {
+    connectors: [{ id: "id", name: "frame", type: "out" }],
+    nodeType: "GST_DECODER",
+    data: {
+      topic: "go_video_stream_1",
+    },
+    dataType: {
+      topic: "STRING",
+    },
+  },
 };

@@ -29,6 +29,7 @@ export type NodeTypes =
   | "JSON_SELECTOR"
   | "DECODE_H264"
   | "YOLO_DETECT"
+  | "GST_DECODER"
   | "DECODE_OPUS";
 
 export type NumberNodeType = {
@@ -110,6 +111,10 @@ export type JsonSelectorNodeType = {
   path: string;
 };
 
+export type GstDecoderNodeType = {
+  topic: string;
+};
+
 export type YoloDetectNodeType = {
   model_path: string;
   labels_path: string;
@@ -134,6 +139,7 @@ export type DataNodeType =
   | RtpStreamInNodeType
   | JsonSelectorNodeType
   | YoloDetectNodeType
+  | GstDecoderNodeType
   | CalculationNodeType;
 
 export type DataNodeTypeType = Record<string, string>;

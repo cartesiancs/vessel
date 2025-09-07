@@ -14,6 +14,7 @@ use tracing::{error, info};
 use crate::flow::nodes::branch::BranchNode;
 use crate::flow::nodes::decode_h264::DecodeH264Node;
 use crate::flow::nodes::decode_opus::DecodeOpusNode;
+use crate::flow::nodes::gst_decoder::GstDecoderNode;
 use crate::flow::nodes::json_selector::JsonSelectorNode;
 use crate::flow::nodes::mqtt_publish::MqttPublishNode;
 use crate::flow::nodes::mqtt_subscribe::MqttSubscribeNode;
@@ -207,6 +208,10 @@ impl FlowEngine {
             "JSON_SELECTOR" => Ok(Box::new(JsonSelectorNode::new(&node.data)?)),
             "DECODE_H264" => Ok(Box::new(DecodeH264Node::new()?)),
             "YOLO_DETECT" => Ok(Box::new(YoloDetectNode::new(&node.data)?)),
+            "GST_DECODER" => Ok(Box::new(GstDecoderNode::new(
+                &node.data,
+                self.stream_manager.clone(),
+            )?)),
             _ => Err(anyhow!(
                 "Unknown or unimplemented node type: {}",
                 node.node_type
