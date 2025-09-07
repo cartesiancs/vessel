@@ -54,7 +54,7 @@ async fn main() -> Result<()> {
 
     let is_debug_mode = env::args().any(|arg| arg == "--debug");
 
-    let file_appender = tracing_appender::rolling::never("log", "app.log");
+    let file_appender = tracing_appender::rolling::daily("log", "app.log");
     let (non_blocking_writer, _guard) = tracing_appender::non_blocking(file_appender);
 
     let file_layer = fmt::layer()
