@@ -12,16 +12,19 @@ use tokio::time;
 use tracing::{error, info};
 
 use crate::flow::nodes::branch::BranchNode;
+use crate::flow::nodes::decode_h264::DecodeH264Node;
 use crate::flow::nodes::decode_opus::DecodeOpusNode;
+use crate::flow::nodes::gst_decoder::GstDecoderNode;
 use crate::flow::nodes::json_selector::JsonSelectorNode;
 use crate::flow::nodes::mqtt_publish::MqttPublishNode;
 use crate::flow::nodes::mqtt_subscribe::MqttSubscribeNode;
 use crate::flow::nodes::rtp_stream_in::RtpStreamInNode;
 use crate::flow::nodes::type_converter::TypeConverterNode;
+use crate::flow::nodes::yolo_detect::YoloDetectNode;
 use crate::flow::nodes::{
-    calc::CalcNode, condition::ConditionNode, http::HttpNode, interval::IntervalNode,
-    log_message::LogMessageNode, logic_operator::LogicOpetatorNode, set_variable::SetVariableNode,
-    start::StartNode, ExecutableNode,
+    calc::CalcNode, http::HttpNode, interval::IntervalNode, log_message::LogMessageNode,
+    logic_operator::LogicOpetatorNode, set_variable::SetVariableNode, start::StartNode,
+    ExecutableNode,
 };
 use crate::flow::types::{Graph, Node};
 use crate::state::MqttMessage;
@@ -174,7 +177,6 @@ impl FlowEngine {
         match node.node_type.as_str() {
             "START" => Ok(Box::new(StartNode)),
             "SET_VARIABLE" => Ok(Box::new(SetVariableNode::new(&node.data)?)),
-            "CONDITION" => Ok(Box::new(ConditionNode::new(&node.data)?)),
             "LOG_MESSAGE" => Ok(Box::new(LogMessageNode)),
             "CALCULATION" => Ok(Box::new(CalcNode::new(&node.data)?)),
             "HTTP_REQUEST" => Ok(Box::new(HttpNode::new(&node.data)?)),
@@ -204,7 +206,12 @@ impl FlowEngine {
             "DECODE_OPUS" => Ok(Box::new(DecodeOpusNode::new()?)),
             "BRANCH" => Ok(Box::new(BranchNode)),
             "JSON_SELECTOR" => Ok(Box::new(JsonSelectorNode::new(&node.data)?)),
-
+            "DECODE_H264" => Ok(Box::new(DecodeH264Node::new()?)),
+            "YOLO_DETECT" => Ok(Box::new(YoloDetectNode::new(&node.data)?)),
+            "GST_DECODER" => Ok(Box::new(GstDecoderNode::new(
+                &node.data,
+                self.stream_manager.clone(),
+            )?)),
             _ => Err(anyhow!(
                 "Unknown or unimplemented node type: {}",
                 node.node_type

@@ -31,7 +31,10 @@ export function EntityCreateButton() {
   const [isOpen, setIsOpen] = useState(false);
   const createEntity = useEntityStore((state) => state.createEntity);
   const selectedDevice = useDeviceStore((state) => state.selectedDevice);
-  const { register, handleSubmit, reset, control } = useForm<EntityPayload>();
+  const { register, handleSubmit, reset, watch, control, setValue } =
+    useForm<EntityPayload>();
+
+  const entityId = watch("entity_id");
 
   useEffect(() => {
     if (isOpen && selectedDevice) {
@@ -44,6 +47,23 @@ export function EntityCreateButton() {
       });
     }
   }, [isOpen, selectedDevice, reset]);
+
+  useEffect(() => {
+    if (entityId) {
+      const friendlyName = entityId
+        .split("-")
+        .filter(Boolean)
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(" ");
+      setValue("friendly_name", friendlyName);
+    }
+  }, [entityId, setValue]);
+
+  useEffect(() => {
+    if (entityId && entityId.includes(" ")) {
+      setValue("entity_id", entityId.replace(/ /g, "-"));
+    }
+  }, [entityId, setValue]);
 
   const onSubmit = async (data: EntityPayload) => {
     if (!selectedDevice) return;

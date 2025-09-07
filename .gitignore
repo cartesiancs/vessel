@@ -5,4 +5,5 @@ docs/.vitepress/cache
 .env
 database.db
 .DS_Store
+*.log.*
 *.log

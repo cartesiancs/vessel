@@ -5,6 +5,7 @@ use serde_json::{json, Value};
 use std::collections::HashMap;
 use tokio::{sync::mpsc, task::JoinHandle};
 use tracing::warn;
+use webrtc::util::Marshal;
 
 use super::{ExecutableNode, ExecutionResult};
 use crate::{
@@ -49,6 +50,9 @@ impl ExecutableNode for RtpStreamInNode {
         if let Some(payload) = inputs.get("payload") {
             outputs.insert("payload".to_string(), payload.clone());
         }
+        if let Some(raw_packet) = inputs.get("raw_packet") {
+            outputs.insert("raw_packet".to_string(), raw_packet.clone());
+        }
         Ok(ExecutionResult {
             outputs,
             ..Default::default()
@@ -90,9 +94,21 @@ impl ExecutableNode for RtpStreamInNode {
                             }
                         }
 
-                        let payload_base64 = base64::encode(&packet.payload);
+                        let payload_b64 = base64::encode(&packet.payload);
+
+                        let header_bytes = match packet.header.marshal() {
+                            Ok(bytes) => bytes,
+                            Err(_) => continue,
+                        };
+                        let mut raw_packet_bytes =
+                            Vec::with_capacity(header_bytes.len() + packet.payload.len());
+                        raw_packet_bytes.extend_from_slice(&header_bytes);
+                        raw_packet_bytes.extend_from_slice(&packet.payload);
+                        let raw_packet_b64 = base64::encode(&raw_packet_bytes);
+
                         let mut inputs = HashMap::new();
-                        inputs.insert("payload".to_string(), json!(payload_base64));
+                        inputs.insert("payload".to_string(), json!(payload_b64));
+                        inputs.insert("raw_packet".to_string(), json!(raw_packet_b64));
 
                         let cmd = TriggerCommand {
                             node_id: node_id.clone(),

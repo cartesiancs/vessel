@@ -156,7 +156,10 @@ export const DEFINITION_NODE: {
     },
   },
   RTP_STREAM_IN: {
-    connectors: [{ id: `id`, name: "payload", type: "out" }],
+    connectors: [
+      { id: `id`, name: "payload", type: "out" },
+      { id: `id`, name: "raw_packet", type: "out" },
+    ],
     nodeType: "RTP_STREAM_IN",
     data: {
       topic: "default/audio",
@@ -196,6 +199,46 @@ export const DEFINITION_NODE: {
     },
     dataType: {
       path: "STRING",
+    },
+  },
+  DECODE_H264: {
+    connectors: [
+      { id: `id`, name: "payload", type: "in" },
+      { id: `id`, name: "frame", type: "out" },
+    ],
+    nodeType: "DECODE_H264",
+    data: undefined,
+    dataType: undefined,
+  },
+  YOLO_DETECT: {
+    connectors: [
+      { id: `id`, name: "frame", type: "in" },
+      { id: `id`, name: "detections", type: "out" },
+    ],
+    nodeType: "YOLO_DETECT",
+    data: {
+      model_path: "assets/yolov8n.onnx",
+      labels_path: "assets/coco.names",
+      confidence_threshold: 0.5,
+      nms_threshold: 0.4,
+      input_size: 640,
+    },
+    dataType: {
+      model_path: "STRING",
+      labels_path: "STRING",
+      confidence_threshold: "NUMBER",
+      nms_threshold: "NUMBER",
+      input_size: "NUMBER",
+    },
+  },
+  GST_DECODER: {
+    connectors: [{ id: "id", name: "frame", type: "out" }],
+    nodeType: "GST_DECODER",
+    data: {
+      topic: "go_video_stream_1",
+    },
+    dataType: {
+      topic: "STRING",
     },
   },
 };

@@ -35,8 +35,9 @@ pub trait ExecutableNode: Send + Sync {
 
 pub mod branch;
 pub mod calc;
-pub mod condition;
+pub mod decode_h264;
 pub mod decode_opus;
+pub mod gst_decoder;
 pub mod http;
 pub mod interval;
 pub mod json_selector;
@@ -48,3 +49,4 @@ pub mod rtp_stream_in;
 pub mod set_variable;
 pub mod start;
 pub mod type_converter;
+pub mod yolo_detect;

@@ -178,7 +178,7 @@ export function FlowSidebar() {
   };
 
   return (
-    <aside className='w-84 border-r bg-card text-card-foreground p-4 flex flex-col'>
+    <aside className='w-84 border-r bg-card text-card-foreground p-4 flex flex-col overflow-scroll'>
       <div className='flex items-center justify-between mb-4'>
         <h2 className='mb-1 text-lg font-semibold tracking-tight'>Files</h2>
         <div className='flex items-center'>
@@ -220,7 +220,7 @@ export function FlowSidebar() {
           </Dialog>
         </div>
       </div>
-      <div className='flex-1 overflow-y-auto -mr-4 pr-4'>
+      <div className='flex-1 overflow-y-auto -mr-4 pr-4 '>
         <div className='flex flex-col gap-1'>
           {flows.map((flow) => (
             <div

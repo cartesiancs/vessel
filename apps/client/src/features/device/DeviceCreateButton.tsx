@@ -51,11 +51,11 @@ export function DeviceCreateButton() {
             <Input id='name' {...register("name")} />
           </div>
           <div className='space-y-2'>
-            <Label htmlFor='manufacturer'>Manufacturer</Label>
+            <Label htmlFor='manufacturer'>Manufacturer (optional)</Label>
             <Input id='manufacturer' {...register("manufacturer")} />
           </div>
           <div className='space-y-2'>
-            <Label htmlFor='model'>Model</Label>
+            <Label htmlFor='model'>Model (optional)</Label>
             <Input id='model' {...register("model")} />
           </div>
           <DialogFooter>

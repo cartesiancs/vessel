@@ -85,8 +85,12 @@ export function Graph({
       renderButtonNode(g, d, () => handleClickOption(d)),
     RTP_STREAM_IN: (g, d) => renderButtonNode(g, d, () => handleClickOption(d)),
     DECODE_OPUS: (g, d) => renderProcessingNode(g, d),
+    DECODE_H264: (g, d) => renderProcessingNode(g, d),
+
     BRANCH: (g, d) => renderProcessingNode(g, d),
     JSON_SELECTOR: (g, d) => renderButtonNode(g, d, () => handleClickOption(d)),
+    YOLO_DETECT: (g, d) => renderButtonNode(g, d, () => handleClickOption(d)),
+    GST_DECODER: (g, d) => renderButtonNode(g, d, () => handleClickOption(d)),
   };
 
   const nodeGroups: NodeGroup[] = [
@@ -96,7 +100,13 @@ export function Graph({
     },
     {
       label: "Data",
-      nodes: ["SET_VARIABLE", "TYPE_CONVERTER", "RTP_STREAM_IN", "DECODE_OPUS"],
+      nodes: [
+        "SET_VARIABLE",
+        "TYPE_CONVERTER",
+        "RTP_STREAM_IN",
+        "DECODE_OPUS",
+        "GST_DECODER",
+      ],
     },
     {
       label: "Logic",
@@ -111,6 +121,10 @@ export function Graph({
     {
       label: "Communication",
       nodes: ["HTTP_REQUEST", "MQTT_PUBLISH", "MQTT_SUBSCRIBE"],
+    },
+    {
+      label: "AI/ML",
+      nodes: ["YOLO_DETECT"],
     },
   ];
 
