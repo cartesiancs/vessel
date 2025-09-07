@@ -18,6 +18,7 @@ use crate::{
     flow::manager_state::FlowManagerActor,
     initial::{create_initial_admin, create_initial_configurations},
     lib::{entity_map::remap_topics, stream_checker::stream_status_checker},
+    logo::print_logo,
     routes::web_server,
     rtp::rtp_receiver,
     state::{AppState, FrameData, MqttMessage, StreamInfo, StreamManager},
@@ -35,6 +36,7 @@ pub mod db;
 pub mod error;
 pub mod flow;
 pub mod lib;
+pub mod logo;
 pub mod rtsp;
 
 pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("./migrations");
@@ -119,6 +121,8 @@ async fn main() -> Result<()> {
         app_state.clone(),
         shutdown_rx.clone(),
     ));
+
+    print_logo();
 
     let mut mqtt_client_for_flow: Option<AsyncClient> = None;
 
