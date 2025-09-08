@@ -111,6 +111,29 @@ diesel::table! {
 }
 
 diesel::table! {
+    permissions (id) {
+        id -> Nullable<Integer>,
+        name -> Text,
+        description -> Nullable<Text>,
+    }
+}
+
+diesel::table! {
+    role_permissions (role_id, permission_id) {
+        role_id -> Integer,
+        permission_id -> Integer,
+    }
+}
+
+diesel::table! {
+    roles (id) {
+        id -> Nullable<Integer>,
+        name -> Text,
+        description -> Nullable<Text>,
+    }
+}
+
+diesel::table! {
     states (state_id) {
         state_id -> Integer,
         metadata_id -> Nullable<Integer>,
@@ -142,6 +165,13 @@ diesel::table! {
 }
 
 diesel::table! {
+    user_roles (user_id, role_id) {
+        user_id -> Integer,
+        role_id -> Integer,
+    }
+}
+
+diesel::table! {
     users (id) {
         id -> Integer,
         username -> Text,
@@ -160,7 +190,11 @@ diesel::joinable!(map_features -> map_layers (layer_id));
 diesel::joinable!(map_features -> users (created_by_user_id));
 diesel::joinable!(map_layers -> users (owner_user_id));
 diesel::joinable!(map_vertices -> map_features (feature_id));
+diesel::joinable!(role_permissions -> permissions (permission_id));
+diesel::joinable!(role_permissions -> roles (role_id));
 diesel::joinable!(states -> states_meta (metadata_id));
+diesel::joinable!(user_roles -> roles (role_id));
+diesel::joinable!(user_roles -> users (user_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
     device_tokens,
@@ -173,8 +207,12 @@ diesel::allow_tables_to_appear_in_same_query!(
     map_features,
     map_layers,
     map_vertices,
+    permissions,
+    role_permissions,
+    roles,
     states,
     states_meta,
     system_configurations,
+    user_roles,
     users,
 );
