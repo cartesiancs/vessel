@@ -11,6 +11,7 @@ pub mod permissions;
 pub mod roles;
 pub mod stat;
 pub mod state;
+pub mod storage;
 pub mod streams;
 pub mod users;
 pub mod ws;

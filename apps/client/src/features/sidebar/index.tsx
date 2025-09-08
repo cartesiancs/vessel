@@ -27,6 +27,7 @@ import {
   Blocks,
   CircleDashed,
   Shield,
+  Code,
 } from "lucide-react";
 import { NavFooter } from "./footer";
 import { isElectron } from "@/lib/electron";
@@ -83,7 +84,7 @@ const data = {
         {
           title: "Code",
           url: "/code",
-          icon: <Key />,
+          icon: <Code />,
         },
       ],
     },
