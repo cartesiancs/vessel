@@ -32,6 +32,7 @@ import {
 import { cn } from "@/lib/utils";
 import { MapVertex, UpdateFeaturePayload } from "@/entities/map/types";
 import { calculateFeatureGeometry } from "@/lib/geometry-precision";
+import { useMapStore } from "./store";
 
 const FeatureIcon = ({ type }: { type: string }) => {
   switch (type) {
@@ -47,6 +48,8 @@ const FeatureIcon = ({ type }: { type: string }) => {
 };
 
 export function FeatureDetailsPanel() {
+  const { selectedEntity } = useMapStore();
+
   const { selectedFeature, setSelectedFeature } = useMapInteractionStore();
   const { removeFeature, updateFeature } = useMapDataStore();
 
@@ -104,7 +107,8 @@ export function FeatureDetailsPanel() {
     <>
       <div
         className={cn(
-          "absolute top-[48px] right-0 h-[calc(100%-48px)] p-4 transition-transform duration-300 ease-in-out z-[1001]",
+          "absolute top-[48px] h-[calc(100%-48px)] p-4 transition-all duration-300 ease-in-out z-[1001]",
+          selectedEntity ? "right-[400px]" : "right-0",
           selectedFeature ? "translate-x-0" : "translate-x-full",
         )}
         style={{ width: "400px" }}

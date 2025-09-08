@@ -26,6 +26,8 @@ import {
   Map,
   Blocks,
   CircleDashed,
+  Shield,
+  Code,
 } from "lucide-react";
 import { NavFooter } from "./footer";
 import { isElectron } from "@/lib/electron";
@@ -76,6 +78,17 @@ const data = {
       ],
     },
     {
+      title: "Services",
+      url: "#",
+      items: [
+        {
+          title: "Code",
+          url: "/code",
+          icon: <Code />,
+        },
+      ],
+    },
+    {
       title: "Setting",
       url: "#",
       items: [
@@ -83,6 +96,11 @@ const data = {
           title: "Users",
           url: "/users",
           icon: <UserCog />,
+        },
+        {
+          title: "Roles",
+          url: "/roles",
+          icon: <Shield />,
         },
         {
           title: "Integration",

@@ -18,21 +18,21 @@
 
 ![banner](./.github/banner.png)
 
-Vessel is the **C2 (Command & Control) software**. It empowers you to connect, monitor, and orchestrate a wide array of physical sensors through an intuitive, visual flow-based interface.
+Vessel is the **C2 (Command & Control) software** for connecting, monitoring, and orchestrating arrays of physical sensors via an intuitive, visual flow-based interface.
 
 This project is to build a "proactive security system". To achieve this, the following three functions are necessary:
 
-1. Physical device **Connection**
-2. Threat **Detect**
-3. Device **Control**
+1. **Connect** to Physical Device
+2. **Detect** Threats
+3. **Control** and Respond
 
 This project solves the problems with existing **home security systems**. Current systems fail to protect against burglaries, trespassing, theft—and even war.
 
 So we plan to open-source the technology used in existing defense systems.
 
-We are developing "surveillance technology" and "active drone control systems" that have been used for border defense. And if humanoid technology is perfected, we will apply that as well.
+This system allows you to analyze video and audio sources with AI/ML technology. And automate actions through Flow-based operations. The Flow provides the flexibility to select multiple AI models and connect them directly to stream sources.
 
-When everything is implemented, individuals will be able to create a medieval-level army.
+When everything is implemented, individuals will be able to protect themselves from any threats.
 
 > [!NOTE]
 > 🚧 <strong>This project is under active development.</strong> Some features may be unstable or subject to change without notice.
@@ -40,11 +40,12 @@ When everything is implemented, individuals will be able to create a medieval-le
 ## Features
 
 - Connect all sensers (MQTT, RTP, RTSP, ...)
-- RTP Audio Streaming
+- RTP Audio & Video Streaming
 - RTSP Video Streaming
 - Flow Visual Logic
 - Publish MQTT with Flow
 - Map based UI
+- Home Assistant Integration
 
 ## Develop
 

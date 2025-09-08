@@ -8,6 +8,7 @@ import {
 } from "@/entities/user/types";
 import { Label } from "@radix-ui/react-label";
 import { FC, useState } from "react";
+import { UserRoleAssigner } from "./UserRoleAssigner";
 
 interface UserFormProps {
   user?: User;
@@ -81,6 +82,18 @@ export const UserForm: FC<UserFormProps> = ({
             className='col-span-3'
           />
         </div>
+        {user && (
+          <div className='grid grid-cols-4 items-center gap-4'>
+            <Label htmlFor='password' className='text-right'>
+              Roles
+            </Label>
+            <UserRoleAssigner
+              userId={user?.id || null}
+              initialRoles={user?.roles || []}
+            />
+          </div>
+        )}
+
         {error && (
           <p className='text-sm text-destructive col-span-4 text-center'>
             {error}

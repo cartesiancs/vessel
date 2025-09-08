@@ -3,6 +3,7 @@ use crate::{
     flow::{
         engine::{FlowController, FlowEngine},
         types::Graph,
+        BinaryStore,
     },
     state::{DbPool, MqttMessage, StreamManager},
 };
@@ -42,6 +43,7 @@ pub struct FlowManagerActor {
     mqtt_client: Option<AsyncClient>,
     mqtt_tx: broadcast::Sender<MqttMessage>,
     stream_manager: StreamManager,
+    binary_store: BinaryStore,
 }
 
 impl FlowManagerActor {
@@ -57,6 +59,7 @@ impl FlowManagerActor {
             mqtt_client,
             mqtt_tx,
             stream_manager,
+            binary_store: BinaryStore::new(),
         }
     }
 
@@ -77,6 +80,7 @@ impl FlowManagerActor {
                         graph,
                         Some(self.mqtt_tx.clone()),
                         self.stream_manager.clone(),
+                        self.binary_store.clone(),
                     ) {
                         Ok(engine) => {
                             let engine = Arc::new(engine);

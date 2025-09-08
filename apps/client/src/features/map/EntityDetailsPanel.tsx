@@ -8,9 +8,14 @@ import {
 } from "@/components/ui/card";
 import { X, MapPin, TabletSmartphone, Server } from "lucide-react";
 import { useMapStore } from "./store";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { getDeviceById } from "@/entities/device/api";
-import { Entity } from "@/entities/entity/types";
+import { EntityAll } from "@/entities/entity/types";
+import { EntityCard } from "../entity/Card";
+import { useWebSocket, useWebSocketMessage } from "../ws/WebSocketProvider";
+import { WebSocketMessage } from "../ws/ws";
+import { ChangeStatePayload, StreamState } from "../entity/AllEntities";
+import * as api from "../../entities/entity/api";
 
 export function EntityDetailsPanel() {
   const { selectedEntity, setSelectedEntity } = useMapStore();
@@ -19,7 +24,72 @@ export function EntityDetailsPanel() {
     model: "",
     manufacturer: "",
   });
-  const [entities, setEntities] = useState<Entity[]>([]);
+  const [entities, setEntities] = useState<EntityAll[]>([]);
+  const [streamsState, setStreamsState] = useState<StreamState[]>([]);
+  const { wsManager, isConnected } = useWebSocket();
+
+  const getAllEntities = async () => {
+    try {
+      const response = await api.getAllEntities();
+      setEntities(response.data);
+    } catch (error) {
+      console.error("Failed to fetch all entities:", error);
+    }
+  };
+
+  const handleMessage = useCallback(
+    (msg: WebSocketMessage) => {
+      try {
+        if (msg.type === "stream_state") {
+          const loads = msg.payload as StreamState[];
+          setStreamsState(loads);
+        }
+
+        if (msg.type == "change_state") {
+          const index = entities.findIndex((item) => {
+            return (
+              item.entity_id == (msg.payload as ChangeStatePayload).entity_id
+            );
+          });
+
+          if (index == -1) {
+            return false;
+          }
+
+          if (entities[index].state) {
+            entities[index].state = (msg.payload as ChangeStatePayload).state;
+
+            setEntities([...entities]);
+          }
+        }
+      } catch (err) {
+        console.error("Error handling signaling message:", err);
+      }
+    },
+    [entities],
+  );
+
+  useEffect(() => {
+    if (wsManager && isConnected) {
+      wsManager.send({
+        type: "get_all_stream_state",
+        payload: {},
+      });
+
+      setInterval(() => {
+        wsManager.send({
+          type: "get_all_stream_state",
+          payload: {},
+        });
+      }, 5000);
+    }
+  }, [wsManager, isConnected]);
+
+  useWebSocketMessage(handleMessage);
+
+  useEffect(() => {
+    getAllEntities();
+  }, []);
 
   const handleClose = () => {
     setSelectedEntity(null);
@@ -142,7 +212,9 @@ export function EntityDetailsPanel() {
                 <h4 className='font-semibold text-sm mb-2'>
                   Entity: {item.friendly_name}
                 </h4>
-                <pre className='text-xs p-3 bg-muted rounded-md overflow-auto'>
+                <EntityCard item={item} streamsState={streamsState} />
+
+                <pre className='text-xs p-3 bg-muted rounded-md overflow-auto mt-2'>
                   {JSON.stringify(item, null, 2)}
                 </pre>
               </div>

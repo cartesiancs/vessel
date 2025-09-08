@@ -7,10 +7,11 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::Read;
 use tract_ndarray::s;
-use tract_onnx::prelude::*;
+use tract_onnx::{prelude::*, tract_core::downcast_rs::Downcast};
+use uuid::Uuid;
 
 use super::{ExecutableNode, ExecutionResult};
-use crate::flow::engine::ExecutionContext;
+use crate::flow::{engine::ExecutionContext, BinaryStore};
 
 type Model = TypedRunnableModel<Graph<TypedFact, Box<dyn TypedOp>>>;
 
@@ -37,6 +38,7 @@ pub struct YoloDetectNode {
     data: YoloDetectData,
     model: Model,
     labels: Vec<String>,
+    binary_store: BinaryStore,
 }
 
 fn nms(boxes: &mut Vec<BBox>, threshold: f32) {
@@ -70,7 +72,7 @@ fn nms(boxes: &mut Vec<BBox>, threshold: f32) {
 }
 
 impl YoloDetectNode {
-    pub fn new(node_data: &Value) -> Result<Self> {
+    pub fn new(node_data: &Value, binary_store: BinaryStore) -> Result<Self> {
         let data: YoloDetectData = serde_json::from_value(node_data.clone())?;
         let model_input_size = data.input_size as i64;
         let model = tract_onnx::onnx()
@@ -92,6 +94,7 @@ impl YoloDetectNode {
             data,
             model,
             labels,
+            binary_store,
         })
     }
 }
@@ -100,17 +103,21 @@ impl YoloDetectNode {
 impl ExecutableNode for YoloDetectNode {
     async fn execute(
         &self,
-        _context: &mut ExecutionContext,
+        _: &mut ExecutionContext,
         inputs: HashMap<String, Value>,
     ) -> Result<ExecutionResult> {
         let frame_value = inputs
             .get("frame")
             .ok_or_else(|| anyhow!("'frame' input missing"))?;
+        if frame_value.get("type").and_then(|v| v.as_str()) != Some("binary_pointer") {
+            return Err(anyhow!("Expected 'binary_pointer' but got something else"));
+        }
 
-        let rgb_data_b64 = frame_value
-            .get("rgb_data")
+        let frame_id_str = frame_value
+            .get("id")
             .and_then(|v| v.as_str())
-            .ok_or_else(|| anyhow!("'rgb_data' missing"))?;
+            .ok_or_else(|| anyhow!("'id' missing in binary_pointer"))?;
+        let frame_id = Uuid::parse_str(frame_id_str)?;
         let width = frame_value
             .get("width")
             .and_then(|v| v.as_u64())
@@ -119,15 +126,17 @@ impl ExecutableNode for YoloDetectNode {
             .get("height")
             .and_then(|v| v.as_u64())
             .ok_or_else(|| anyhow!("'height' missing"))? as u32;
+        let rgb_data = self
+            .binary_store
+            .remove(&frame_id)
+            .ok_or_else(|| anyhow!("Frame with id '{}' not found or already consumed", frame_id))?;
 
-        let rgb_data = base64::decode(rgb_data_b64)?;
         let img = RgbImage::from_raw(width, height, rgb_data)
             .ok_or_else(|| anyhow!("Failed to create RgbImage from raw data"))?;
 
         let input_size = self.data.input_size;
         let resized_img =
             imageops::resize(&img, input_size, input_size, imageops::FilterType::Triangle);
-
         let tensor: Tensor = tract_ndarray::Array4::from_shape_fn(
             (1, 3, input_size as usize, input_size as usize),
             |(_, c, y, x)| resized_img.get_pixel(x as u32, y as u32)[c] as f32 / 255.0,
@@ -136,7 +145,6 @@ impl ExecutableNode for YoloDetectNode {
 
         let result = self.model.run(tvec!(tensor.into()))?;
         let output = result[0].to_array_view::<f32>()?;
-
         let mut bboxes = Vec::new();
         let outputs = output.slice(s![0, .., ..]).permuted_axes([1, 0]);
 
@@ -171,27 +179,11 @@ impl ExecutableNode for YoloDetectNode {
                 class_id,
             });
         }
-
         nms(&mut bboxes, self.data.nms_threshold);
-
-        let detections: Vec<Value> = bboxes
-            .into_iter()
-            .map(|b| {
-                json!({
-                    "class": self.labels.get(b.class_id).map_or("unknown", |s| s.as_str()),
-                    "confidence": b.confidence,
-                    "box": { "x1": b.x1, "y1": b.y1, "x2": b.x2, "y2": b.y2 }
-                })
-            })
-            .collect();
-
-        if !detections.is_empty() {
-            println!("Detections found: {:?}", detections);
-        }
+        let detections: Vec<Value> = bboxes.into_iter().map(|b| { json!({ "class": self.labels.get(b.class_id).map_or("unknown", |s| s.as_str()), "confidence": b.confidence, "box": { "x1": b.x1, "y1": b.y1, "x2": b.x2, "y2": b.y2 } }) }).collect();
 
         let mut outputs_map = HashMap::new();
         outputs_map.insert("detections".to_string(), json!(detections));
-
         Ok(ExecutionResult {
             outputs: outputs_map,
             ..Default::default()
