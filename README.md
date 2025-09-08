@@ -30,9 +30,7 @@ This project solves the problems with existing **home security systems**. Curren
 
 So we plan to open-source the technology used in existing defense systems.
 
-We are developing "surveillance technology" and "active drone control systems" that have been used for border defense. And if humanoid technology is perfected, we will apply that as well.
-
-When everything is implemented, individuals will be able to create a medieval-level army.
+When everything is implemented, individuals will be able to protect themselves from any threats.
 
 > [!NOTE]
 > 🚧 <strong>This project is under active development.</strong> Some features may be unstable or subject to change without notice.
