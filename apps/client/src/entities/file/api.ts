@@ -26,3 +26,11 @@ export const updateFileContent = async (
 ): Promise<void> => {
   await apiClient.put(`/storage/${path}`, { content });
 };
+
+export const createNewFolder = async (path: string): Promise<void> => {
+  await apiClient.post(`/storage/mkdir/${path}`);
+};
+
+export const createNewFile = async (path: string): Promise<void> => {
+  await apiClient.put(`/storage/${path}`, { content: "" });
+};

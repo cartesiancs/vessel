@@ -3,6 +3,17 @@ import { IdeState } from "./types";
 import { getFileContent, updateFileContent } from "./api";
 import { toast } from "sonner";
 
+export interface FileTreeState {
+  treeVersion: number;
+  refreshFileTree: () => void;
+}
+
+export const useFileTreeStore = create<FileTreeState>((set) => ({
+  treeVersion: 0,
+  refreshFileTree: () =>
+    set((state) => ({ treeVersion: state.treeVersion + 1 })),
+}));
+
 export const useIdeStore = create<IdeState>((set, get) => ({
   activeFilePath: null,
   activeFileContent: "",

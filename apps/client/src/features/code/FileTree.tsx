@@ -1,9 +1,22 @@
 import React, { useState, useEffect } from "react";
-import { ChevronRight, Folder, File as FileIcon, Loader2 } from "lucide-react";
-import { getDirectoryListing } from "@/entities/file/api";
+import {
+  ChevronRight,
+  Folder,
+  File as FileIcon,
+  Loader2,
+  FolderPlus,
+  FilePlus,
+} from "lucide-react";
+import {
+  getDirectoryListing,
+  createNewFile,
+  createNewFolder,
+} from "@/entities/file/api";
 import { toast } from "sonner";
-import { useIdeStore } from "@/entities/file/store";
+import { Button } from "@/components/ui/button";
+import { useFileTreeStore, useIdeStore } from "@/entities/file/store";
 import { DirEntry } from "@/entities/file/types";
+import { CreateItemDialog } from "./CreateItemDialog";
 
 interface TreeNodeProps {
   entry: DirEntry;
@@ -14,6 +27,20 @@ const TreeNode: React.FC<TreeNodeProps> = ({ entry }) => {
   const [children, setChildren] = useState<DirEntry[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const openFile = useIdeStore((state) => state.openFile);
+  //const refreshFileTree = useFileTreeStore((state) => state.refreshFileTree);
+  const treeVersion = useFileTreeStore((state) => state.treeVersion);
+
+  const fetchChildren = async () => {
+    setIsLoading(true);
+    try {
+      const childEntries = await getDirectoryListing(entry.path);
+      setChildren(childEntries);
+    } catch {
+      toast.error(`Failed to load directory: ${entry.name}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleToggle = async () => {
     if (!entry.isDir) {
@@ -24,18 +51,18 @@ const TreeNode: React.FC<TreeNodeProps> = ({ entry }) => {
     if (isOpen) {
       setIsOpen(false);
     } else {
-      setIsLoading(true);
-      try {
-        const childEntries = await getDirectoryListing(entry.path);
-        setChildren(childEntries);
-        setIsOpen(true);
-      } catch (error) {
-        toast.error("Failed to load directory." + error);
-      } finally {
-        setIsLoading(false);
+      setIsOpen(true);
+      if (children.length === 0) {
+        await fetchChildren();
       }
     }
   };
+
+  useEffect(() => {
+    if (isOpen && entry.isDir) {
+      fetchChildren();
+    }
+  }, [treeVersion, isOpen, entry.isDir, entry.path]);
 
   const Icon = entry.isDir ? Folder : FileIcon;
 
@@ -72,30 +99,74 @@ const TreeNode: React.FC<TreeNodeProps> = ({ entry }) => {
 export const FileTree = () => {
   const [rootEntries, setRootEntries] = useState<DirEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [dialogOpen, setDialogOpen] = useState<"file" | "folder" | null>(null);
+
+  const { treeVersion, refreshFileTree } = useFileTreeStore();
+
+  const fetchRoot = async () => {
+    setIsLoading(true);
+    try {
+      const entries = await getDirectoryListing("");
+      setRootEntries(entries);
+    } catch {
+      toast.error("Failed to load root directory.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchRoot = async () => {
-      try {
-        const entries = await getDirectoryListing(".");
-        setRootEntries(entries);
-      } catch (error) {
-        toast.error("Failed to load root directory." + error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
     fetchRoot();
-  }, []);
+  }, [treeVersion]);
 
-  if (isLoading) {
-    return <div className='p-4 text-sm'>Loading project...</div>;
-  }
+  const handleCreate = async (name: string, type: "file" | "folder") => {
+    try {
+      if (type === "file") {
+        await createNewFile(name);
+      } else {
+        await createNewFolder(name);
+      }
+      toast.success(`${type} '${name}' created successfully.`);
+      refreshFileTree();
+    } catch {
+      toast.error(`Failed to create ${type}.`);
+    }
+  };
 
   return (
     <div className='p-2'>
-      {rootEntries.map((entry) => (
-        <TreeNode key={entry.path} entry={entry} />
-      ))}
+      <div className='flex items-center justify-between mb-2'>
+        <p className='font-bold text-sm'>Project</p>
+        <div className='flex items-center gap-1'>
+          <Button
+            variant='ghost'
+            size='icon'
+            onClick={() => setDialogOpen("folder")}
+          >
+            <FolderPlus className='w-4 h-4' />
+          </Button>
+          <Button
+            variant='ghost'
+            size='icon'
+            onClick={() => setDialogOpen("file")}
+          >
+            <FilePlus className='w-4 h-4' />
+          </Button>
+        </div>
+      </div>
+
+      {isLoading ? (
+        <div className='p-4 text-sm'>Loading project...</div>
+      ) : (
+        rootEntries.map((entry) => <TreeNode key={entry.path} entry={entry} />)
+      )}
+
+      <CreateItemDialog
+        isOpen={dialogOpen !== null}
+        onClose={() => setDialogOpen(null)}
+        itemType={dialogOpen || "file"}
+        onCreate={(name) => handleCreate(name, dialogOpen!)}
+      />
     </div>
   );
 };
