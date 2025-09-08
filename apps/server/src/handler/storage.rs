@@ -84,20 +84,22 @@ fn map_io_error(e: io::Error, path_str: &str) -> Response {
     (status, Json(ErrorResponse { error: msg })).into_response()
 }
 
-pub async fn read_handler(AuthUser(_user): AuthUser, Path(path): Path<String>) -> Response {
+pub async fn read_handler(AuthUser(_user): AuthUser, path: Option<Path<String>>) -> Response {
+    let path_str = path.map_or(String::new(), |p| p.0);
+
     let storage_root = match get_storage_root() {
         Ok(r) => r,
-        Err(e) => return map_io_error(e, &path),
+        Err(e) => return map_io_error(e, &path_str),
     };
-    let safe_path = match get_safe_path(&storage_root, &path) {
+    let safe_path = match get_safe_path(&storage_root, &path_str) {
         Ok(p) => p,
-        Err(e) => return map_io_error(e, &path),
+        Err(e) => return map_io_error(e, &path_str),
     };
 
     if safe_path.is_dir() {
-        list_dir_contents(&safe_path, &path).await
+        list_dir_contents(&safe_path, &path_str).await
     } else {
-        read_file_content(&safe_path, &path).await
+        read_file_content(&safe_path, &path_str).await
     }
 }
 

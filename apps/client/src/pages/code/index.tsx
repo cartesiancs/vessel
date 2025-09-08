@@ -6,12 +6,19 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import {
+  ResizablePanelGroup,
+  ResizablePanel,
+  ResizableHandle,
+} from "@/components/ui/resizable";
 import { Separator } from "@/components/ui/separator";
 import {
   SidebarInset,
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import { FileEditor } from "@/features/code/FileEditor";
+import { FileTree } from "@/features/code/FileTree";
 import { AppSidebar } from "@/features/sidebar";
 
 export function CodePage() {
@@ -37,7 +44,19 @@ export function CodePage() {
             </BreadcrumbList>
           </Breadcrumb>
         </header>
-        <main className='flex-1 overflow-y-auto p-4 md:p-6'></main>
+        <main className='flex-1 overflow-y-auto'>
+          <ResizablePanelGroup direction='horizontal' className='w-full h-full'>
+            <ResizablePanel defaultSize={20} minSize={15}>
+              <div className='h-full overflow-y-auto'>
+                <FileTree />
+              </div>
+            </ResizablePanel>
+            <ResizableHandle withHandle />
+            <ResizablePanel defaultSize={80}>
+              <FileEditor />
+            </ResizablePanel>
+          </ResizablePanelGroup>
+        </main>
       </SidebarInset>
     </SidebarProvider>
   );

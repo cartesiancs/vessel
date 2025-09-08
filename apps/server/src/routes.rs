@@ -165,6 +165,12 @@ pub async fn web_server(
         .route("/ha/states", get(ha::get_all_states))
         .route("/ha/states/:entity_id", post(ha::post_state))
         .route(
+            "/storage/",
+            get(storage::read_handler)
+                .put(storage::create_or_update_file_handler)
+                .delete(storage::delete_handler),
+        )
+        .route(
             "/storage/*path",
             get(storage::read_handler)
                 .put(storage::create_or_update_file_handler)
