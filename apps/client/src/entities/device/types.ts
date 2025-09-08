@@ -1,4 +1,4 @@
-import { Entity } from "../entity/types";
+import { EntityAll } from "../entity/types";
 
 export interface Device {
   id: number;
@@ -14,7 +14,7 @@ export interface DeviceWithEntity {
   name: string | null;
   manufacturer: string | null;
   model: string | null;
-  entities: Entity[];
+  entities: EntityAll[];
 }
 
 export type DevicePayload = Omit<Device, "id">;

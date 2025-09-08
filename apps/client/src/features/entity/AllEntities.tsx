@@ -5,12 +5,12 @@ import { useWebSocket, useWebSocketMessage } from "../ws/WebSocketProvider";
 import { WebSocketMessage } from "../ws/ws";
 import { EntityCard } from "./Card";
 
-type StreamState = {
+export type StreamState = {
   topic: string;
   is_online: boolean;
 };
 
-type ChangeStatePayload = {
+export type ChangeStatePayload = {
   entity_id: string;
   state: State;
 };

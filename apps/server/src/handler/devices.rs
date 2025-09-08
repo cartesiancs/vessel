@@ -1,8 +1,19 @@
-use std::sync::Arc;
-use axum::{extract::{State, Path}, Json};
+use crate::{
+    db::{
+        self,
+        models::{Device, Entity, EntityWithStateAndConfig, NewDevice},
+    },
+    error::AppError,
+    handler::auth::AuthUser,
+    state::AppState,
+};
+use axum::{
+    extract::{Path, State},
+    Json,
+};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-use crate::{db::{self, models::{Device, Entity, NewDevice}}, error::AppError, handler::auth::AuthUser, state::AppState};
+use std::sync::Arc;
 
 #[derive(Deserialize)]
 pub struct DevicePayload {
@@ -16,7 +27,7 @@ pub struct DevicePayload {
 pub struct DeviceWithEntities {
     #[serde(flatten)]
     device: Device,
-    entities: Vec<Entity>,
+    entities: Vec<EntityWithStateAndConfig>,
 }
 
 pub async fn create_device(
@@ -45,15 +56,12 @@ pub async fn get_devices(
 pub async fn get_device(
     State(state): State<Arc<AppState>>,
     AuthUser(_user): AuthUser,
-    Path(device_pk_id): Path<i32>, 
+    Path(device_pk_id): Path<i32>,
 ) -> Result<Json<DeviceWithEntities>, AppError> {
     let device = db::repository::get_device_by_id(&state.pool, device_pk_id)?;
     let entities = db::repository::get_entities_by_device_id(&state.pool, device.id)?;
 
-    let response = DeviceWithEntities {
-        device,
-        entities,
-    };
+    let response = DeviceWithEntities { device, entities };
 
     Ok(Json(response))
 }
@@ -63,7 +71,7 @@ pub async fn update_device(
     Path(id): Path<i32>,
     AuthUser(_user): AuthUser,
     Json(payload): Json<DevicePayload>,
-) ->  Result<Json<crate::db::models::Device>, AppError> {
+) -> Result<Json<crate::db::models::Device>, AppError> {
     let updated_device = NewDevice {
         device_id: &payload.device_id,
         name: payload.name.as_deref(),
@@ -80,5 +88,7 @@ pub async fn delete_device(
     Path(id): Path<i32>,
 ) -> Result<Json<Value>, AppError> {
     db::repository::delete_device(&state.pool, id)?;
-    Ok(Json(json!({ "status": "success", "message": "Device deleted" })))
+    Ok(Json(
+        json!({ "status": "success", "message": "Device deleted" }),
+    ))
 }
