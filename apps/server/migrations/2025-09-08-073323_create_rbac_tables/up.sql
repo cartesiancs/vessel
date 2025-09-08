@@ -1,11 +1,11 @@
 CREATE TABLE roles (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     name VARCHAR(255) NOT NULL UNIQUE, -- ex: 'admin', 'editor', 'viewer'
     description TEXT
 );
 
 CREATE TABLE permissions (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     name VARCHAR(255) NOT NULL UNIQUE, -- ex: 'users:create', 'devices:edit', 'flows:view'
     description TEXT
 );

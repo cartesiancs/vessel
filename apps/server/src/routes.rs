@@ -4,7 +4,7 @@ use anyhow::Result;
 use axum::{
     http::{header, Method, StatusCode, Uri},
     response::IntoResponse,
-    routing::{get, post, put},
+    routing::{delete, get, post, put},
     Json, Router,
 };
 use serde_json::json;
@@ -15,7 +15,7 @@ use tracing::info;
 use crate::{
     handler::{
         auth::auth_with_password, configurations, device_tokens, devices, entities, flows, ha, log,
-        map, stat, state, streams, users, ws::ws_handler,
+        map, permissions, roles, stat, state, streams, users, ws::ws_handler,
     },
     state::AppState,
 };
@@ -76,6 +76,31 @@ pub async fn web_server(
             get(users::get_user)
                 .put(users::update_user)
                 .delete(users::delete_user),
+        )
+        .route(
+            "/users/:id/roles",
+            get(users::get_user_roles).post(users::assign_role_to_user),
+        )
+        .route(
+            "/users/:id/roles/:role_id",
+            delete(users::remove_role_from_user),
+        )
+        .route("/roles", get(roles::get_roles).post(roles::create_role))
+        .route(
+            "/roles/:id",
+            put(roles::update_role).delete(roles::delete_role),
+        )
+        .route(
+            "/roles/:id/permissions",
+            get(roles::get_role_permissions).post(roles::grant_permission_to_role),
+        )
+        .route(
+            "/roles/:id/permissions/:permission_id",
+            delete(roles::revoke_permission_from_role),
+        )
+        .route(
+            "/permissions",
+            get(permissions::get_permissions).post(permissions::create_permission),
         )
         .route(
             "/devices",

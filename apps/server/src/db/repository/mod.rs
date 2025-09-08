@@ -1,3 +1,5 @@
+pub mod rbac;
+
 use chrono::Utc;
 use diesel::{
     dsl::max, BelongingToDsl, Connection, ExpressionMethods, JoinOnDsl, OptionalExtension,

@@ -16,7 +16,7 @@ const LOG_FILE_PATH: &str = "log/app.log";
 use crate::{
     db::conn::establish_connection,
     flow::manager_state::FlowManagerActor,
-    initial::{create_initial_admin, create_initial_configurations},
+    initial::{create_initial_admin, create_initial_configurations, seed_initial_permissions},
     lib::{entity_map::remap_topics, stream_checker::stream_status_checker},
     logo::print_logo,
     routes::web_server,
@@ -85,6 +85,7 @@ async fn main() -> Result<()> {
 
         create_initial_admin(&mut conn);
         create_initial_configurations(&mut conn);
+        seed_initial_permissions(&mut conn);
     }
 
     let streams = Arc::new(DashMap::<u32, StreamInfo>::new());

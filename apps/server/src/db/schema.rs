@@ -112,7 +112,7 @@ diesel::table! {
 
 diesel::table! {
     permissions (id) {
-        id -> Nullable<Integer>,
+        id -> Integer,
         name -> Text,
         description -> Nullable<Text>,
     }
@@ -127,7 +127,7 @@ diesel::table! {
 
 diesel::table! {
     roles (id) {
-        id -> Nullable<Integer>,
+        id -> Integer,
         name -> Text,
         description -> Nullable<Text>,
     }

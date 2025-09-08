@@ -1,8 +1,11 @@
+use crate::db::schema::{
+    device_tokens, devices, entities, entities_configurations, events, flow_versions, flows,
+    map_features, map_layers, map_vertices, states, states_meta, system_configurations, users,
+};
 use chrono::NaiveDateTime;
 use diesel::prelude::*;
-use serde_json::Value;
-use crate::db::schema::{device_tokens, devices, entities, entities_configurations, events, flow_versions, flows, map_features, map_layers, map_vertices, states, states_meta, system_configurations, users};
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 #[derive(Queryable, Selectable, Identifiable, Serialize)]
 #[diesel(table_name = crate::db::schema::users)]
@@ -93,7 +96,6 @@ pub struct NewEntityConfiguration<'a> {
     pub configuration: &'a str,
 }
 
-
 #[derive(Serialize, Deserialize, Clone)]
 pub struct EntityWithConfig {
     #[serde(flatten)]
@@ -174,7 +176,7 @@ pub struct SystemConfiguration {
     pub id: i32,
     pub key: String,
     pub value: String,
-    pub enabled: i32, 
+    pub enabled: i32,
     pub description: Option<String>,
     pub created_at: NaiveDateTime,
     pub updated_at: NaiveDateTime,
@@ -195,7 +197,7 @@ pub struct NewSystemConfiguration<'a> {
 pub struct DeviceToken {
     pub id: i32,
     pub device_id: i32,
-    #[serde(skip_serializing)] 
+    #[serde(skip_serializing)]
     pub token_hash: String,
     pub expires_at: Option<NaiveDateTime>,
     pub last_used_at: Option<NaiveDateTime>,
@@ -354,4 +356,80 @@ pub struct LayerWithFeatures {
     #[serde(flatten)]
     pub layer: MapLayer,
     pub features: Vec<FeatureWithVertices>,
+}
+
+#[derive(Queryable, Selectable, Identifiable, Serialize, Deserialize, Clone)]
+#[diesel(table_name = crate::db::schema::roles)]
+#[diesel(check_for_backend(diesel::sqlite::Sqlite))]
+pub struct Role {
+    pub id: i32,
+    pub name: String,
+    pub description: Option<String>,
+}
+
+#[derive(Insertable, AsChangeset, Deserialize)]
+#[diesel(table_name = crate::db::schema::roles)]
+pub struct NewRole<'a> {
+    pub name: &'a str,
+    pub description: Option<&'a str>,
+}
+
+#[derive(Queryable, Selectable, Identifiable, Serialize, Deserialize, Clone)]
+#[diesel(table_name = crate::db::schema::permissions)]
+#[diesel(check_for_backend(diesel::sqlite::Sqlite))]
+pub struct Permission {
+    pub id: i32,
+    pub name: String,
+    pub description: Option<String>,
+}
+
+#[derive(Insertable, Deserialize)]
+#[diesel(table_name = crate::db::schema::permissions)]
+pub struct NewPermission<'a> {
+    pub name: &'a str,
+    pub description: Option<&'a str>,
+}
+
+#[derive(Queryable, Selectable, Identifiable, Associations, Serialize, Deserialize, Clone)]
+#[diesel(table_name = crate::db::schema::user_roles)]
+#[diesel(belongs_to(User))]
+#[diesel(belongs_to(Role))]
+#[diesel(primary_key(user_id, role_id))]
+#[diesel(check_for_backend(diesel::sqlite::Sqlite))]
+pub struct UserRole {
+    pub user_id: i32,
+    pub role_id: i32,
+}
+
+#[derive(Insertable)]
+#[diesel(table_name = crate::db::schema::user_roles)]
+pub struct NewUserRole {
+    pub user_id: i32,
+    pub role_id: i32,
+}
+
+#[derive(Queryable, Selectable, Identifiable, Associations, Serialize, Deserialize, Clone)]
+#[diesel(table_name = crate::db::schema::role_permissions)]
+#[diesel(belongs_to(Role))]
+#[diesel(belongs_to(Permission))]
+#[diesel(primary_key(role_id, permission_id))]
+#[diesel(check_for_backend(diesel::sqlite::Sqlite))]
+pub struct RolePermission {
+    pub role_id: i32,
+    pub permission_id: i32,
+}
+
+#[derive(Insertable)]
+#[diesel(table_name = crate::db::schema::role_permissions)]
+pub struct NewRolePermission {
+    pub role_id: i32,
+    pub permission_id: i32,
+}
+
+#[derive(Serialize, Clone)]
+pub struct RoleWithPermissions {
+    pub id: i32,
+    pub name: String,
+    pub description: Option<String>,
+    pub permissions: Vec<Permission>,
 }
