@@ -1,6 +1,9 @@
 pub mod rbac;
 
+use std::collections::HashMap;
+
 use chrono::Utc;
+use diesel::GroupedBy;
 use diesel::{
     dsl::max, BelongingToDsl, Connection, ExpressionMethods, JoinOnDsl, OptionalExtension,
     QueryDsl, QueryResult, RunQueryDsl, SelectableHelper,
@@ -9,7 +12,7 @@ use serde_json::Value;
 
 use crate::db::models::{
     FeatureWithVertices, LayerWithFeatures, MapFeature, MapLayer, MapVertex, NewMapFeature,
-    NewMapLayer, NewMapVertex, UpdateMapFeature, UpdateMapLayer,
+    NewMapLayer, NewMapVertex, Role, UpdateMapFeature, UpdateMapLayer, UserRole, UserWithRoles,
 };
 use crate::{
     db::models::{
@@ -34,14 +37,37 @@ pub fn get_user_by_name(pool: &DbPool, target_username: &str) -> Result<User, an
     Ok(user)
 }
 
-pub fn get_all_users(pool: &DbPool) -> Result<Vec<User>, anyhow::Error> {
-    use crate::db::schema::users::dsl::*;
-
+pub fn get_all_users(pool: &DbPool) -> Result<Vec<UserWithRoles>, anyhow::Error> {
     let mut conn = pool.get()?;
 
-    let all_users = users.select(User::as_select()).load::<User>(&mut conn)?;
+    let users_list = crate::db::schema::users::table.load::<User>(&mut conn)?;
+    let roles_list = crate::db::schema::roles::table.load::<Role>(&mut conn)?;
 
-    Ok(all_users)
+    let user_roles_list = UserRole::belonging_to(&users_list).load::<UserRole>(&mut conn)?;
+
+    let roles_map: HashMap<i32, Role> = roles_list.into_iter().map(|r| (r.id, r)).collect();
+    let user_roles_grouped = user_roles_list.grouped_by(&users_list);
+    let result = users_list
+        .into_iter()
+        .zip(user_roles_grouped)
+        .map(|(user, user_role_associations)| {
+            let roles_for_user = user_role_associations
+                .iter()
+                .filter_map(|ur| roles_map.get(&ur.role_id).cloned())
+                .collect::<Vec<Role>>();
+
+            UserWithRoles {
+                id: user.id,
+                username: user.username,
+                email: user.email,
+                created_at: user.created_at,
+                updated_at: user.updated_at,
+                roles: roles_for_user,
+            }
+        })
+        .collect();
+
+    Ok(result)
 }
 
 pub fn create_user(pool: &DbPool, new_user: NewUser) -> Result<User, anyhow::Error> {

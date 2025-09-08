@@ -4,7 +4,7 @@ export type Role = {
   id: number;
   name: string;
   description: string | null;
-  permissions: Permission[];
+  permissions?: Permission[];
 };
 
 export type CreateRolePayload = {

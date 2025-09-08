@@ -20,6 +20,16 @@ pub struct User {
     pub updated_at: NaiveDateTime,
 }
 
+#[derive(Serialize, Clone)]
+pub struct UserWithRoles {
+    pub id: i32,
+    pub username: String,
+    pub email: String,
+    pub created_at: NaiveDateTime,
+    pub updated_at: NaiveDateTime,
+    pub roles: Vec<Role>,
+}
+
 #[derive(Insertable)]
 #[diesel(table_name = users)]
 pub struct NewUser<'a> {

@@ -27,7 +27,7 @@ pub struct CreateUserPayload {
 pub async fn get_users_list(
     State(state): State<Arc<AppState>>,
     AuthUser(_user): AuthUser,
-) -> Result<Json<Vec<crate::db::models::User>>, AppError> {
+) -> Result<Json<Vec<crate::db::models::UserWithRoles>>, AppError> {
     let users = db::repository::get_all_users(&state.pool)?;
     Ok(Json(users))
 }

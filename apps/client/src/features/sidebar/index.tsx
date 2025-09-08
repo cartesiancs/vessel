@@ -77,6 +77,17 @@ const data = {
       ],
     },
     {
+      title: "Services",
+      url: "#",
+      items: [
+        {
+          title: "Code",
+          url: "/code",
+          icon: <Key />,
+        },
+      ],
+    },
+    {
       title: "Setting",
       url: "#",
       items: [
