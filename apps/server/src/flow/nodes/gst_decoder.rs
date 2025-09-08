@@ -12,6 +12,7 @@ use tracing::{error, info, warn};
 use webrtc::util::Marshal;
 
 use super::{ExecutableNode, ExecutionResult};
+use crate::flow::BinaryStore;
 use crate::{
     flow::engine::{ExecutionContext, TriggerCommand},
     state::StreamManager,
@@ -25,14 +26,20 @@ pub struct GstDecoderData {
 pub struct GstDecoderNode {
     data: GstDecoderData,
     stream_manager: StreamManager,
+    binary_store: BinaryStore,
 }
 
 impl GstDecoderNode {
-    pub fn new(node_data: &Value, stream_manager: StreamManager) -> Result<Self> {
+    pub fn new(
+        node_data: &Value,
+        stream_manager: StreamManager,
+        binary_store: BinaryStore,
+    ) -> Result<Self> {
         let data: GstDecoderData = serde_json::from_value(node_data.clone())?;
         Ok(Self {
             data,
             stream_manager,
+            binary_store,
         })
     }
 }
@@ -114,6 +121,8 @@ impl ExecutableNode for GstDecoderNode {
 
         info!("GStreamer pipeline started for topic '{}'", self.data.topic);
 
+        let binary_store = self.binary_store.clone();
+
         let handle = tokio::spawn(async move {
             let mut packet_rx = stream_info.packet_tx.subscribe();
 
@@ -130,9 +139,13 @@ impl ExecutableNode for GstDecoderNode {
                             s.get::<i32>("height").map_err(|_| gst::FlowError::Error)? as u32;
 
                         let map = buffer.map_readable().map_err(|_| gst::FlowError::Error)?;
+                        let frame_bytes = map.as_slice().to_vec();
+
+                        let frame_id = binary_store.insert(frame_bytes);
 
                         let frame_output = json!({
-                            "rgb_data": base64::encode(map.as_slice()),
+                               "type": "binary_pointer",
+                            "id": frame_id.to_string(),
                             "width": width,
                             "height": height,
                         });

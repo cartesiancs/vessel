@@ -27,6 +27,7 @@ use crate::flow::nodes::{
     ExecutableNode,
 };
 use crate::flow::types::{Graph, Node};
+use crate::flow::BinaryStore;
 use crate::state::MqttMessage;
 use crate::state::StreamManager;
 
@@ -84,6 +85,7 @@ pub struct FlowEngine {
     expected_input_counts: HashMap<String, usize>,
     mqtt_tx: Option<broadcast::Sender<MqttMessage>>,
     stream_manager: StreamManager,
+    binary_store: BinaryStore,
 }
 
 impl FlowEngine {
@@ -91,6 +93,7 @@ impl FlowEngine {
         graph: Graph,
         mqtt_tx: Option<broadcast::Sender<MqttMessage>>,
         stream_manager: StreamManager,
+        binary_store: BinaryStore,
     ) -> Result<Self> {
         let nodes_map: HashMap<String, Node> =
             graph.nodes.into_iter().map(|n| (n.id.clone(), n)).collect();
@@ -142,6 +145,7 @@ impl FlowEngine {
             expected_input_counts,
             mqtt_tx,
             stream_manager,
+            binary_store,
         })
     }
 
@@ -207,11 +211,16 @@ impl FlowEngine {
             "BRANCH" => Ok(Box::new(BranchNode)),
             "JSON_SELECTOR" => Ok(Box::new(JsonSelectorNode::new(&node.data)?)),
             "DECODE_H264" => Ok(Box::new(DecodeH264Node::new()?)),
-            "YOLO_DETECT" => Ok(Box::new(YoloDetectNode::new(&node.data)?)),
+            "YOLO_DETECT" => Ok(Box::new(YoloDetectNode::new(
+                &node.data,
+                self.binary_store.clone(),
+            )?)),
             "GST_DECODER" => Ok(Box::new(GstDecoderNode::new(
                 &node.data,
                 self.stream_manager.clone(),
+                self.binary_store.clone(),
             )?)),
+
             _ => Err(anyhow!(
                 "Unknown or unimplemented node type: {}",
                 node.node_type
