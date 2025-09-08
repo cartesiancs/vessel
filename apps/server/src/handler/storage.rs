@@ -49,7 +49,9 @@ pub struct ListResponse {
 }
 
 fn get_storage_root() -> io::Result<PathBuf> {
-    std::env::current_dir().map(|p| p.join("storage"))
+    let storage_path = std::env::current_dir()?.join("storage");
+    fs::create_dir_all(&storage_path)?;
+    Ok(storage_path)
 }
 
 fn get_safe_path(root: &StdPath, user_path: &str) -> Result<PathBuf, io::Error> {
