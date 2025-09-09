@@ -27,7 +27,6 @@ jobs:
 
       - name: Install npm dependencies
         run: npm install
-        working-directory: ./apps/client
 
       - name: Build
         run: cargo build --release --verbose
