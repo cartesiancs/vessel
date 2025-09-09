@@ -1,7 +1,6 @@
 use anyhow::Result;
 use dashmap::DashMap;
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
-use dotenvy::dotenv;
 use rumqttc::{AsyncClient, MqttOptions};
 use std::{env, sync::Arc};
 use tokio::{
@@ -24,6 +23,7 @@ use crate::{
     state::{AppState, FrameData, MqttMessage, StreamInfo, StreamManager},
 };
 
+mod config;
 mod handler;
 mod hash;
 mod initial;
@@ -50,7 +50,7 @@ fn run_migrations(connection: &mut impl MigrationHarness<diesel::sqlite::Sqlite>
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    dotenv().ok();
+    let settings = config::Settings::new().expect("Failed to load configuration");
 
     let is_debug_mode = env::args().any(|arg| arg == "--debug");
 
@@ -73,7 +73,7 @@ async fn main() -> Result<()> {
         warn!("APPLICATION IS RUNNING IN DEBUG MODE. ONLY THE WEB SERVER WILL BE ACTIVATED.");
     }
 
-    let pool = establish_connection();
+    let pool = establish_connection(&settings.database_url);
 
     {
         let mut conn = pool
@@ -93,7 +93,7 @@ async fn main() -> Result<()> {
     let (mqtt_tx, _) = broadcast::channel::<MqttMessage>(1024);
     let (rtsp_frame_tx, _) = broadcast::channel::<FrameData>(256);
 
-    let jwt_secret = dotenvy::var("JWT_SECRET")?;
+    let jwt_secret = settings.jwt_secret.clone();
 
     let (flow_manager_tx, flow_manager_rx) = mpsc::channel(100);
     let (broadcast_tx, _) = broadcast::channel(1024);
@@ -118,7 +118,7 @@ async fn main() -> Result<()> {
     remap_topics(axum::extract::State(app_state.clone())).await;
 
     let server_task = tokio::spawn(web_server(
-        "0.0.0.0:8080".to_string(),
+        settings.listen_address,
         app_state.clone(),
         shutdown_rx.clone(),
     ));
