@@ -34,3 +34,13 @@ export const createNewFolder = async (path: string): Promise<void> => {
 export const createNewFile = async (path: string): Promise<void> => {
   await apiClient.put(`/storage/${path}`, { content: "" });
 };
+export const renameEntry = async (
+  oldPath: string,
+  newPath: string,
+): Promise<void> => {
+  await apiClient.post(`/storage/rename/${oldPath}`, { to: newPath });
+};
+
+export const deleteEntry = async (path: string): Promise<void> => {
+  await apiClient.delete(`/storage/${path}`);
+};
