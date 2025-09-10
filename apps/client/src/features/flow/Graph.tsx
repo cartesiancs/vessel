@@ -41,6 +41,53 @@ type NodeGroup = {
   nodes: string[];
 };
 
+const nodeColor = "#2a2c36";
+const nodeHoverColor = "#444754";
+
+const nodeLightColor = "#d1d4e3";
+const highlightColor = "#1976d2";
+
+const nodeGroups: NodeGroup[] = [
+  {
+    label: "Default",
+    nodes: ["START", "LOG_MESSAGE"],
+  },
+  {
+    label: "Data",
+    nodes: [
+      "SET_VARIABLE",
+      "TYPE_CONVERTER",
+      "RTP_STREAM_IN",
+      "DECODE_OPUS",
+      "GST_DECODER",
+    ],
+  },
+  {
+    label: "Logic",
+    nodes: [
+      "CALCULATION",
+      "LOGIC_OPERATOR",
+      "INTERVAL",
+      "BRANCH",
+      "JSON_SELECTOR",
+    ],
+  },
+  {
+    label: "Communication",
+    nodes: [
+      "HTTP_REQUEST",
+      "MQTT_PUBLISH",
+      "MQTT_SUBSCRIBE",
+      "WEBSOCKET_SEND",
+      "WEBSOCKET_ON",
+    ],
+  },
+  {
+    label: "AI/ML",
+    nodes: ["YOLO_DETECT"],
+  },
+];
+
 export function Graph({
   nodes,
   edges,
@@ -98,47 +145,6 @@ export function Graph({
       renderButtonNode(g, d, () => handleClickOption(d)),
     WEBSOCKET_ON: (g, d) => renderButtonNode(g, d, () => handleClickOption(d)),
   };
-
-  const nodeGroups: NodeGroup[] = [
-    {
-      label: "Default",
-      nodes: ["START", "LOG_MESSAGE"],
-    },
-    {
-      label: "Data",
-      nodes: [
-        "SET_VARIABLE",
-        "TYPE_CONVERTER",
-        "RTP_STREAM_IN",
-        "DECODE_OPUS",
-        "GST_DECODER",
-      ],
-    },
-    {
-      label: "Logic",
-      nodes: [
-        "CALCULATION",
-        "LOGIC_OPERATOR",
-        "INTERVAL",
-        "BRANCH",
-        "JSON_SELECTOR",
-      ],
-    },
-    {
-      label: "Communication",
-      nodes: [
-        "HTTP_REQUEST",
-        "MQTT_PUBLISH",
-        "MQTT_SUBSCRIBE",
-        "WEBSOCKET_SEND",
-        "WEBSOCKET_ON",
-      ],
-    },
-    {
-      label: "AI/ML",
-      nodes: ["YOLO_DETECT"],
-    },
-  ];
 
   const handleClickOption = (node: Node) => {
     setOpenedNode(node);
@@ -283,12 +289,6 @@ export function Graph({
       .attr("height", 10000)
       .attr("fill", "url(#grid)")
       .attr("pointer-events", "none");
-
-    const nodeColor = "#2a2c36";
-    const nodeHoverColor = "#444754";
-
-    const nodeLightColor = "#d1d4e3";
-    const highlightColor = "#1976d2";
 
     const nodeSel = g
       .selectAll<SVGGElement, Node>("g.node")
@@ -625,30 +625,31 @@ export function Graph({
             }
           }
           if (targetId && dragSourceRef.current) {
-            onEdgesChange?.([
-              ...edgesRef.current,
-              {
-                id: `${dragSourceRef.current}-${targetId}-${Date.now()}`,
-                source: dragSourceRef.current,
-                target: targetId,
-              },
-            ]);
+            const isExistConnection =
+              edgesRef.current.filter((item) => {
+                return (
+                  item.source == dragSourceRef.current &&
+                  item.target == targetId
+                );
+              }).length > 0;
+
+            if (isExistConnection == false) {
+              onEdgesChange?.([
+                ...edgesRef.current,
+                {
+                  id: `${dragSourceRef.current}-${targetId}-${Date.now()}`,
+                  source: dragSourceRef.current,
+                  target: targetId,
+                },
+              ]);
+            }
           }
           dragSourceRef.current = null;
           magnetTarget = null;
         });
     });
 
-    const nodesMergeTop = nodeEnter
-      .merge(nodeSel)
-      .attr(
-        "transform",
-        (d) => `translate(${d.x - d.width / 2},${d.y - d.height / 2})`,
-      );
-
-    nodesMergeTop.call(drag);
-
-    g.selectAll<SVGLineElement, Edge>("line.edge").raise();
+    nodesMerged.raise();
   }, [
     nodes,
     edges,
