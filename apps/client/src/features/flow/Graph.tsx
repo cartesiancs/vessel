@@ -34,6 +34,7 @@ import { renderLogicNode } from "./nodes/LogicNode";
 import { renderIntervalNode } from "./nodes/IntervalNode";
 import { renderMQTTNode } from "./nodes/MQTTNode";
 import { renderButtonNode } from "./nodes/ButtonNode";
+import { zoomIdentity } from "d3-zoom";
 
 type NodeGroup = {
   label: string;
@@ -66,6 +67,7 @@ export function Graph({
   const svgRef = useRef<SVGSVGElement>(null);
   const gRef = useRef<SVGGElement>(null);
   const zoomRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null);
+  const transformRef = useRef(zoomIdentity);
 
   const edgesRef = useRef(edges);
   const nodesRef = useRef(nodes);
@@ -163,9 +165,21 @@ export function Graph({
 
   const handleAddNode = useCallback(
     (type: NodeTypes) => {
-      if (!onNodesChange) return;
+      if (!onNodesChange || !svgRef.current) return;
+
+      const currentTransform = transformRef.current;
+
+      const svgRect = svgRef.current.getBoundingClientRect();
+      const viewCenterX = svgRect.width / 2;
+      const viewCenterY = svgRect.height / 2;
+
+      const [worldX, worldY] = currentTransform.invert([
+        viewCenterX,
+        viewCenterY,
+      ]);
+
       const id = `${type}-${Date.now()}`;
-      const value = getDefalutNode(type, id);
+      const value = getDefalutNode(type, id, worldX, worldY);
 
       onNodesChange([
         ...nodesRef.current,
@@ -199,6 +213,8 @@ export function Graph({
       .zoom<SVGSVGElement, unknown>()
       .scaleExtent([0.2, 2])
       .on("zoom", (e) => {
+        transformRef.current = e.transform;
+
         if (!locked)
           d3.select<SVGGElement, unknown>(gRef.current!).attr(
             "transform",
@@ -377,7 +393,7 @@ export function Graph({
 
     nodesMerged.each(function (d) {
       const g = d3.select<SVGGElement, Node>(this);
-      console.log("Rendering nodes:");
+      //console.log("Rendering nodes:");
       g.selectAll(".node-content").remove();
       const renderer = d.nodeType ? nodeRenderers[d.nodeType] : null;
       if (renderer) renderer(g, d);

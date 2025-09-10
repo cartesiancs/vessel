@@ -13,14 +13,19 @@ export function getDefalutValue(type: NodeTypes, id: string) {
   return value;
 }
 
-export function getDefalutNode(type: NodeTypes, id: string): Node {
+export function getDefalutNode(
+  type: NodeTypes,
+  id: string,
+  x: number = 100,
+  y: number = 100,
+): Node {
   const defaultValue = getDefalutValue(type, id);
 
   return {
     id: id,
     title: id,
-    x: 100,
-    y: 100,
+    x: x,
+    y: y,
     width: 120,
     height: 50,
     ...defaultValue,
