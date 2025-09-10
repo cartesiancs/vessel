@@ -21,6 +21,7 @@ import { HA_Step1_URL, HA_Step2_Token } from "./HA";
 import { ROS2_Step1_Bridge, ROS2_Step2_Address } from "./ROS";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
+import { isValidConfig } from "./validate";
 
 const FinalStep: React.FC<FinalStepProps> = ({ integrationName }) => (
   <div className='py-8 text-center flex flex-col items-center justify-center gap-4'>
@@ -220,12 +221,8 @@ export function Intergration() {
   }, [fetchConfigs]);
 
   const integrations = useMemo(() => {
-    const hasConfig = (key: string) =>
-      configurations.some((c) => c.key === key && c.value);
-
-    const isHaConnected =
-      hasConfig("home_assistant_url") && hasConfig("home_assistant_token");
-    const isRos2Connected = hasConfig("ros2_websocket_url");
+    const isHaConnected = isValidConfig(configurations, "HA");
+    const isRos2Connected = isValidConfig(configurations, "ROS");
 
     return initialIntegrations.map((int) => {
       if (int.id === "home-assistant") {

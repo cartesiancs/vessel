@@ -2,6 +2,7 @@ import { getConfigs } from "@/entities/configurations/api";
 import { getDevices } from "@/entities/device/api";
 import { getAllEntities } from "@/entities/entity/api";
 import { getFlows } from "@/entities/flow/api";
+import { isValidConfig } from "../integration/validate";
 
 export type SetupStep = {
   id: string;
@@ -23,7 +24,7 @@ export const initialSetupSteps: SetupStep[] = [
       const response = await getConfigs();
 
       if (response.data.length > 0) {
-        return true;
+        return isValidConfig(response.data, "HA");
       } else {
         return false;
       }
