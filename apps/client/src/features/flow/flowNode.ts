@@ -1,15 +1,13 @@
-import { Node } from "./flowTypes";
+// import { Node } from "./flowTypes";
 
-type DefaultValueType = {
-  connectors: Node["connectors"];
-  nodeType: Node["nodeType"];
-  data: Node["data"];
-  dataType: Node["dataType"];
-};
+// type DefaultValueType = {
+//   connectors: Node["connectors"];
+//   nodeType: Node["nodeType"];
+//   data: Node["data"];
+//   dataType: Node["dataType"];
+// };
 
-export const DEFINITION_NODE: {
-  [title: string]: DefaultValueType;
-} = {
+export const DEFINITION_NODE = {
   START: {
     connectors: [{ id: `id`, name: "out", type: "out" }],
     nodeType: "START",
@@ -261,4 +259,4 @@ export const DEFINITION_NODE: {
       url: "STRING",
     },
   },
-};
+} as const;

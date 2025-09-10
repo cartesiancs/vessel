@@ -27,7 +27,7 @@ export function renderNumberNode(
     .attr("dominant-baseline", "middle")
     .attr("font-size", 8)
     .attr("fill", "#fff")
-    .text(`Edit Number ${(d.data as NumberNodeType).number ?? 0}`);
+    .text(`Edit Number ${(d.data as unknown as NumberNodeType).number ?? 0}`);
   group.on("click", (e) => {
     e.stopPropagation();
     onOpen();
