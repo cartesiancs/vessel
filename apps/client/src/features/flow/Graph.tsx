@@ -91,6 +91,10 @@ export function Graph({
     JSON_SELECTOR: (g, d) => renderButtonNode(g, d, () => handleClickOption(d)),
     YOLO_DETECT: (g, d) => renderButtonNode(g, d, () => handleClickOption(d)),
     GST_DECODER: (g, d) => renderButtonNode(g, d, () => handleClickOption(d)),
+
+    WEBSOCKET_SEND: (g, d) =>
+      renderButtonNode(g, d, () => handleClickOption(d)),
+    WEBSOCKET_ON: (g, d) => renderButtonNode(g, d, () => handleClickOption(d)),
   };
 
   const nodeGroups: NodeGroup[] = [
@@ -120,7 +124,13 @@ export function Graph({
     },
     {
       label: "Communication",
-      nodes: ["HTTP_REQUEST", "MQTT_PUBLISH", "MQTT_SUBSCRIBE"],
+      nodes: [
+        "HTTP_REQUEST",
+        "MQTT_PUBLISH",
+        "MQTT_SUBSCRIBE",
+        "WEBSOCKET_SEND",
+        "WEBSOCKET_ON",
+      ],
     },
     {
       label: "AI/ML",

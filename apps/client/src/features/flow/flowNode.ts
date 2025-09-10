@@ -241,4 +241,24 @@ export const DEFINITION_NODE: {
       topic: "STRING",
     },
   },
+  WEBSOCKET_ON: {
+    connectors: [{ id: "id", name: "payload", type: "out" }],
+    nodeType: "WEBSOCKET_ON",
+    data: {
+      url: "ws://localhost:8080",
+    },
+    dataType: {
+      url: "STRING",
+    },
+  },
+  WEBSOCKET_SEND: {
+    connectors: [{ id: "id", name: "payload", type: "in" }],
+    nodeType: "WEBSOCKET_SEND",
+    data: {
+      url: "ws://localhost:8080",
+    },
+    dataType: {
+      url: "STRING",
+    },
+  },
 };

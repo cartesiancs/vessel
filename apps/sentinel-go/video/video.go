@@ -81,7 +81,7 @@ func main() {
 		"-i", "./sample.mp4",
 		"-an",
 		"-map", "0:v:0",
-		"-vf", "scale=640:480", 
+		// "-vf", "scale=640:480", 
 		"-c:v", "libx264",
 		"-pix_fmt", "yuv420p",
 		"-preset", "ultrafast",

@@ -20,6 +20,8 @@ use crate::flow::nodes::mqtt_publish::MqttPublishNode;
 use crate::flow::nodes::mqtt_subscribe::MqttSubscribeNode;
 use crate::flow::nodes::rtp_stream_in::RtpStreamInNode;
 use crate::flow::nodes::type_converter::TypeConverterNode;
+use crate::flow::nodes::websocket_on::WebSocketOnNode;
+use crate::flow::nodes::websocket_send::WebSocketSendNode;
 use crate::flow::nodes::yolo_detect::YoloDetectNode;
 use crate::flow::nodes::{
     calc::CalcNode, http::HttpNode, interval::IntervalNode, log_message::LogMessageNode,
@@ -221,6 +223,8 @@ impl FlowEngine {
                 self.binary_store.clone(),
             )?)),
 
+            "WEBSOCKET_ON" => Ok(Box::new(WebSocketOnNode::new(&node.data)?)),
+            "WEBSOCKET_SEND" => Ok(Box::new(WebSocketSendNode::new(&node.data)?)),
             _ => Err(anyhow!(
                 "Unknown or unimplemented node type: {}",
                 node.node_type

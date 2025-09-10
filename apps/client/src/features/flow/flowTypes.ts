@@ -30,6 +30,8 @@ export type NodeTypes =
   | "DECODE_H264"
   | "YOLO_DETECT"
   | "GST_DECODER"
+  | "WEBSOCKET_ON"
+  | "WEBSOCKET_SEND"
   | "DECODE_OPUS";
 
 export type NumberNodeType = {
@@ -123,6 +125,14 @@ export type YoloDetectNodeType = {
   input_size: number;
 };
 
+export type WebSocketOnNodeType = {
+  url: string;
+};
+
+export type WebSocketSendNodeType = {
+  url: string;
+};
+
 export type DataNodeType =
   | NumberNodeType
   | TextNodeType
@@ -140,6 +150,8 @@ export type DataNodeType =
   | JsonSelectorNodeType
   | YoloDetectNodeType
   | GstDecoderNodeType
+  | WebSocketOnNodeType
+  | WebSocketSendNodeType
   | CalculationNodeType;
 
 export type DataNodeTypeType = Record<string, string>;

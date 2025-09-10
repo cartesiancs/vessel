@@ -49,4 +49,6 @@ pub mod rtp_stream_in;
 pub mod set_variable;
 pub mod start;
 pub mod type_converter;
+pub mod websocket_on;
+pub mod websocket_send;
 pub mod yolo_detect;
