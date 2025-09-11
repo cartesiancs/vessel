@@ -443,3 +443,25 @@ pub struct RoleWithPermissions {
     pub description: Option<String>,
     pub permissions: Vec<Permission>,
 }
+
+#[derive(Queryable, Selectable, Identifiable, Serialize, Deserialize, Clone)]
+#[diesel(table_name = crate::db::schema::custom_nodes)]
+#[diesel(primary_key(node_type))]
+#[diesel(check_for_backend(diesel::sqlite::Sqlite))]
+pub struct CustomNode {
+    pub node_type: String,
+    pub data: String,
+}
+
+#[derive(Insertable, Deserialize)]
+#[diesel(table_name = crate::db::schema::custom_nodes)]
+pub struct NewCustomNode<'a> {
+    pub node_type: &'a str,
+    pub data: &'a str,
+}
+
+#[derive(AsChangeset, Deserialize)]
+#[diesel(table_name = crate::db::schema::custom_nodes)]
+pub struct UpdateCustomNode {
+    pub data: Option<String>,
+}

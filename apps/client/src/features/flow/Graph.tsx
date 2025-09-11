@@ -36,6 +36,7 @@ import { renderMQTTNode } from "./nodes/MQTTNode";
 import { renderButtonNode } from "./nodes/ButtonNode";
 import { zoomIdentity } from "d3-zoom";
 import { CUSTOM_NODE } from "./flowNode";
+import { AddCustomNode } from "./AddCustomNode";
 
 type NodeGroup = {
   label: string;
@@ -785,6 +786,7 @@ export function Graph({
         >
           {locked ? <Lock size={18} /> : <LockOpen size={18} />}
         </Button>
+        <AddCustomNode />
 
         <Options
           open={open}

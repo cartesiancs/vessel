@@ -14,8 +14,9 @@ use tracing::info;
 
 use crate::{
     handler::{
-        auth::auth_with_password, configurations, device_tokens, devices, entities, flows, ha, log,
-        map, permissions, roles, stat, state, storage, streams, users, ws::ws_handler,
+        auth::auth_with_password, configurations, custom_nodes, device_tokens, devices, entities,
+        flows, ha, log, map, permissions, roles, stat, state, storage, streams, users,
+        ws::ws_handler,
     },
     state::AppState,
 };
@@ -164,6 +165,17 @@ pub async fn web_server(
         )
         .route("/ha/states", get(ha::get_all_states))
         .route("/ha/states/:entity_id", post(ha::post_state))
+        .route(
+            "/custom-nodes",
+            post(custom_nodes::create_custom_node_handler)
+                .get(custom_nodes::get_all_custom_nodes_handler),
+        )
+        .route(
+            "/custom-nodes/:node_type",
+            get(custom_nodes::get_custom_node_handler)
+                .put(custom_nodes::update_custom_node_handler)
+                .delete(custom_nodes::delete_custom_node_handler),
+        )
         .route(
             "/storage/",
             get(storage::read_handler)
