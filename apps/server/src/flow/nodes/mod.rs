@@ -35,6 +35,7 @@ pub trait ExecutableNode: Send + Sync {
 
 pub mod branch;
 pub mod calc;
+pub mod custom_node;
 pub mod decode_h264;
 pub mod decode_opus;
 pub mod gst_decoder;

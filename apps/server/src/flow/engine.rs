@@ -12,6 +12,7 @@ use tokio::time;
 use tracing::{error, info};
 
 use crate::flow::nodes::branch::BranchNode;
+use crate::flow::nodes::custom_node::CustomNode;
 use crate::flow::nodes::decode_h264::DecodeH264Node;
 use crate::flow::nodes::decode_opus::DecodeOpusNode;
 use crate::flow::nodes::gst_decoder::GstDecoderNode;
@@ -225,6 +226,7 @@ impl FlowEngine {
 
             "WEBSOCKET_ON" => Ok(Box::new(WebSocketOnNode::new(&node.data)?)),
             "WEBSOCKET_SEND" => Ok(Box::new(WebSocketSendNode::new(&node.data)?)),
+            s if s.starts_with('_') => Ok(Box::new(CustomNode::new(&node)?)),
             _ => Err(anyhow!(
                 "Unknown or unimplemented node type: {}",
                 node.node_type

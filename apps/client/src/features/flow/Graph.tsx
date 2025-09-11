@@ -25,7 +25,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { renderProcessingNode } from "./nodes/ProcessingNode";
-import { getDefalutNode } from "./flowUtils";
+import { getCustomNode, getDefalutNode } from "./flowUtils";
 import { renderVarNode } from "./nodes/VarNode";
 import { renderCalcNode } from "./nodes/CalcNode";
 import { renderHttpNode } from "./nodes/HttpNode";
@@ -35,6 +35,7 @@ import { renderIntervalNode } from "./nodes/IntervalNode";
 import { renderMQTTNode } from "./nodes/MQTTNode";
 import { renderButtonNode } from "./nodes/ButtonNode";
 import { zoomIdentity } from "d3-zoom";
+import { CUSTOM_NODE } from "./flowNode";
 
 type NodeGroup = {
   label: string;
@@ -86,6 +87,12 @@ const nodeGroups: NodeGroup[] = [
     label: "AI/ML",
     nodes: ["YOLO_DETECT"],
   },
+  {
+    label: "Custom Node",
+    nodes: CUSTOM_NODE.map((item) => {
+      return item.nodeType;
+    }),
+  },
 ];
 
 export function Graph({
@@ -119,7 +126,9 @@ export function Graph({
   const edgesRef = useRef(edges);
   const nodesRef = useRef(nodes);
 
-  const nodeRenderers: Record<string, NodeRenderer> = {
+  const [nodeRenderers, setNodeRenderers] = useState<
+    Record<string, NodeRenderer>
+  >({
     START: (g, d) => renderTitleNode(g, d),
     SET_VARIABLE: (g, d) => renderVarNode(g, d, () => handleClickOption(d)),
     CONDITION: (g, d) => renderProcessingNode(g, d),
@@ -144,7 +153,7 @@ export function Graph({
     WEBSOCKET_SEND: (g, d) =>
       renderButtonNode(g, d, () => handleClickOption(d)),
     WEBSOCKET_ON: (g, d) => renderButtonNode(g, d, () => handleClickOption(d)),
-  };
+  });
 
   const handleClickOption = (node: Node) => {
     setOpenedNode(node);
@@ -154,6 +163,19 @@ export function Graph({
   const handleOpenOptions = (isOpen: boolean) => {
     setOpen(isOpen);
   };
+
+  useEffect(() => {
+    const customNodeRenderers = CUSTOM_NODE.reduce((acc, customNode) => {
+      acc[customNode.nodeType] = (g, d) =>
+        renderButtonNode(g, d, () => handleClickOption(d));
+      return acc;
+    }, {} as Record<string, NodeRenderer>);
+
+    setNodeRenderers((prevRenderers) => ({
+      ...prevRenderers,
+      ...customNodeRenderers,
+    }));
+  }, []);
 
   useEffect(() => {
     edgesRef.current = edges;
@@ -185,6 +207,24 @@ export function Graph({
       ]);
 
       const id = `${type}-${Date.now()}`;
+      const isCustomNode = type[0] == "_";
+      if (isCustomNode) {
+        const customNode = getCustomNode(type, id, worldX, worldY);
+
+        if (!customNode) {
+          return false;
+        }
+
+        onNodesChange([
+          ...nodesRef.current,
+          {
+            ...(customNode as Node),
+          },
+        ]);
+
+        return false;
+      }
+
       const value = getDefalutNode(type, id, worldX, worldY);
 
       onNodesChange([

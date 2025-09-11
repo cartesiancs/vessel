@@ -52,7 +52,7 @@ lazy_static = "1.5.0"
 colored = "3.0.0"
 local-ip-address = "0.6.5"
 uuid = "1.18.1"
-pyo3 = { version = "0.26.0", features = ["extension-module", "auto-initialize"] }
+pyo3 = "0.26.0"
 config = { version =  "0.15.15", features = ["toml"] }
 tokio-tungstenite = "0.27.0"
 
@@ -60,6 +60,8 @@ tokio-tungstenite = "0.27.0"
 [[bin]]
 name = "server"
 path = "src/main.rs"
+
+
 
 [target.x86_64-unknown-linux-musl]
 linker = "musl-gcc"

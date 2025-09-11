@@ -140,7 +140,7 @@ export type Node = {
   width: number;
   height: number;
   connectors: Connector[];
-  nodeType?: NodeTypes;
+  nodeType?: string;
   data?: DataNodeType;
   dataType?: DataNodeTypeType;
 };

@@ -161,6 +161,23 @@ export function Options({ open, selectedNode, setOpen }: OptionsProps) {
         );
       }
 
+      if (formTypeData[key] == "FIXED_STRING") {
+        return (
+          <div key={inputId} className='grid grid-cols-4 items-center gap-4'>
+            <Label htmlFor={inputId} className='text-right'>
+              {key}
+            </Label>
+            <Input
+              id={inputId}
+              value={String(value)}
+              onChange={(e) => handleInputChange(key, e.target.value)}
+              className='col-span-3'
+              disabled={true}
+            />
+          </div>
+        );
+      }
+
       return null;
     });
   };

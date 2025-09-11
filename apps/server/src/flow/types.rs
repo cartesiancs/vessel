@@ -1,6 +1,6 @@
-use std::collections::HashMap;
-use serde_json::Value;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
+use std::collections::HashMap;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Trigger {
@@ -11,10 +11,9 @@ pub struct Trigger {
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ExecutionResult {
     pub outputs: HashMap<String, Value>,
-    #[serde(default)] 
+    #[serde(default)]
     pub triggers: Vec<Trigger>,
 }
-
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct Graph {
@@ -39,8 +38,17 @@ pub struct Edge {
     pub target: String,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub enum ConnectorKind {
+    #[serde(rename = "in")]
+    In,
+    #[serde(rename = "out")]
+    Out,
+}
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Connector {
     pub id: String,
     pub name: String,
+    #[serde(rename = "type")]
+    pub kind: ConnectorKind,
 }

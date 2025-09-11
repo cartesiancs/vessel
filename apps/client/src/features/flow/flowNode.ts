@@ -1,11 +1,11 @@
-// import { Node } from "./flowTypes";
+import { Node } from "./flowTypes";
 
-// type DefaultValueType = {
-//   connectors: Node["connectors"];
-//   nodeType: Node["nodeType"];
-//   data: Node["data"];
-//   dataType: Node["dataType"];
-// };
+type DefaultValueType = {
+  connectors: Node["connectors"];
+  nodeType: string;
+  data: Node["data"];
+  dataType: Node["dataType"];
+};
 
 export const DEFINITION_NODE = {
   START: {
@@ -260,3 +260,20 @@ export const DEFINITION_NODE = {
     },
   },
 } as const;
+
+export const CUSTOM_NODE: DefaultValueType[] = [
+  {
+    connectors: [
+      { id: "id", name: "number", type: "in" },
+      { id: "id", name: "number", type: "out" },
+    ],
+    nodeType: "_PYTHON_CUSTOM_NODE",
+
+    data: {
+      path: "{:code}/add_node.py",
+    },
+    dataType: {
+      path: "FIXED_STRING",
+    },
+  },
+];
