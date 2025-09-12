@@ -102,9 +102,7 @@ export function AddCustomNode() {
   const [deletingNode, setDeletingNode] = useState<CustomNode | null>(null);
 
   useEffect(() => {
-    if (isDialogOpen) {
-      fetchAllNodes();
-    }
+    fetchAllNodes();
   }, [isDialogOpen, fetchAllNodes]);
 
   const handleAddNew = () => {

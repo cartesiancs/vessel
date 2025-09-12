@@ -35,8 +35,8 @@ import { renderIntervalNode } from "./nodes/IntervalNode";
 import { renderMQTTNode } from "./nodes/MQTTNode";
 import { renderButtonNode } from "./nodes/ButtonNode";
 import { zoomIdentity } from "d3-zoom";
-import { CUSTOM_NODE } from "./flowNode";
 import { AddCustomNode } from "./AddCustomNode";
+import { useCustomNodeStore } from "@/entities/custom-nodes/store";
 
 type NodeGroup = {
   label: string;
@@ -48,53 +48,6 @@ const nodeHoverColor = "#444754";
 
 const nodeLightColor = "#d1d4e3";
 const highlightColor = "#1976d2";
-
-const nodeGroups: NodeGroup[] = [
-  {
-    label: "Default",
-    nodes: ["START", "LOG_MESSAGE"],
-  },
-  {
-    label: "Data",
-    nodes: [
-      "SET_VARIABLE",
-      "TYPE_CONVERTER",
-      "RTP_STREAM_IN",
-      "DECODE_OPUS",
-      "GST_DECODER",
-    ],
-  },
-  {
-    label: "Logic",
-    nodes: [
-      "CALCULATION",
-      "LOGIC_OPERATOR",
-      "INTERVAL",
-      "BRANCH",
-      "JSON_SELECTOR",
-    ],
-  },
-  {
-    label: "Communication",
-    nodes: [
-      "HTTP_REQUEST",
-      "MQTT_PUBLISH",
-      "MQTT_SUBSCRIBE",
-      "WEBSOCKET_SEND",
-      "WEBSOCKET_ON",
-    ],
-  },
-  {
-    label: "AI/ML",
-    nodes: ["YOLO_DETECT"],
-  },
-  {
-    label: "Custom Node",
-    nodes: CUSTOM_NODE.map((item) => {
-      return item.nodeType;
-    }),
-  },
-];
 
 export function Graph({
   nodes,
@@ -118,6 +71,7 @@ export function Graph({
   } | null>(null);
   const [open, setOpen] = useState(false);
   const [openedNode, setOpenedNode] = useState<Node | null>(null);
+  const { nodes: customNodes } = useCustomNodeStore();
 
   const svgRef = useRef<SVGSVGElement>(null);
   const gRef = useRef<SVGGElement>(null);
@@ -156,6 +110,57 @@ export function Graph({
     WEBSOCKET_ON: (g, d) => renderButtonNode(g, d, () => handleClickOption(d)),
   });
 
+  const nodeGroups: NodeGroup[] = [
+    {
+      label: "Default",
+      nodes: ["START", "LOG_MESSAGE"],
+    },
+    {
+      label: "Data",
+      nodes: [
+        "SET_VARIABLE",
+        "TYPE_CONVERTER",
+        "RTP_STREAM_IN",
+        "DECODE_OPUS",
+        "GST_DECODER",
+      ],
+    },
+    {
+      label: "Logic",
+      nodes: [
+        "CALCULATION",
+        "LOGIC_OPERATOR",
+        "INTERVAL",
+        "BRANCH",
+        "JSON_SELECTOR",
+      ],
+    },
+    {
+      label: "Communication",
+      nodes: [
+        "HTTP_REQUEST",
+        "MQTT_PUBLISH",
+        "MQTT_SUBSCRIBE",
+        "WEBSOCKET_SEND",
+        "WEBSOCKET_ON",
+      ],
+    },
+    {
+      label: "AI/ML",
+      nodes: ["YOLO_DETECT"],
+    },
+    {
+      label: "Custom Node",
+      nodes: customNodes.map((item) => {
+        try {
+          return item.node_type;
+        } catch {
+          return "";
+        }
+      }),
+    },
+  ];
+
   const handleClickOption = (node: Node) => {
     setOpenedNode(node);
     setOpen(true);
@@ -166,8 +171,10 @@ export function Graph({
   };
 
   useEffect(() => {
-    const customNodeRenderers = CUSTOM_NODE.reduce((acc, customNode) => {
-      acc[customNode.nodeType] = (g, d) =>
+    const customNodeRenderers = customNodes.reduce((acc, customNode) => {
+      const data = JSON.parse(customNode.data);
+
+      acc[data.nodeType] = (g, d) =>
         renderButtonNode(g, d, () => handleClickOption(d));
       return acc;
     }, {} as Record<string, NodeRenderer>);
@@ -176,7 +183,7 @@ export function Graph({
       ...prevRenderers,
       ...customNodeRenderers,
     }));
-  }, []);
+  }, [customNodes]);
 
   useEffect(() => {
     edgesRef.current = edges;
@@ -210,7 +217,14 @@ export function Graph({
       const id = `${type}-${Date.now()}`;
       const isCustomNode = type[0] == "_";
       if (isCustomNode) {
-        const customNode = getCustomNode(type, id, worldX, worldY);
+        console.log(type);
+        const customNode = getCustomNode(
+          customNodes,
+          type,
+          id,
+          worldX,
+          worldY,
+        ) as unknown as Node;
 
         if (!customNode) {
           return false;
@@ -235,7 +249,7 @@ export function Graph({
         },
       ]);
     },
-    [onNodesChange],
+    [onNodesChange, customNodes],
   );
 
   useEffect(() => {
