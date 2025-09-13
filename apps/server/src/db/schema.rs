@@ -1,6 +1,13 @@
 // @generated automatically by Diesel CLI.
 
 diesel::table! {
+    custom_nodes (node_type) {
+        node_type -> Text,
+        data -> Text,
+    }
+}
+
+diesel::table! {
     device_tokens (id) {
         id -> Integer,
         device_id -> Integer,
@@ -197,6 +204,7 @@ diesel::joinable!(user_roles -> roles (role_id));
 diesel::joinable!(user_roles -> users (user_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
+    custom_nodes,
     device_tokens,
     devices,
     entities,

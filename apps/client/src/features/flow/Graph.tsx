@@ -25,7 +25,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { renderProcessingNode } from "./nodes/ProcessingNode";
-import { getDefalutNode } from "./flowUtils";
+import { getCustomNode, getDefalutNode } from "./flowUtils";
 import { renderVarNode } from "./nodes/VarNode";
 import { renderCalcNode } from "./nodes/CalcNode";
 import { renderHttpNode } from "./nodes/HttpNode";
@@ -34,11 +34,20 @@ import { renderLogicNode } from "./nodes/LogicNode";
 import { renderIntervalNode } from "./nodes/IntervalNode";
 import { renderMQTTNode } from "./nodes/MQTTNode";
 import { renderButtonNode } from "./nodes/ButtonNode";
+import { zoomIdentity } from "d3-zoom";
+import { AddCustomNode } from "./AddCustomNode";
+import { useCustomNodeStore } from "@/entities/custom-nodes/store";
 
 type NodeGroup = {
   label: string;
   nodes: string[];
 };
+
+const nodeColor = "#2a2c36";
+const nodeHoverColor = "#444754";
+
+const nodeLightColor = "#d1d4e3";
+const highlightColor = "#1976d2";
 
 export function Graph({
   nodes,
@@ -62,15 +71,19 @@ export function Graph({
   } | null>(null);
   const [open, setOpen] = useState(false);
   const [openedNode, setOpenedNode] = useState<Node | null>(null);
+  const { nodes: customNodes } = useCustomNodeStore();
 
   const svgRef = useRef<SVGSVGElement>(null);
   const gRef = useRef<SVGGElement>(null);
   const zoomRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null);
+  const transformRef = useRef(zoomIdentity);
 
   const edgesRef = useRef(edges);
   const nodesRef = useRef(nodes);
 
-  const nodeRenderers: Record<string, NodeRenderer> = {
+  const [nodeRenderers, setNodeRenderers] = useState<
+    Record<string, NodeRenderer>
+  >({
     START: (g, d) => renderTitleNode(g, d),
     SET_VARIABLE: (g, d) => renderVarNode(g, d, () => handleClickOption(d)),
     CONDITION: (g, d) => renderProcessingNode(g, d),
@@ -91,7 +104,11 @@ export function Graph({
     JSON_SELECTOR: (g, d) => renderButtonNode(g, d, () => handleClickOption(d)),
     YOLO_DETECT: (g, d) => renderButtonNode(g, d, () => handleClickOption(d)),
     GST_DECODER: (g, d) => renderButtonNode(g, d, () => handleClickOption(d)),
-  };
+
+    WEBSOCKET_SEND: (g, d) =>
+      renderButtonNode(g, d, () => handleClickOption(d)),
+    WEBSOCKET_ON: (g, d) => renderButtonNode(g, d, () => handleClickOption(d)),
+  });
 
   const nodeGroups: NodeGroup[] = [
     {
@@ -120,11 +137,27 @@ export function Graph({
     },
     {
       label: "Communication",
-      nodes: ["HTTP_REQUEST", "MQTT_PUBLISH", "MQTT_SUBSCRIBE"],
+      nodes: [
+        "HTTP_REQUEST",
+        "MQTT_PUBLISH",
+        "MQTT_SUBSCRIBE",
+        "WEBSOCKET_SEND",
+        "WEBSOCKET_ON",
+      ],
     },
     {
       label: "AI/ML",
       nodes: ["YOLO_DETECT"],
+    },
+    {
+      label: "Custom Node",
+      nodes: customNodes.map((item) => {
+        try {
+          return item.node_type;
+        } catch {
+          return "";
+        }
+      }),
     },
   ];
 
@@ -136,6 +169,21 @@ export function Graph({
   const handleOpenOptions = (isOpen: boolean) => {
     setOpen(isOpen);
   };
+
+  useEffect(() => {
+    const customNodeRenderers = customNodes.reduce((acc, customNode) => {
+      const data = JSON.parse(customNode.data);
+
+      acc[data.nodeType] = (g, d) =>
+        renderButtonNode(g, d, () => handleClickOption(d));
+      return acc;
+    }, {} as Record<string, NodeRenderer>);
+
+    setNodeRenderers((prevRenderers) => ({
+      ...prevRenderers,
+      ...customNodeRenderers,
+    }));
+  }, [customNodes]);
 
   useEffect(() => {
     edgesRef.current = edges;
@@ -153,9 +201,46 @@ export function Graph({
 
   const handleAddNode = useCallback(
     (type: NodeTypes) => {
-      if (!onNodesChange) return;
+      if (!onNodesChange || !svgRef.current) return;
+
+      const currentTransform = transformRef.current;
+
+      const svgRect = svgRef.current.getBoundingClientRect();
+      const viewCenterX = svgRect.width / 2;
+      const viewCenterY = svgRect.height / 2;
+
+      const [worldX, worldY] = currentTransform.invert([
+        viewCenterX,
+        viewCenterY,
+      ]);
+
       const id = `${type}-${Date.now()}`;
-      const value = getDefalutNode(type, id);
+      const isCustomNode = type[0] == "_";
+      if (isCustomNode) {
+        console.log(type);
+        const customNode = getCustomNode(
+          customNodes,
+          type,
+          id,
+          worldX,
+          worldY,
+        ) as unknown as Node;
+
+        if (!customNode) {
+          return false;
+        }
+
+        onNodesChange([
+          ...nodesRef.current,
+          {
+            ...(customNode as Node),
+          },
+        ]);
+
+        return false;
+      }
+
+      const value = getDefalutNode(type, id, worldX, worldY);
 
       onNodesChange([
         ...nodesRef.current,
@@ -164,7 +249,7 @@ export function Graph({
         },
       ]);
     },
-    [onNodesChange],
+    [onNodesChange, customNodes],
   );
 
   useEffect(() => {
@@ -189,6 +274,8 @@ export function Graph({
       .zoom<SVGSVGElement, unknown>()
       .scaleExtent([0.2, 2])
       .on("zoom", (e) => {
+        transformRef.current = e.transform;
+
         if (!locked)
           d3.select<SVGGElement, unknown>(gRef.current!).attr(
             "transform",
@@ -257,12 +344,6 @@ export function Graph({
       .attr("height", 10000)
       .attr("fill", "url(#grid)")
       .attr("pointer-events", "none");
-
-    const nodeColor = "#2a2c36";
-    const nodeHoverColor = "#444754";
-
-    const nodeLightColor = "#d1d4e3";
-    const highlightColor = "#1976d2";
 
     const nodeSel = g
       .selectAll<SVGGElement, Node>("g.node")
@@ -367,7 +448,7 @@ export function Graph({
 
     nodesMerged.each(function (d) {
       const g = d3.select<SVGGElement, Node>(this);
-      console.log("Rendering nodes:");
+      //console.log("Rendering nodes:");
       g.selectAll(".node-content").remove();
       const renderer = d.nodeType ? nodeRenderers[d.nodeType] : null;
       if (renderer) renderer(g, d);
@@ -599,30 +680,31 @@ export function Graph({
             }
           }
           if (targetId && dragSourceRef.current) {
-            onEdgesChange?.([
-              ...edgesRef.current,
-              {
-                id: `${dragSourceRef.current}-${targetId}-${Date.now()}`,
-                source: dragSourceRef.current,
-                target: targetId,
-              },
-            ]);
+            const isExistConnection =
+              edgesRef.current.filter((item) => {
+                return (
+                  item.source == dragSourceRef.current &&
+                  item.target == targetId
+                );
+              }).length > 0;
+
+            if (isExistConnection == false) {
+              onEdgesChange?.([
+                ...edgesRef.current,
+                {
+                  id: `${dragSourceRef.current}-${targetId}-${Date.now()}`,
+                  source: dragSourceRef.current,
+                  target: targetId,
+                },
+              ]);
+            }
           }
           dragSourceRef.current = null;
           magnetTarget = null;
         });
     });
 
-    const nodesMergeTop = nodeEnter
-      .merge(nodeSel)
-      .attr(
-        "transform",
-        (d) => `translate(${d.x - d.width / 2},${d.y - d.height / 2})`,
-      );
-
-    nodesMergeTop.call(drag);
-
-    g.selectAll<SVGLineElement, Edge>("line.edge").raise();
+    nodesMerged.raise();
   }, [
     nodes,
     edges,
@@ -718,6 +800,7 @@ export function Graph({
         >
           {locked ? <Lock size={18} /> : <LockOpen size={18} />}
         </Button>
+        <AddCustomNode />
 
         <Options
           open={open}

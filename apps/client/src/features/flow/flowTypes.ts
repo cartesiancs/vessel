@@ -1,3 +1,5 @@
+import { DEFINITION_NODE } from "./flowNode";
+
 export type Connector = {
   id: string;
   name: string;
@@ -9,28 +11,7 @@ export type NodeRenderer = (
   d: Node,
 ) => void;
 
-export type NodeTypes =
-  | "BUTTON"
-  | "TITLE"
-  | "START"
-  | "SET_VARIABLE"
-  | "CONDITION"
-  | "LOG_MESSAGE"
-  | "CALCULATION"
-  | "LOOP"
-  | "LOGIC_OPERATOR"
-  | "HTTP_REQUEST"
-  | "INTERVAL"
-  | "TYPE_CONVERTER"
-  | "MQTT_SUBSCRIBE"
-  | "MQTT_PUBLISH"
-  | "RTP_STREAM_IN"
-  | "BRANCH"
-  | "JSON_SELECTOR"
-  | "DECODE_H264"
-  | "YOLO_DETECT"
-  | "GST_DECODER"
-  | "DECODE_OPUS";
+export type NodeTypes = keyof typeof DEFINITION_NODE;
 
 export type NumberNodeType = {
   number: number;
@@ -123,24 +104,31 @@ export type YoloDetectNodeType = {
   input_size: number;
 };
 
-export type DataNodeType =
-  | NumberNodeType
-  | TextNodeType
-  | AddNodeType
-  | SetVariableNodeType
-  | ConditionNodeType
-  | HTTPRequestNodeType
-  | LoopNodeType
-  | LogicOpetatorNodeType
-  | IntervalNodeType
-  | MqttPublishNodeType
-  | MqttSubscribeNodeType
-  | TypeConverterNodeType
-  | RtpStreamInNodeType
-  | JsonSelectorNodeType
-  | YoloDetectNodeType
-  | GstDecoderNodeType
-  | CalculationNodeType;
+export type WebSocketOnNodeType = {
+  url: string;
+};
+
+export type WebSocketSendNodeType = {
+  url: string;
+};
+
+type Generalize<T> = {
+  -readonly [K in keyof T]: T[K] extends string
+    ? string
+    : T[K] extends number
+    ? number
+    : T[K] extends boolean
+    ? boolean
+    : T[K];
+};
+
+type AllSpecificDataNodeTypes = {
+  [K in keyof typeof DEFINITION_NODE]: (typeof DEFINITION_NODE)[K]["data"];
+};
+type SpecificDataNodeType =
+  AllSpecificDataNodeTypes[keyof AllSpecificDataNodeTypes];
+
+export type DataNodeType = Generalize<Exclude<SpecificDataNodeType, undefined>>;
 
 export type DataNodeTypeType = Record<string, string>;
 
@@ -152,7 +140,7 @@ export type Node = {
   width: number;
   height: number;
   connectors: Connector[];
-  nodeType?: NodeTypes;
+  nodeType?: string;
   data?: DataNodeType;
   dataType?: DataNodeTypeType;
 };

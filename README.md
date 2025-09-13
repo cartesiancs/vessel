@@ -56,6 +56,7 @@ Get your local copy up and running.
 - [Rust](https://www.rust-lang.org/) & Cargo
 - [Node.js](https://nodejs.org/en/) (v18+) and npm
 - [gstreamer](https://gstreamer.freedesktop.org/)
+- [python3.12+](https://www.python.org/)
 - [mosquitto (MQTT)](https://mosquitto.org/) (additional)
 
 #### 1. Server Setup

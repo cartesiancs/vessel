@@ -11,8 +11,9 @@ use diesel::{
 use serde_json::Value;
 
 use crate::db::models::{
-    FeatureWithVertices, LayerWithFeatures, MapFeature, MapLayer, MapVertex, NewMapFeature,
-    NewMapLayer, NewMapVertex, Role, UpdateMapFeature, UpdateMapLayer, UserRole, UserWithRoles,
+    CustomNode, FeatureWithVertices, LayerWithFeatures, MapFeature, MapLayer, MapVertex,
+    NewCustomNode, NewMapFeature, NewMapLayer, NewMapVertex, Role, UpdateCustomNode,
+    UpdateMapFeature, UpdateMapLayer, UserRole, UserWithRoles,
 };
 use crate::{
     db::models::{
@@ -1037,4 +1038,52 @@ pub fn delete_map_feature(pool: &DbPool, target_feature_id: i32) -> Result<usize
             diesel::delete(map_features::table.find(target_feature_id)).execute(conn)?;
         Ok(num_deleted)
     })
+}
+
+pub fn create_custom_node(
+    pool: &DbPool,
+    new_node: &NewCustomNode,
+) -> Result<CustomNode, anyhow::Error> {
+    use crate::db::schema::custom_nodes::dsl::*;
+    let mut conn = pool.get()?;
+    let node = diesel::insert_into(custom_nodes)
+        .values(new_node)
+        .get_result(&mut conn)?;
+    Ok(node)
+}
+
+pub fn get_all_custom_nodes(pool: &DbPool) -> Result<Vec<CustomNode>, anyhow::Error> {
+    use crate::db::schema::custom_nodes::dsl::*;
+    let mut conn = pool.get()?;
+    let nodes = custom_nodes.load::<CustomNode>(&mut conn)?;
+    Ok(nodes)
+}
+
+pub fn get_custom_node(pool: &DbPool, target_node_type: &str) -> Result<CustomNode, anyhow::Error> {
+    use crate::db::schema::custom_nodes::dsl::*;
+    let mut conn = pool.get()?;
+    let node = custom_nodes
+        .filter(node_type.eq(target_node_type))
+        .first::<CustomNode>(&mut conn)?;
+    Ok(node)
+}
+
+pub fn update_custom_node(
+    pool: &DbPool,
+    target_node_type: &str,
+    updated_data: &UpdateCustomNode,
+) -> Result<CustomNode, anyhow::Error> {
+    use crate::db::schema::custom_nodes::dsl::*;
+    let mut conn = pool.get()?;
+    let node = diesel::update(custom_nodes.find(target_node_type))
+        .set(updated_data)
+        .get_result(&mut conn)?;
+    Ok(node)
+}
+
+pub fn delete_custom_node(pool: &DbPool, target_node_type: &str) -> Result<(), anyhow::Error> {
+    use crate::db::schema::custom_nodes::dsl::*;
+    let mut conn = pool.get()?;
+    diesel::delete(custom_nodes.find(target_node_type)).execute(&mut conn)?;
+    Ok(())
 }

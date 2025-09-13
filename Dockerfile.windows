@@ -1,0 +1,22 @@
+FROM rust:latest AS builder
+
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    g++-mingw-w64-x86-64 \
+    pkg-config-mingw-w64-x86-64 \
+    libglib2.0-dev
+
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    apt-get install -y nodejs
+
+RUN rustup target add x86_64-pc-windows-gnu
+
+WORKDIR /app
+
+COPY Cargo.toml Cargo.lock ./
+COPY package*.json ./
+COPY ./apps ./apps
+
+RUN PKG_CONFIG_ALLOW_CROSS=1 cargo build --release --target=x86_64-pc-windows-gnu --locked
+
+CMD ["cargo", "build", "--release", "--target=x86_64-pc-windows-gnu"]

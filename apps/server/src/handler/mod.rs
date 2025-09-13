@@ -1,5 +1,6 @@
 pub mod auth;
 pub mod configurations;
+pub mod custom_nodes;
 pub mod device_tokens;
 pub mod devices;
 pub mod entities;

@@ -2,14 +2,12 @@ import { Node } from "./flowTypes";
 
 type DefaultValueType = {
   connectors: Node["connectors"];
-  nodeType: Node["nodeType"];
+  nodeType: string;
   data: Node["data"];
   dataType: Node["dataType"];
 };
 
-export const DEFINITION_NODE: {
-  [title: string]: DefaultValueType;
-} = {
+export const DEFINITION_NODE = {
   START: {
     connectors: [{ id: `id`, name: "out", type: "out" }],
     nodeType: "START",
@@ -241,4 +239,41 @@ export const DEFINITION_NODE: {
       topic: "STRING",
     },
   },
-};
+  WEBSOCKET_ON: {
+    connectors: [{ id: "id", name: "payload", type: "out" }],
+    nodeType: "WEBSOCKET_ON",
+    data: {
+      url: "ws://localhost:8080",
+    },
+    dataType: {
+      url: "STRING",
+    },
+  },
+  WEBSOCKET_SEND: {
+    connectors: [{ id: "id", name: "payload", type: "in" }],
+    nodeType: "WEBSOCKET_SEND",
+    data: {
+      url: "ws://localhost:8080",
+    },
+    dataType: {
+      url: "STRING",
+    },
+  },
+} as const;
+
+export const CUSTOM_NODE: DefaultValueType[] = [
+  {
+    connectors: [
+      { id: "id", name: "number", type: "in" },
+      { id: "id", name: "number", type: "out" },
+    ],
+    nodeType: "_PYTHON_CUSTOM_NODE",
+
+    data: {
+      path: "{:code}/add_node.py",
+    },
+    dataType: {
+      path: "FIXED_STRING",
+    },
+  },
+];
