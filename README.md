@@ -39,11 +39,11 @@ When everything is implemented, individuals will be able to protect themselves f
 
 ## Features
 
-- Connect all sensers (MQTT, RTP, RTSP, ...)
+- Connect all sensers (MQTT, RTP, RTSP, HTTP, ...)
 - RTP Audio & Video Streaming
 - RTSP Video Streaming
 - Flow Visual Logic
-- Publish MQTT with Flow
+- Pub/Sub MQTT with Flow
 - Map based UI
 - Home Assistant Integration
 
@@ -55,7 +55,7 @@ Get your local copy up and running.
 
 - [Rust](https://www.rust-lang.org/) & Cargo
 - [Node.js](https://nodejs.org/en/) (v18+) and npm
-- [gstreamer](https://gstreamer.freedesktop.org/)
+- [gstreamer](https://gstreamer.freedesktop.org/documentation/rust/git/docs/gstreamer/index.html)
 - [python3.12+](https://www.python.org/)
 - [mosquitto (MQTT)](https://mosquitto.org/) (additional)
 

@@ -8,3 +8,4 @@ database.db
 *.log.*
 *.log
 /storage
+/config.toml

@@ -11,6 +11,7 @@
     "client": "npm run dev --workspace=client",
     "landing": "npm run dev --workspace=landing",
     "server": "cargo run -p server",
+    "server:prod": "cargo run -p server --release",
     "build": "cd ./apps/server && cargo build --release",
     "build:landing": "npm run build --workspace=landing && vitepress build docs",
     "docs:dev": "vitepress dev docs",
