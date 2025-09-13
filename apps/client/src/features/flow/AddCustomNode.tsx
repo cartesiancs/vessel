@@ -37,7 +37,7 @@ function CustomNodeForm({
   initialNode?: CustomNode | null;
 }) {
   const [nodeType, setNodeType] = useState(initialNode?.node_type || "");
-  const [data, setData] = useState(initialNode?.data || "");
+  const [data, setData] = useState(initialNode?.data || "_");
   const isEditing = !!initialNode;
 
   useEffect(() => {
@@ -57,6 +57,14 @@ function CustomNodeForm({
     }
   };
 
+  const handleNodeTypeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value;
+    if (!value.startsWith("_")) {
+      value = `_${value}`;
+    }
+    setNodeType(value);
+  };
+
   return (
     <form onSubmit={handleSubmit} className='space-y-4 py-4'>
       <div>
@@ -64,7 +72,7 @@ function CustomNodeForm({
         <Input
           id='node_type'
           value={nodeType}
-          onChange={(e) => setNodeType(e.target.value)}
+          onChange={handleNodeTypeChange}
           required
           disabled={isEditing}
           placeholder='e.g., python-adder'
