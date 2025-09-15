@@ -78,6 +78,7 @@ func main() {
 	cmd := exec.Command(
 		"ffmpeg",
 		"-re",
+		"-stream_loop", "-1",
 		"-i", "./sample.mp4",
 		"-an",
 		"-map", "0:v:0",

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,23 +26,76 @@ interface OptionsProps {
   setOpen: (open: boolean) => void;
 }
 
+const getDefaultValueForType = (type: string) => {
+  switch (type.toUpperCase()) {
+    case "NUMBER":
+      return 0;
+    case "BOOLEAN":
+      return "false";
+    case "JSON":
+      return "{}";
+    case "STRING":
+    default:
+      return "";
+  }
+};
+
 export function Options({ open, selectedNode, setOpen }: OptionsProps) {
   const { updateNode, addRefresh } = useFlowStore();
 
   const [formData, setFormData] = useState<DataNodeType | object>({});
   const [formTypeData, setFormTypeData] = useState<DataNodeTypeType>({});
 
+  const resolveDynamicTypes = useCallback(
+    (
+      currentData: DataNodeType | object,
+      baseDataType: DataNodeTypeType | undefined,
+    ) => {
+      if (!baseDataType) return {};
+
+      const resolved: DataNodeTypeType = {};
+      const dependsOnRegex = /^DEPENDS_ON\[(.*?):(.*?)\]$/;
+
+      for (const key in baseDataType) {
+        const typeDef = baseDataType[key] as string;
+        const match = typeDef.match(dependsOnRegex);
+
+        if (match) {
+          const controllerField = match[1];
+          const mappingsString = match[2];
+          const controllingValue =
+            currentData[controllerField as keyof typeof currentData];
+
+          const mapping = new Map(
+            mappingsString.split(",").map((part) => {
+              const [val, type] = part.split(">");
+              return [val, type];
+            }),
+          );
+
+          resolved[key] = mapping.get(controllingValue as string) || "ANY";
+        } else {
+          resolved[key] = typeDef;
+        }
+      }
+      return resolved;
+    },
+    [],
+  );
+
   useEffect(() => {
-    if (selectedNode?.data) {
+    if (selectedNode?.data && selectedNode?.dataType) {
       setFormData(selectedNode.data);
+      const initialResolvedTypes = resolveDynamicTypes(
+        selectedNode.data,
+        selectedNode.dataType,
+      );
+      setFormTypeData(initialResolvedTypes);
     } else {
       setFormData({});
+      setFormTypeData({});
     }
-
-    if (selectedNode?.dataType) {
-      setFormTypeData(selectedNode.dataType);
-    }
-  }, [selectedNode]);
+  }, [selectedNode, resolveDynamicTypes]);
 
   const handleInputChange = (key: string, value: string | number) => {
     const originalValue =
@@ -55,7 +108,29 @@ export function Options({ open, selectedNode, setOpen }: OptionsProps) {
         processedValue = 0;
       }
     }
-    setFormData((prev) => ({ ...prev, [key]: processedValue }));
+
+    const updatedFormData = { ...formData, [key]: processedValue };
+    setFormData(updatedFormData);
+
+    const newResolvedTypes = resolveDynamicTypes(
+      updatedFormData,
+      selectedNode?.dataType,
+    );
+    setFormTypeData(newResolvedTypes);
+
+    const dataToReset: Record<string, string | number> = {};
+    for (const field in newResolvedTypes) {
+      if (formTypeData[field] !== newResolvedTypes[field]) {
+        dataToReset[field] = getDefaultValueForType(newResolvedTypes[field]);
+      }
+    }
+
+    if (Object.keys(dataToReset).length > 0) {
+      setFormData((prev) => ({
+        ...prev,
+        ...dataToReset,
+      }));
+    }
   };
 
   const handleSubmit = () => {
@@ -84,10 +159,9 @@ export function Options({ open, selectedNode, setOpen }: OptionsProps) {
       }
 
       const selectRegex = /^SELECT\[(.*)\]$/;
-      const match = formTypeData[key].match(selectRegex);
+      const match = formTypeData[key]?.match(selectRegex);
 
       if (match && match[1]) {
-        console.log(match[1].split(","));
         return (
           <div key={inputId} className='grid grid-cols-4 items-center gap-4'>
             <Label htmlFor={inputId} className='text-right'>
@@ -103,7 +177,9 @@ export function Options({ open, selectedNode, setOpen }: OptionsProps) {
               <SelectContent className='z-[9999]'>
                 <>
                   {match[1].split(",").map((item) => (
-                    <SelectItem value={item}>{item}</SelectItem>
+                    <SelectItem key={item} value={item}>
+                      {item}
+                    </SelectItem>
                   ))}
                 </>
               </SelectContent>
@@ -112,73 +188,90 @@ export function Options({ open, selectedNode, setOpen }: OptionsProps) {
         );
       }
 
-      if (formTypeData[key] == "NUMBER") {
-        return (
-          <div key={inputId} className='grid grid-cols-4 items-center gap-4'>
-            <Label htmlFor={inputId} className='text-right'>
-              {key}
-            </Label>
-            <Input
-              id={inputId}
-              type='number'
-              value={String(value)}
-              onChange={(e) => handleInputChange(key, e.target.value)}
-              className='col-span-3'
-            />
-          </div>
-        );
+      switch (formTypeData[key]) {
+        case "NUMBER":
+          return (
+            <div key={inputId} className='grid grid-cols-4 items-center gap-4'>
+              <Label htmlFor={inputId} className='text-right'>
+                {key}
+              </Label>
+              <Input
+                id={inputId}
+                type='number'
+                value={String(value)}
+                onChange={(e) => handleInputChange(key, e.target.value)}
+                className='col-span-3'
+              />
+            </div>
+          );
+        case "STRING":
+        case "ANY":
+          return (
+            <div key={inputId} className='grid grid-cols-4 items-center gap-4'>
+              <Label htmlFor={inputId} className='text-right'>
+                {key}
+              </Label>
+              <Input
+                id={inputId}
+                value={String(value)}
+                onChange={(e) => handleInputChange(key, e.target.value)}
+                className='col-span-3'
+              />
+            </div>
+          );
+        case "JSON":
+          return (
+            <div key={inputId} className='grid grid-cols-4 items-center gap-4'>
+              <Label htmlFor={inputId} className='text-right'>
+                {key}
+              </Label>
+              <textarea
+                id={inputId}
+                value={String(value)}
+                onChange={(e) => handleInputChange(key, e.target.value)}
+                className='col-span-3 p-2 border rounded-md h-24 font-mono'
+                rows={4}
+              />
+            </div>
+          );
+        case "BOOLEAN":
+          return (
+            <div key={inputId} className='grid grid-cols-4 items-center gap-4'>
+              <Label htmlFor={inputId} className='text-right'>
+                {key}
+              </Label>
+              <Select
+                value={String(value)}
+                onValueChange={(val) => handleInputChange(key, val)}
+              >
+                <SelectTrigger id={inputId} className='col-span-3'>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className='z-[9999]'>
+                  <SelectItem value='true'>true</SelectItem>
+                  <SelectItem value='false'>false</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          );
+        case "FIXED_STRING":
+          return (
+            <div key={inputId} className='grid grid-cols-4 items-center gap-4'>
+              <Label htmlFor={inputId} className='text-right'>
+                {key}
+              </Label>
+              <Input
+                id={inputId}
+                value={String(value)}
+                onChange={(e) => handleInputChange(key, e.target.value)}
+                className='col-span-3'
+                disabled={true}
+              />
+            </div>
+          );
+        default:
+          return null;
       }
-
-      if (formTypeData[key] == "STRING") {
-        return (
-          <div key={inputId} className='grid grid-cols-4 items-center gap-4'>
-            <Label htmlFor={inputId} className='text-right'>
-              {key}
-            </Label>
-            <Input
-              id={inputId}
-              value={String(value)}
-              onChange={(e) => handleInputChange(key, e.target.value)}
-              className='col-span-3'
-            />
-          </div>
-        );
-      }
-
-      if (formTypeData[key] == "ANY") {
-        return (
-          <div key={inputId} className='grid grid-cols-4 items-center gap-4'>
-            <Label htmlFor={inputId} className='text-right'>
-              {key}
-            </Label>
-            <Input
-              id={inputId}
-              value={String(value)}
-              onChange={(e) => handleInputChange(key, e.target.value)}
-              className='col-span-3'
-            />
-          </div>
-        );
-      }
-
-      if (formTypeData[key] == "FIXED_STRING") {
-        return (
-          <div key={inputId} className='grid grid-cols-4 items-center gap-4'>
-            <Label htmlFor={inputId} className='text-right'>
-              {key}
-            </Label>
-            <Input
-              id={inputId}
-              value={String(value)}
-              onChange={(e) => handleInputChange(key, e.target.value)}
-              className='col-span-3'
-              disabled={true}
-            />
-          </div>
-        );
-      }
-
-      return null;
     });
   };
 

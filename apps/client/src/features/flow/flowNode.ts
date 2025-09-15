@@ -22,7 +22,9 @@ export const DEFINITION_NODE = {
       variableType: "string",
     },
     dataType: {
-      variable: "ANY",
+      variable:
+        "DEPENDS_ON[variableType:string>STRING,number>NUMBER,boolean>BOOLEAN,json>JSON]",
+
       variableType: "SELECT[string,number,boolean,json]",
     },
   },
