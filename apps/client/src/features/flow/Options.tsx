@@ -29,7 +29,7 @@ interface OptionsProps {
 const getDefaultValueForType = (type: string) => {
   switch (type.toUpperCase()) {
     case "NUMBER":
-      return 0;
+      return "0";
     case "BOOLEAN":
       return "false";
     case "JSON":
