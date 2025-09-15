@@ -44,6 +44,7 @@ export const WebSocketProvider: React.FC<{
     return () => {
       wsManager.onopen = null;
       wsManager.onclose = null;
+      wsManager.close();
     };
   }, [url]);
 
