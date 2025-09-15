@@ -28,6 +28,23 @@ export const DEFINITION_NODE = {
       variableType: "SELECT[string,number,boolean,json]",
     },
   },
+  SET_VARIABLE_WITH_EXEC: {
+    connectors: [
+      { id: `id`, name: "exec", type: "in" },
+      { id: `id`, name: "out", type: "out" },
+    ],
+    nodeType: "SET_VARIABLE_WITH_EXEC",
+    data: {
+      variable: "",
+      variableType: "string",
+    },
+    dataType: {
+      variable:
+        "DEPENDS_ON[variableType:string>STRING,number>NUMBER,boolean>BOOLEAN,json>JSON]",
+
+      variableType: "SELECT[string,number,boolean,json]",
+    },
+  },
   CONDITION: {
     connectors: [
       { id: `id`, name: "input", type: "in" },

@@ -86,6 +86,9 @@ export function Graph({
   >({
     START: (g, d) => renderTitleNode(g, d),
     SET_VARIABLE: (g, d) => renderVarNode(g, d, () => handleClickOption(d)),
+    SET_VARIABLE_WITH_EXEC: (g, d) =>
+      renderVarNode(g, d, () => handleClickOption(d)),
+
     CONDITION: (g, d) => renderProcessingNode(g, d),
     LOG_MESSAGE: (g, d) => renderProcessingNode(g, d),
     CALCULATION: (g, d) => renderCalcNode(g, d, () => handleClickOption(d)),
@@ -119,6 +122,7 @@ export function Graph({
       label: "Data",
       nodes: [
         "SET_VARIABLE",
+        "SET_VARIABLE_WITH_EXEC",
         "TYPE_CONVERTER",
         "RTP_STREAM_IN",
         "DECODE_OPUS",

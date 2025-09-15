@@ -20,6 +20,7 @@ use crate::flow::nodes::json_selector::JsonSelectorNode;
 use crate::flow::nodes::mqtt_publish::MqttPublishNode;
 use crate::flow::nodes::mqtt_subscribe::MqttSubscribeNode;
 use crate::flow::nodes::rtp_stream_in::RtpStreamInNode;
+use crate::flow::nodes::set_variable_with_exec::SetVariableWithExecNode;
 use crate::flow::nodes::type_converter::TypeConverterNode;
 use crate::flow::nodes::websocket_on::WebSocketOnNode;
 use crate::flow::nodes::websocket_send::WebSocketSendNode;
@@ -184,6 +185,7 @@ impl FlowEngine {
         match node.node_type.as_str() {
             "START" => Ok(Box::new(StartNode)),
             "SET_VARIABLE" => Ok(Box::new(SetVariableNode::new(&node.data)?)),
+            "SET_VARIABLE_WITH_EXEC" => Ok(Box::new(SetVariableWithExecNode::new(&node.data)?)),
             "LOG_MESSAGE" => Ok(Box::new(LogMessageNode)),
             "CALCULATION" => Ok(Box::new(CalcNode::new(&node.data)?)),
             "HTTP_REQUEST" => Ok(Box::new(HttpNode::new(&node.data)?)),
