@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Pencil } from "lucide-react";
+import { AlertCircleIcon, Pencil } from "lucide-react";
 import { useEntityStore } from "@/entities/entity/store";
 import { Entity, EntityPayload } from "@/entities/entity/types";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
@@ -25,6 +25,7 @@ import { JsonCodeEditor } from "../json/JsonEditor";
 import { EntitySelectTypes } from "./SelectTypes";
 import { EntitySelectPlatforms } from "./SelectPlatforms";
 import { toast } from "sonner";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface Props {
   entity: Entity;
@@ -159,7 +160,15 @@ export function EntityUpdateButton({ entity }: Props) {
                 <JsonCodeEditor value={field.value} onChange={field.onChange} />
               )}
             />
-            {jsonError && <p className='text-sm text-red-500'>{jsonError}</p>}
+            {jsonError && (
+              <Alert variant='destructive'>
+                <AlertCircleIcon className='w-5' />
+                <AlertTitle>Error</AlertTitle>
+                <AlertDescription>
+                  <p>{jsonError}</p>
+                </AlertDescription>
+              </Alert>
+            )}
           </div>
           <DialogFooter>
             <Button

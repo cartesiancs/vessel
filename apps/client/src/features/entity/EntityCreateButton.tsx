@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { PlusCircle } from "lucide-react";
+import { AlertCircleIcon, PlusCircle } from "lucide-react";
 import { useDeviceStore } from "@/entities/device/store";
 import { useEntityStore } from "@/entities/entity/store";
 import { EntityPayload } from "@/entities/entity/types";
@@ -26,9 +26,12 @@ import { JsonCodeEditor } from "../json/JsonEditor";
 import { EntitySelectTypes } from "./SelectTypes";
 import { EntitySelectPlatforms } from "./SelectPlatforms";
 import { toast } from "sonner";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 export function EntityCreateButton() {
   const [isOpen, setIsOpen] = useState(false);
+  const [jsonError, setJsonError] = useState<string | null>(null);
+
   const createEntity = useEntityStore((state) => state.createEntity);
   const selectedDevice = useDeviceStore((state) => state.selectedDevice);
   const { register, handleSubmit, reset, watch, control, setValue } =
@@ -76,6 +79,7 @@ export function EntityCreateButton() {
     } catch (error) {
       console.error("Invalid JSON format:", error);
       toast("Invalid JSON format. Please check the syntax.");
+      setJsonError("Invalid JSON format. Please check the syntax.");
 
       return;
     }
@@ -169,6 +173,15 @@ export function EntityCreateButton() {
                 />
               )}
             />
+            {jsonError && (
+              <Alert variant='destructive'>
+                <AlertCircleIcon className='w-5' />
+                <AlertTitle>Error</AlertTitle>
+                <AlertDescription>
+                  <p>{jsonError}</p>
+                </AlertDescription>
+              </Alert>
+            )}
           </div>
 
           <DialogFooter>
