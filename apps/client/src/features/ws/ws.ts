@@ -16,6 +16,7 @@ export type WebSocketMessage = {
     | "get_all_stream_state"
     | "stream_state"
     | "change_state"
+    | "hangup"
     | "get_server";
   payload:
     | RTCSessionDescriptionInit
@@ -36,8 +37,14 @@ export class WebSocketChannel {
   private messageListeners: Set<(msg: WebSocketMessage) => void> = new Set();
   public onopen: (() => void) | null = null;
   public onclose: (() => void) | null = null;
+  public isConnected(): boolean {
+    return this.ws?.readyState === WebSocket.OPEN;
+  }
 
   connect(url: string): void {
+    if (this.isConnected()) {
+      return;
+    }
     this.ws = new WebSocket(url);
     this.ws.onopen = () => this.onopen?.();
 
@@ -51,6 +58,10 @@ export class WebSocketChannel {
   }
 
   send(message: WebSocketMessage): void {
+    if (!this.isConnected()) {
+      return;
+    }
+
     try {
       if (this.ws) {
         this.ws.send(JSON.stringify(message));
@@ -61,7 +72,9 @@ export class WebSocketChannel {
   }
 
   close(): void {
-    this.ws?.close();
+    if (this.ws) {
+      this.ws.close();
+    }
   }
 
   addMessageListener(listener: (msg: WebSocketMessage) => void): void {

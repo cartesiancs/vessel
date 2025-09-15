@@ -29,18 +29,14 @@ use webrtc::{
     },
 };
 
+use crate::handler::ws::WsMessageOut;
+
 use crate::{
     db,
     flow::manager_state::FlowManagerCommand,
+    handler::ws::webrtc::create_peer_connection,
     state::{AppState, MediaType},
 };
-
-#[derive(Serialize)]
-struct WsMessageOut<'a, T: Serialize> {
-    #[serde(rename = "type")]
-    msg_type: &'a str,
-    payload: T,
-}
 
 #[derive(Deserialize)]
 struct WsMessageIn {
@@ -113,6 +109,7 @@ enum ActorCommand {
     GetServer {
         responder: oneshot::Sender<Result<ServerStats>>,
     },
+    Hangup,
 }
 
 struct WSActor {
@@ -172,6 +169,24 @@ impl WSActor {
                     let res = self.handle_get_server().await;
                     if responder.send(res).is_err() {
                         error!("Failed to send server stats back to handler.");
+                    }
+                }
+                ActorCommand::Hangup => {
+                    info!("Received Hangup. Resetting PeerConnection.");
+                    if let Err(e) = self.pc.close().await {
+                        error!("Failed to close peer connection: {}", e);
+                    }
+                    self.active_tracks.clear();
+
+                    match create_peer_connection(Arc::clone(&self.ws_sender)).await {
+                        Ok(new_pc) => {
+                            self.pc = new_pc;
+                            info!("PeerConnection has been successfully reset.");
+                        }
+                        Err(e) => {
+                            error!("Failed to create a new peer connection after hangup: {}", e);
+                            break;
+                        }
                     }
                 }
             }
@@ -696,91 +711,21 @@ pub async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
 
     let (cmd_tx, cmd_rx) = mpsc::channel(10);
 
+    let initial_pc = match create_peer_connection(Arc::clone(&ws_sender)).await {
+        Ok(pc) => pc,
+        Err(e) => {
+            error!("Failed to create initial peer connection: {}", e);
+            return;
+        }
+    };
+
     tokio::spawn({
         let state = Arc::clone(&state);
         let ws_sender = Arc::clone(&ws_sender);
 
         async move {
-            let mut m = MediaEngine::default();
-            m.register_codec(
-                RTCRtpCodecParameters {
-                    capability: RTCRtpCodecCapability {
-                        mime_type: MIME_TYPE_OPUS.to_owned(),
-                        clock_rate: 48000,
-                        channels: 1,
-                        sdp_fmtp_line: "minptime=10;useinbandfec=1".to_owned(),
-                        ..Default::default()
-                    },
-                    // payload_type: 96,
-                    ..Default::default()
-                },
-                RTPCodecType::Audio,
-            )
-            .unwrap();
-
-            m.register_codec(
-                RTCRtpCodecParameters {
-                    capability: RTCRtpCodecCapability {
-                        mime_type: MIME_TYPE_H264.to_owned(),
-                        clock_rate: 90000,
-                        channels: 0,
-                        sdp_fmtp_line:
-                            "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f"
-                                .to_owned(),
-                        ..Default::default()
-                    },
-                    // payload_type: 102,
-                    ..Default::default()
-                },
-                RTPCodecType::Video,
-            )
-            .unwrap();
-
-            let mut s = SettingEngine::default();
-            s.set_network_types(vec![NetworkType::Udp4]);
-
-            let api = APIBuilder::new()
-                .with_media_engine(m)
-                .with_setting_engine(s)
-                .build();
-
-            let config = RTCConfiguration {
-                ice_servers: vec![RTCIceServer {
-                    urls: vec!["stun:stun.l.google.com:19302".to_owned()],
-                    ..Default::default()
-                }],
-                ..Default::default()
-            };
-            let pc = Arc::new(api.new_peer_connection(config).await.unwrap());
-
-            let ws_sender_for_ice = Arc::clone(&ws_sender);
-            pc.on_ice_candidate(Box::new(move |c: Option<RTCIceCandidate>| {
-                let ws_sender = Arc::clone(&ws_sender_for_ice);
-                Box::pin(async move {
-                    if let Some(c) = c {
-                        if let Ok(candidate) = c.to_json() {
-                            let msg = WsMessageOut {
-                                msg_type: "candidate",
-                                payload: candidate,
-                            };
-                            if let Ok(payload_str) = serde_json::to_string(&msg) {
-                                if ws_sender
-                                    .lock()
-                                    .await
-                                    .send(Message::Text(payload_str))
-                                    .await
-                                    .is_err()
-                                {
-                                    info!("Failed to send ICE candidate, WebSocket closed.");
-                                }
-                            }
-                        }
-                    }
-                })
-            }));
-
             let actor = WSActor {
-                pc,
+                pc: initial_pc,
                 ws_sender,
                 receiver: cmd_rx,
                 state: Arc::clone(&state),
@@ -952,6 +897,16 @@ pub async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                             }
                         }
                     }
+                }
+                "hangup" => {
+                    info!("Received hangup message from client.");
+                    let cmd = ActorCommand::Hangup;
+                    if cmd_tx.send(cmd).await.is_err() {
+                        break;
+                    }
+                }
+                _ => {
+                    error!("Unknown message type: {}", ws_msg.msg_type);
                 }
                 _ => {
                     error!("Unknown message type: {}", ws_msg.msg_type);

@@ -6,6 +6,7 @@ export class WebRTCManager {
   public streams: Map<string, MediaStream>;
   private onStreamsChanged: (streams: Map<string, MediaStream>) => void;
   private pendingTopics: string[];
+  private candidateQueue: RTCIceCandidateInit[] = [];
 
   constructor(
     signaling: WebSocketChannel,
@@ -36,12 +37,10 @@ export class WebRTCManager {
     this.pc.ontrack = (event) => {
       const topic = this.pendingTopics.shift();
       if (!topic) {
-        console.warn("Track received but no pending topic found.");
         return;
       }
 
       const track = event.track;
-
       const stream = new MediaStream([track]);
 
       console.log(
@@ -59,14 +58,13 @@ export class WebRTCManager {
     try {
       switch (msg.type) {
         case "answer":
-          console.log("Received initial answer");
           await this.pc.setRemoteDescription(
             new RTCSessionDescription(msg.payload as RTCSessionDescriptionInit),
           );
+          this.processCandidateQueue();
           break;
 
         case "offer": {
-          console.log("Received renegotiation offer from server");
           await this.pc.setRemoteDescription(
             new RTCSessionDescription(msg.payload as RTCSessionDescriptionInit),
           );
@@ -76,20 +74,38 @@ export class WebRTCManager {
             type: "answer",
             payload: this.pc.localDescription as RTCSessionDescriptionInit,
           });
-          console.log("Sent answer for renegotiation");
+          this.processCandidateQueue();
           break;
         }
 
         case "candidate":
           if (msg.payload) {
-            await this.pc.addIceCandidate(
-              new RTCIceCandidate(msg.payload as RTCIceCandidateInit),
+            const candidate = new RTCIceCandidate(
+              msg.payload as RTCIceCandidateInit,
             );
+            if (this.pc.remoteDescription) {
+              await this.pc.addIceCandidate(candidate);
+            } else {
+              this.candidateQueue.push(candidate);
+            }
           }
           break;
       }
     } catch (err) {
       console.error("Error handling signaling message:", err);
+    }
+  };
+
+  private processCandidateQueue = async () => {
+    while (this.candidateQueue.length > 0) {
+      const candidate = this.candidateQueue.shift();
+      if (candidate) {
+        try {
+          await this.pc.addIceCandidate(candidate);
+        } catch (error) {
+          console.error("Error processing queued candidate:", error);
+        }
+      }
     }
   };
 
@@ -108,7 +124,6 @@ export class WebRTCManager {
         type: "offer",
         payload: this.pc.localDescription as RTCSessionDescriptionInit,
       });
-      console.log("Initial offer sent to server.");
     } catch (err) {
       console.error("Error creating initial offer:", err);
     }
@@ -125,6 +140,8 @@ export class WebRTCManager {
   }
 
   public close(): void {
+    this.signaling.send({ type: "hangup", payload: "" });
+
     this.signaling.removeMessageListener(this.handleSignalingMessage);
     if (this.pc) {
       this.pc.close();
