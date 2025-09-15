@@ -26,7 +26,6 @@ import {
   Map,
   Blocks,
   CircleDashed,
-  Shield,
   Code,
 } from "lucide-react";
 import { NavFooter } from "./footer";
@@ -96,11 +95,6 @@ const data = {
           title: "Users",
           url: "/users",
           icon: <UserCog />,
-        },
-        {
-          title: "Roles",
-          url: "/roles",
-          icon: <Shield />,
         },
         {
           title: "Integration",

@@ -12,7 +12,9 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AppSidebar } from "@/features/sidebar";
+import { RoleTable } from "@/widgets/role-table/RoleList";
 import { UserTable } from "@/widgets/user-table/UserList";
 
 export function UsersPage() {
@@ -39,7 +41,18 @@ export function UsersPage() {
           </Breadcrumb>
         </header>
         <main className='flex-1 overflow-y-auto p-4 md:p-6'>
-          <UserTable />
+          <Tabs defaultValue='user-list' className='w-full'>
+            <TabsList className='grid w-full grid-cols-2'>
+              <TabsTrigger value='user-list'>Users</TabsTrigger>
+              <TabsTrigger value='role'>Roles</TabsTrigger>
+            </TabsList>
+            <TabsContent value='user-list' className='mt-4'>
+              <UserTable />
+            </TabsContent>
+            <TabsContent value='role' className='mt-4'>
+              <RoleTable />
+            </TabsContent>
+          </Tabs>
         </main>
       </SidebarInset>
     </SidebarProvider>

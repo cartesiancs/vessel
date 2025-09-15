@@ -20,7 +20,6 @@ import { IntegrationPage } from "./pages/integration";
 import { SetupPage } from "./pages/setup";
 import { ErrorBoundary } from "react-error-boundary";
 import { ErrorRender } from "./features/error";
-import { RolesPage } from "./pages/role";
 import { CodePage } from "./pages/code";
 
 const router = createBrowserRouter([
@@ -136,16 +135,7 @@ const router = createBrowserRouter([
       </TopBarWrapper>
     ),
   },
-  {
-    path: "/roles",
-    element: (
-      <TopBarWrapper>
-        <AuthInterceptor>
-          <RolesPage />
-        </AuthInterceptor>
-      </TopBarWrapper>
-    ),
-  },
+
   {
     path: "/code",
     element: (
