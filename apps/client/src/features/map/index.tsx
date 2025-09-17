@@ -75,9 +75,11 @@ export function MapView() {
       },
       {
         enableHighAccuracy: true,
+        timeout: 2000,
+        maximumAge: 0,
       },
     );
-  }, []);
+  }, [setPosition, fetchAllLayers]);
 
   return (
     <>
