@@ -56,10 +56,12 @@ Get your local copy up and running.
 - [Rust](https://www.rust-lang.org/) & Cargo
 - [Node.js](https://nodejs.org/en/) (v18+) and npm
 - [gstreamer](https://gstreamer.freedesktop.org/documentation/rust/git/docs/gstreamer/index.html)
-- [python3.12+](https://www.python.org/)
+- [Python](https://www.python.org/) (3.12+)
 - [mosquitto (MQTT)](https://mosquitto.org/) (additional)
 
-#### 1. Server Setup
+### Option1. Run normally
+
+##### 1. Server Setup
 
 ```bash
 # 1. Clone the repository
@@ -78,7 +80,7 @@ diesel migration run
 cargo run
 ```
 
-#### 2. Client Setup
+##### 2. Client Setup
 
 ```bash
 # 1. Install dependencies
@@ -86,6 +88,14 @@ npm install
 
 # 2. Run the development server
 npm run client
+```
+
+### Option2. Run Docker
+
+```bash
+docker build -t server .
+
+docker run -p 0.0.0.0:8080:8080 server:latest
 ```
 
 ## Compile
@@ -99,6 +109,10 @@ npm run build
 The compiled binary, named 'server', will be located in the target/release directory.
 
 > To run the server executable, you must have a .env file in the same directory (target/release).
+
+## Troubleshooting
+
+> A more detailed troubleshooting guide will be available soon.
 
 ## Roadmap
 
