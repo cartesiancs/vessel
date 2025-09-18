@@ -24,8 +24,16 @@ impl Settings {
             s.try_deserialize()
         } else {
             println!("INFO: Running in PROD mode. Loading from {}.", CONFIG_FILE);
-            if !Path::new(CONFIG_FILE).exists() {
-                println!("INFO: {} not found. Generating a new one.", CONFIG_FILE);
+            if Path::new(CONFIG_FILE).exists() {
+                let s = Config::builder()
+                    .add_source(File::with_name(CONFIG_FILE))
+                    .build()?;
+                s.try_deserialize()
+            } else {
+                println!(
+                    "INFO: {} not found. Generating and using a new one.",
+                    CONFIG_FILE
+                );
                 let secret: String = rand::rng()
                     .sample_iter(&Alphanumeric)
                     .take(32)
@@ -41,17 +49,8 @@ impl Settings {
                 let toml_content = toml::to_string(&default_settings).unwrap();
                 fs::write(CONFIG_FILE, toml_content).expect("Failed to write config file");
 
-                println!(
-                    "INFO: {} has been created. Please review it and start the application again.",
-                    CONFIG_FILE
-                );
-                std::process::exit(0);
+                Ok(default_settings)
             }
-
-            let s = Config::builder()
-                .add_source(File::with_name(CONFIG_FILE))
-                .build()?;
-            s.try_deserialize()
         }
     }
 }

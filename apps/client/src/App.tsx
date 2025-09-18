@@ -1,4 +1,3 @@
-import { PropsWithChildren } from "react";
 import { AuthPage } from "./pages/auth";
 
 import { createBrowserRouter, RouterProvider } from "react-router";
@@ -6,8 +5,6 @@ import { DashboardPage } from "./pages/dashboard";
 import { ServersPage } from "./pages/servers";
 import { KeyPage } from "./pages/key";
 import { DevicePage } from "./pages/devices";
-import { TopBar } from "./features/topbar";
-import { PageWrapper } from "./app/pageWrapper/page-wrapper";
 import { FlowPage } from "./pages/flow";
 import { AuthInterceptor } from "./features/auth/AuthInterceptor";
 import { NotFound } from "./pages/notfound";
@@ -15,13 +12,11 @@ import LandingPage from "./pages/landing";
 import { UsersPage } from "./pages/users";
 import { LogPage } from "./pages/log";
 import { MapPage } from "./pages/map";
-import { isElectron } from "./lib/electron";
 import { IntegrationPage } from "./pages/integration";
 import { SetupPage } from "./pages/setup";
-import { ErrorBoundary } from "react-error-boundary";
-import { ErrorRender } from "./features/error";
-import { RolesPage } from "./pages/role";
 import { CodePage } from "./pages/code";
+import { AuthenticatedLayout } from "./widgets/auth/AuthenticatedLayout";
+import { TopBarWrapper } from "./widgets/auth/TopBarWrapper";
 
 const router = createBrowserRouter([
   {
@@ -37,126 +32,99 @@ const router = createBrowserRouter([
     ),
   },
   {
-    path: "/dashboard",
-    element: (
-      <TopBarWrapper>
-        <AuthInterceptor>
-          <DashboardPage />
-        </AuthInterceptor>
-      </TopBarWrapper>
-    ),
-  },
-  {
-    path: "/servers",
-    element: (
-      <TopBarWrapper>
-        <AuthInterceptor>
-          <ServersPage />
-        </AuthInterceptor>
-      </TopBarWrapper>
-    ),
-  },
-  {
-    path: "/key",
-    element: (
-      <TopBarWrapper>
-        <AuthInterceptor>
-          <KeyPage />
-        </AuthInterceptor>
-      </TopBarWrapper>
-    ),
-  },
-  {
-    path: "/devices",
-    element: (
-      <TopBarWrapper>
-        <AuthInterceptor>
-          <DevicePage />
-        </AuthInterceptor>
-      </TopBarWrapper>
-    ),
-  },
-  {
-    path: "/flow",
-    element: (
-      <TopBarWrapper>
-        <AuthInterceptor>
-          <FlowPage />
-        </AuthInterceptor>
-      </TopBarWrapper>
-    ),
-  },
-  {
-    path: "/users",
-    element: (
-      <TopBarWrapper>
-        <AuthInterceptor>
-          <UsersPage />
-        </AuthInterceptor>
-      </TopBarWrapper>
-    ),
-  },
-  {
-    path: "/log",
-    element: (
-      <TopBarWrapper>
-        <AuthInterceptor>
-          <LogPage />
-        </AuthInterceptor>
-      </TopBarWrapper>
-    ),
-  },
-  {
-    path: "/map",
-    element: (
-      <TopBarWrapper>
-        <AuthInterceptor>
-          <MapPage />
-        </AuthInterceptor>
-      </TopBarWrapper>
-    ),
-  },
-  {
-    path: "/integration",
-    element: (
-      <TopBarWrapper>
-        <AuthInterceptor>
-          <IntegrationPage />
-        </AuthInterceptor>
-      </TopBarWrapper>
-    ),
-  },
-  {
-    path: "/setup",
-    element: (
-      <TopBarWrapper>
-        <AuthInterceptor>
-          <SetupPage />
-        </AuthInterceptor>
-      </TopBarWrapper>
-    ),
-  },
-  {
-    path: "/roles",
-    element: (
-      <TopBarWrapper>
-        <AuthInterceptor>
-          <RolesPage />
-        </AuthInterceptor>
-      </TopBarWrapper>
-    ),
-  },
-  {
-    path: "/code",
-    element: (
-      <TopBarWrapper>
-        <AuthInterceptor>
-          <CodePage />
-        </AuthInterceptor>
-      </TopBarWrapper>
-    ),
-  },
+    element: <AuthenticatedLayout />,
+    children: [
+      {
+        path: "/dashboard",
+        element: (
+          <AuthInterceptor>
+            <DashboardPage />
+          </AuthInterceptor>
+        ),
+      },
+      {
+        path: "/servers",
+        element: (
+          <AuthInterceptor>
+            <ServersPage />
+          </AuthInterceptor>
+        ),
+      },
+      {
+        path: "/key",
+        element: (
+          <AuthInterceptor>
+            <KeyPage />
+          </AuthInterceptor>
+        ),
+      },
+      {
+        path: "/devices",
+        element: (
+          <AuthInterceptor>
+            <DevicePage />
+          </AuthInterceptor>
+        ),
+      },
+      {
+        path: "/flow",
+        element: (
+          <AuthInterceptor>
+            <FlowPage />
+          </AuthInterceptor>
+        ),
+      },
+      {
+        path: "/users",
+        element: (
+          <AuthInterceptor>
+            <UsersPage />
+          </AuthInterceptor>
+        ),
+      },
+      {
+        path: "/log",
+        element: (
+          <AuthInterceptor>
+            <LogPage />
+          </AuthInterceptor>
+        ),
+      },
+      {
+        path: "/map",
+        element: (
+          <AuthInterceptor>
+            <MapPage />
+          </AuthInterceptor>
+        ),
+      },
+      {
+        path: "/integration",
+        element: (
+          <AuthInterceptor>
+            <IntegrationPage />
+          </AuthInterceptor>
+        ),
+      },
+      {
+        path: "/setup",
+        element: (
+          <AuthInterceptor>
+            <SetupPage />
+          </AuthInterceptor>
+        ),
+      },
 
+      {
+        path: "/code",
+        element: (
+          <AuthInterceptor>
+            <CodePage />
+          </AuthInterceptor>
+        ),
+      },
+    ],
+  },
   {
     path: "*",
     element: (
@@ -173,29 +141,6 @@ function App() {
       <RouterProvider router={router} />
     </>
   );
-}
-
-interface TopBarWrapType extends PropsWithChildren {
-  hide?: boolean;
-}
-
-function TopBarWrapper(props: TopBarWrapType) {
-  if (isElectron()) {
-    return (
-      <>
-        <PageWrapper>
-          <TopBar hide={props.hide} />
-          {props.children}
-        </PageWrapper>
-      </>
-    );
-  } else {
-    return (
-      <ErrorBoundary fallbackRender={ErrorRender} onReset={() => {}}>
-        <PageWrapper>{props.children}</PageWrapper>
-      </ErrorBoundary>
-    );
-  }
 }
 
 export default App;

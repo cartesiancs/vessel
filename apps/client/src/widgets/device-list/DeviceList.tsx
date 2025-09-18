@@ -14,7 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Loader2, MoreHorizontal } from "lucide-react";
+import { Circle, CircleCheck, Loader2, MoreHorizontal } from "lucide-react";
 import { useDeviceStore } from "@/entities/device/store";
 import { DeviceDeleteButton } from "@/features/device/DeviceDeleteButton";
 import { DeviceUpdateButton } from "@/features/device/DeviceUpdateButton";
@@ -57,6 +57,8 @@ export function DeviceList() {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead></TableHead>
+
               <TableHead>ID</TableHead>
               <TableHead>Name</TableHead>
               <TableHead className='hidden sm:table-cell'>
@@ -76,6 +78,13 @@ export function DeviceList() {
                   selectedDevice?.id === device.id ? "bg-muted/50" : ""
                 }`}
               >
+                <TableCell className='font-medium'>
+                  {selectedDevice?.id === device.id ? (
+                    <CircleCheck className='text-blue-500' />
+                  ) : (
+                    <Circle className='text-muted/70' />
+                  )}
+                </TableCell>
                 <TableCell className='font-medium'>
                   {device.device_id}
                 </TableCell>

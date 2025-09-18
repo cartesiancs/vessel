@@ -3,14 +3,15 @@ import React, {
   useContext,
   useEffect,
   useState,
-  useRef,
   useCallback,
   ReactNode,
 } from "react";
 import { WebSocketChannel, WebSocketMessage } from "../ws/ws";
 
+export const wsManager = new WebSocketChannel();
+
 interface WebSocketContextState {
-  wsManager: WebSocketChannel | null;
+  wsManager: WebSocketChannel;
   isConnected: boolean;
   sendMessage: (message: WebSocketMessage) => void;
 }
@@ -23,38 +24,36 @@ export const WebSocketProvider: React.FC<{
   url: string;
   children: ReactNode;
 }> = ({ url, children }) => {
-  const [isConnected, setIsConnected] = useState(false);
-  const wsManagerRef = useRef<WebSocketChannel | null>(null);
+  const [isConnected, setIsConnected] = useState(wsManager.isConnected());
 
   useEffect(() => {
-    if (url) {
-      const wsManager = new WebSocketChannel();
-      wsManagerRef.current = wsManager;
+    wsManager.onopen = () => {
+      console.log("Connected to WebSocket server");
+      setIsConnected(true);
+    };
 
-      wsManager.onopen = () => {
-        console.log("Connected to WebSocket server");
-        setIsConnected(true);
-      };
+    wsManager.onclose = () => {
+      console.log("Disconnected from WebSocket server");
+      setIsConnected(false);
+    };
 
-      wsManager.onclose = () => {
-        console.log("Disconnected from WebSocket server");
-        setIsConnected(false);
-      };
-
+    if (url && !wsManager.isConnected()) {
       wsManager.connect(url);
-
-      return () => {
-        wsManager.close();
-      };
     }
+
+    return () => {
+      wsManager.onopen = null;
+      wsManager.onclose = null;
+      wsManager.close();
+    };
   }, [url]);
 
   const sendMessage = useCallback((message: WebSocketMessage) => {
-    wsManagerRef.current?.send(message);
+    wsManager.send(message);
   }, []);
 
   const value = {
-    wsManager: wsManagerRef.current,
+    wsManager,
     isConnected,
     sendMessage,
   };

@@ -2,10 +2,10 @@ use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use futures_util::{SinkExt, StreamExt};
 use serde::Deserialize;
-use serde_json::{to_string, Value};
+use serde_json::{json, to_string, Value};
 use std::collections::HashMap;
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
-use tracing::info;
+use tracing::{error, info};
 
 use super::ExecutableNode;
 use crate::flow::{engine::ExecutionContext, types::ExecutionResult};
@@ -31,12 +31,21 @@ impl WebSocketSendNode {
 impl ExecutableNode for WebSocketSendNode {
     async fn execute(
         &self,
-        _context: &mut ExecutionContext,
+        context: &mut ExecutionContext,
         inputs: HashMap<String, Value>,
     ) -> Result<ExecutionResult> {
         let url_str = &self.data.url;
 
         let Some(payload) = inputs.get("payload") else {
+            if let Ok(payload_str) = serde_json::to_string(&json!({
+                "type": "log_message",
+                "payload": "'payload' input is missing for WEBSOCKET_SEND node"
+            })) {
+                if context.get_broadcast().send(payload_str).is_err() {
+                    error!("Failed to send health check response.");
+                }
+            }
+
             return Err(anyhow!(
                 "'payload' input is missing for WEBSOCKET_SEND node"
             ));

@@ -36,8 +36,8 @@ function CustomNodeForm({
   onCancel: () => void;
   initialNode?: CustomNode | null;
 }) {
-  const [nodeType, setNodeType] = useState(initialNode?.node_type || "");
-  const [data, setData] = useState(initialNode?.data || "_");
+  const [nodeType, setNodeType] = useState(initialNode?.node_type || "_");
+  const [data, setData] = useState(initialNode?.data || "");
   const isEditing = !!initialNode;
 
   useEffect(() => {
