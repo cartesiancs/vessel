@@ -15,6 +15,7 @@ import { DrawingPreview } from "./FeatureDrawingPreview";
 import { FeatureRenderer } from "./FeatureRenderer";
 import { FeatureEditor } from "./FeatureEditor";
 import { FeatureDetailsPanel } from "./FeatureDetailsPanel";
+import { parseGpsState } from "../gps/parseGps";
 
 const DefaultIcon = L.icon({
   iconUrl: icon,
@@ -26,24 +27,6 @@ const DefaultIcon = L.icon({
 const failedPosition = [39.8283, -98.5795];
 
 L.Marker.prototype.options.icon = DefaultIcon;
-
-const parseGpsState = (
-  state: string | null | undefined,
-): [number, number] | null => {
-  if (!state) return null;
-
-  const latMatch = state.match(/lat=([-\d.]+)/);
-  const lngMatch = state.match(/lng=([-\d.]+)/);
-
-  if (latMatch && lngMatch && latMatch[1] && lngMatch[1]) {
-    const lat = parseFloat(latMatch[1]);
-    const lng = parseFloat(lngMatch[1]);
-    if (!isNaN(lat) && !isNaN(lng)) {
-      return [lat, lng];
-    }
-  }
-  return null;
-};
 
 export function MapView() {
   const [position, setPosition] = useState<[number, number] | null>(null);
