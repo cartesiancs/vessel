@@ -218,6 +218,20 @@ export const DEFINITION_NODE = {
       path: "STRING",
     },
   },
+  JSON_MODIFY: {
+    connectors: [
+      { id: `id`, name: "json", type: "in" },
+      { id: `id`, name: "data", type: "in" },
+      { id: `id`, name: "value", type: "out" },
+    ],
+    nodeType: "JSON_MODIFY",
+    data: {
+      path: "path.to.value",
+    },
+    dataType: {
+      path: "STRING",
+    },
+  },
   DECODE_H264: {
     connectors: [
       { id: `id`, name: "payload", type: "in" },

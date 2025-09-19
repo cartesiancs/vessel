@@ -16,6 +16,7 @@ use crate::flow::nodes::custom_node::CustomNode;
 use crate::flow::nodes::decode_h264::DecodeH264Node;
 use crate::flow::nodes::decode_opus::DecodeOpusNode;
 use crate::flow::nodes::gst_decoder::GstDecoderNode;
+use crate::flow::nodes::json_modify::JsonModifyNode;
 use crate::flow::nodes::json_selector::JsonSelectorNode;
 use crate::flow::nodes::mqtt_publish::MqttPublishNode;
 use crate::flow::nodes::mqtt_subscribe::MqttSubscribeNode;
@@ -215,6 +216,7 @@ impl FlowEngine {
             "DECODE_OPUS" => Ok(Box::new(DecodeOpusNode::new()?)),
             "BRANCH" => Ok(Box::new(BranchNode)),
             "JSON_SELECTOR" => Ok(Box::new(JsonSelectorNode::new(&node.data)?)),
+            "JSON_MODIFY" => Ok(Box::new(JsonModifyNode::new(&node.data)?)),
             "DECODE_H264" => Ok(Box::new(DecodeH264Node::new()?)),
             "YOLO_DETECT" => Ok(Box::new(YoloDetectNode::new(
                 &node.data,

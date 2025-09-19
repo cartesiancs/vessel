@@ -105,6 +105,7 @@ export function Graph({
 
     BRANCH: (g, d) => renderProcessingNode(g, d),
     JSON_SELECTOR: (g, d) => renderButtonNode(g, d, () => handleClickOption(d)),
+    JSON_MODIFY: (g, d) => renderButtonNode(g, d, () => handleClickOption(d)),
     YOLO_DETECT: (g, d) => renderButtonNode(g, d, () => handleClickOption(d)),
     GST_DECODER: (g, d) => renderButtonNode(g, d, () => handleClickOption(d)),
 
@@ -137,6 +138,7 @@ export function Graph({
         "INTERVAL",
         "BRANCH",
         "JSON_SELECTOR",
+        "JSON_MODIFY",
       ],
     },
     {

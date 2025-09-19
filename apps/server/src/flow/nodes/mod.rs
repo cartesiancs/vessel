@@ -41,6 +41,7 @@ pub mod decode_opus;
 pub mod gst_decoder;
 pub mod http;
 pub mod interval;
+pub mod json_modify;
 pub mod json_selector;
 pub mod log_message;
 pub mod logic_operator;
