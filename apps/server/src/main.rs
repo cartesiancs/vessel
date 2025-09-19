@@ -1,3 +1,4 @@
+use ::rtp::packet::Packet;
 use anyhow::Result;
 use dashmap::DashMap;
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
@@ -6,6 +7,7 @@ use std::{env, sync::Arc};
 use tokio::{
     sync::{broadcast, mpsc, watch, RwLock},
     task::JoinSet,
+    time::Instant,
 };
 use tracing::{error, info, warn};
 use tracing_subscriber::{fmt, layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
@@ -15,12 +17,15 @@ const LOG_FILE_PATH: &str = "log/app.log";
 use crate::{
     db::conn::establish_connection,
     flow::manager_state::FlowManagerActor,
-    initial::{create_initial_admin, create_initial_configurations, seed_initial_permissions},
+    initial::{
+        create_hydrate_streams, create_initial_admin, create_initial_configurations,
+        seed_initial_permissions,
+    },
     lib::{entity_map::remap_topics, stream_checker::stream_status_checker},
     logo::print_logo,
     routes::web_server,
     rtp::rtp_receiver,
-    state::{AppState, FrameData, MqttMessage, StreamInfo, StreamManager},
+    state::{AppState, FrameData, MediaType, MqttMessage, StreamInfo, StreamManager},
 };
 
 mod config;
@@ -73,6 +78,8 @@ async fn main() -> Result<()> {
         warn!("APPLICATION IS RUNNING IN DEBUG MODE. ONLY THE WEB SERVER WILL BE ACTIVATED.");
     }
 
+    let streams: Arc<DashMap<u32, StreamInfo>> = Arc::new(DashMap::<u32, StreamInfo>::new());
+
     let pool = establish_connection(&settings.database_url);
 
     {
@@ -86,9 +93,8 @@ async fn main() -> Result<()> {
         create_initial_admin(&mut conn);
         create_initial_configurations(&mut conn);
         seed_initial_permissions(&mut conn);
+        create_hydrate_streams(&pool, &streams);
     }
-
-    let streams = Arc::new(DashMap::<u32, StreamInfo>::new());
 
     let (mqtt_tx, _) = broadcast::channel::<MqttMessage>(1024);
     let (rtsp_frame_tx, _) = broadcast::channel::<FrameData>(256);

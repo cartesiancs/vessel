@@ -160,6 +160,16 @@ diesel::table! {
 }
 
 diesel::table! {
+    streams (ssrc) {
+        ssrc -> Integer,
+        topic -> Text,
+        device_id -> Text,
+        media_type -> Text,
+        created_at -> Timestamp,
+    }
+}
+
+diesel::table! {
     system_configurations (id) {
         id -> Integer,
         key -> Text,
@@ -220,6 +230,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     roles,
     states,
     states_meta,
+    streams,
     system_configurations,
     user_roles,
     users,

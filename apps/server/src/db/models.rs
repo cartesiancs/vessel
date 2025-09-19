@@ -1,6 +1,7 @@
 use crate::db::schema::{
     device_tokens, devices, entities, entities_configurations, events, flow_versions, flows,
-    map_features, map_layers, map_vertices, states, states_meta, system_configurations, users,
+    map_features, map_layers, map_vertices, states, states_meta, streams, system_configurations,
+    users,
 };
 use chrono::NaiveDateTime;
 use diesel::prelude::*;
@@ -464,4 +465,24 @@ pub struct NewCustomNode<'a> {
 #[diesel(table_name = crate::db::schema::custom_nodes)]
 pub struct UpdateCustomNode {
     pub data: Option<String>,
+}
+
+#[derive(Queryable, Selectable, Insertable, AsChangeset, Serialize, Deserialize, Debug)]
+#[diesel(table_name = streams)]
+#[diesel(primary_key(ssrc))]
+pub struct Stream {
+    pub ssrc: i32,
+    pub topic: String,
+    pub device_id: String,
+    pub media_type: String,
+    pub created_at: NaiveDateTime,
+}
+
+#[derive(Insertable)]
+#[diesel(table_name = streams)]
+pub struct NewStream<'a> {
+    pub ssrc: i32,
+    pub topic: &'a str,
+    pub device_id: &'a str,
+    pub media_type: &'a str,
 }
