@@ -7,7 +7,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { X, MapPin, TabletSmartphone, Server } from "lucide-react";
-import { useMapStore } from "./store";
 import { useCallback, useEffect, useState } from "react";
 import { getDeviceById } from "@/entities/device/api";
 import { EntityAll } from "@/entities/entity/types";
@@ -16,9 +15,10 @@ import { useWebSocket, useWebSocketMessage } from "../ws/WebSocketProvider";
 import { WebSocketMessage } from "../ws/ws";
 import { ChangeStatePayload, StreamState } from "../entity/AllEntities";
 import * as api from "../../entities/entity/api";
+import { useMapEntityStore } from "./store";
 
 export function EntityDetailsPanel() {
-  const { selectedEntity, setSelectedEntity } = useMapStore();
+  const { selectedEntity, setSelectedEntity } = useMapEntityStore();
   const [device, setDevice] = useState({
     name: "",
     model: "",

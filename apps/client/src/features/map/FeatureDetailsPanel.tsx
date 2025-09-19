@@ -32,7 +32,7 @@ import {
 import { cn } from "@/lib/utils";
 import { MapVertex, UpdateFeaturePayload } from "@/entities/map/types";
 import { calculateFeatureGeometry } from "@/lib/geometry-precision";
-import { useMapStore } from "./store";
+import { useMapEntityStore } from "../map-entity/store";
 
 const FeatureIcon = ({ type }: { type: string }) => {
   switch (type) {
@@ -48,7 +48,7 @@ const FeatureIcon = ({ type }: { type: string }) => {
 };
 
 export function FeatureDetailsPanel() {
-  const { selectedEntity } = useMapStore();
+  const { selectedEntity } = useMapEntityStore();
 
   const { selectedFeature, setSelectedFeature } = useMapInteractionStore();
   const { removeFeature, updateFeature } = useMapDataStore();
@@ -111,7 +111,7 @@ export function FeatureDetailsPanel() {
           selectedEntity ? "right-[400px]" : "right-0",
           selectedFeature ? "translate-x-0" : "translate-x-full",
         )}
-        style={{ width: "400px" }}
+        style={{ width: "340px" }}
       >
         {selectedFeature && (
           <Card className='h-full w-full flex flex-col'>

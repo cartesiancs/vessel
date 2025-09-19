@@ -13,7 +13,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { MapView } from "@/features/map";
-import { EntityDetailsPanel } from "@/features/map/EntityDetailsPanel";
+import { EntityDetailsPanel } from "@/features/map-entity/EntityDetailsPanel";
 import { LayerSidebar } from "@/features/map/LayerSidebar";
 import { MapToolbar } from "@/features/map/MapToolbar";
 import { WebRTCProvider } from "@/features/rtc/WebRTCProvider";

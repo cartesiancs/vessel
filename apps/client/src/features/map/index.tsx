@@ -1,13 +1,10 @@
 import { useState, useEffect } from "react";
-import { MapContainer, TileLayer, Marker } from "react-leaflet";
+import { MapContainer, TileLayer } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
-import { getAllEntitiesFilter } from "@/entities/entity/api";
-import { EntityAll } from "@/entities/entity/types";
 
 import icon from "leaflet/dist/images/marker-icon.png";
 import iconShadow from "leaflet/dist/images/marker-shadow.png";
-import { useMapStore } from "./store";
 import "./style.css";
 import { useMapDataStore } from "@/entities/map/store";
 import { MapEvents } from "./MapEvents";
@@ -15,7 +12,7 @@ import { DrawingPreview } from "./FeatureDrawingPreview";
 import { FeatureRenderer } from "./FeatureRenderer";
 import { FeatureEditor } from "./FeatureEditor";
 import { FeatureDetailsPanel } from "./FeatureDetailsPanel";
-import { parseGpsState } from "../gps/parseGps";
+import { MapEntityRender } from "../map-entity/render";
 
 const DefaultIcon = L.icon({
   iconUrl: icon,
@@ -30,21 +27,9 @@ L.Marker.prototype.options.icon = DefaultIcon;
 
 export function MapView() {
   const [position, setPosition] = useState<[number, number] | null>(null);
-  const [entities, setEntities] = useState<EntityAll[]>([]);
-  const setSelectedEntity = useMapStore((state) => state.setSelectedEntity);
   const { layer, fetchAllLayers } = useMapDataStore();
 
-  const fetchEntities = async () => {
-    try {
-      const response = await getAllEntitiesFilter("GPS");
-      setEntities(response.data);
-    } catch (error) {
-      console.error("Failed to fetch entities:", error);
-    }
-  };
-
   useEffect(() => {
-    fetchEntities();
     fetchAllLayers();
 
     navigator.geolocation.getCurrentPosition(
@@ -91,22 +76,7 @@ export function MapView() {
           <DrawingPreview />
           <FeatureEditor />
 
-          {entities.map((entity) => {
-            const markerPosition = parseGpsState(entity.state?.state);
-            if (!markerPosition) return null;
-
-            return (
-              <Marker
-                key={entity.id}
-                position={markerPosition}
-                eventHandlers={{
-                  click: () => {
-                    setSelectedEntity(entity);
-                  },
-                }}
-              ></Marker>
-            );
-          })}
+          <MapEntityRender />
         </MapContainer>
       )}
     </>
