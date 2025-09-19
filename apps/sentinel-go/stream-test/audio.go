@@ -23,7 +23,7 @@ func main() {
     deviceToken := "FnhXd7dNy8iCPbu5N5jS2v_NaOYCiI9AqPO4FQQed7E"
 
     serverURL := "http://127.0.0.1:8080/api/streams/register"
-    topic := "go_stream_1"
+    topic := "go_stream_2"
 	mediaType := "audio"
 
     if deviceId == "" || deviceToken == "" {
@@ -78,6 +78,7 @@ func main() {
 	cmd := exec.Command(
 		"ffmpeg",
 		"-re",
+        "-stream_loop", "-1",
 		"-i", "./sample.mp3",
 		"-vn",
 		"-map", "0:a:0",
