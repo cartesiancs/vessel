@@ -25,7 +25,7 @@ use crate::{
     lib::{entity_map::remap_topics, stream_checker::stream_status_checker},
     logo::print_logo,
     routes::web_server,
-    state::{AppState, FrameData, MediaType, MqttMessage, StreamInfo, StreamManager},
+    state::{AppState, MediaType, MqttMessage, StreamInfo, StreamManager},
 };
 
 mod broker_mqtt;
@@ -96,12 +96,11 @@ async fn main() -> Result<()> {
     }
 
     let (mqtt_tx, _) = broadcast::channel::<MqttMessage>(1024);
-    let (rtsp_frame_tx, _) = broadcast::channel::<FrameData>(256);
-
-    let jwt_secret = settings.jwt_secret.clone();
-
     let (flow_manager_tx, flow_manager_rx) = mpsc::channel(100);
     let (broadcast_tx, _) = broadcast::channel(1024);
+    let (shutdown_tx, shutdown_rx) = watch::channel(());
+
+    let jwt_secret = settings.jwt_secret.clone();
 
     let app_state = Arc::new(AppState {
         streams: streams.clone(),
@@ -109,12 +108,9 @@ async fn main() -> Result<()> {
         jwt_secret: jwt_secret,
         pool: pool,
         topic_map: Arc::new(RwLock::new(Vec::new())),
-        rtsp_frame_tx,
         flow_manager_tx,
         broadcast_tx,
     });
-
-    let (shutdown_tx, shutdown_rx) = watch::channel(());
 
     let configs = db::repository::get_all_system_configs(&app_state.clone().pool)?;
 

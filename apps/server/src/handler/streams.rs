@@ -61,8 +61,8 @@ pub async fn register_stream(
         user_id: auth.device_id,
         packet_tx,
         media_type: payload.media_type,
-        last_seen: Arc::new(RwLock::new(Instant::now())),
-        is_online: Arc::new(RwLock::new(false)),
+        last_seen: Arc::new(std::sync::RwLock::new(Instant::now())),
+        is_online: Arc::new(std::sync::RwLock::new(false)),
     };
 
     state.streams.insert(ssrc, stream_info);

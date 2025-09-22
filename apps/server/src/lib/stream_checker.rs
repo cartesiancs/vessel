@@ -30,11 +30,11 @@ pub async fn stream_status_checker(
                     let ssrc = *entry.key();
                     let stream_info = entry.value();
 
-                    let is_online = *stream_info.is_online.read().await;
-                    let last_seen = *stream_info.last_seen.read().await;
+                    let is_online = *stream_info.is_online.read().unwrap();
+                    let last_seen = *stream_info.last_seen.read().unwrap();
 
                     if is_online && last_seen.elapsed() > STREAM_TIMEOUT {
-                        let mut is_online_guard = stream_info.is_online.write().await;
+                        let mut is_online_guard = stream_info.is_online.write().unwrap();
                         if *is_online_guard {
                             *is_online_guard = false;
                             info!(
@@ -60,4 +60,3 @@ pub async fn stream_status_checker(
 
     Ok(())
 }
-

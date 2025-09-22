@@ -24,7 +24,7 @@ pub async fn rtp_receiver(addr: String, stream_manager: StreamManager) -> Result
                 let ssrc = packet.header.ssrc;
 
                 if let Some(stream_info) = stream_manager.get(&ssrc) {
-                    let mut is_online_guard = stream_info.is_online.write().await;
+                    let mut is_online_guard = stream_info.is_online.write().unwrap();
                     if !*is_online_guard {
                         *is_online_guard = true;
                         info!(
@@ -34,7 +34,7 @@ pub async fn rtp_receiver(addr: String, stream_manager: StreamManager) -> Result
                     }
                     drop(is_online_guard);
 
-                    let mut last_seen_guard = stream_info.last_seen.write().await;
+                    let mut last_seen_guard = stream_info.last_seen.write().unwrap();
                     *last_seen_guard = Instant::now();
                     drop(last_seen_guard);
 

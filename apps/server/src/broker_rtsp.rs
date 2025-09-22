@@ -1,13 +1,18 @@
 use anyhow::{anyhow, Error, Result};
-use bytes::Bytes;
 use futures_util::StreamExt;
 use gstreamer::prelude::*;
 use gstreamer_app::{AppSink, AppSinkCallbacks};
-use std::sync::Arc;
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc, RwLock,
+};
 use tokio::sync::{broadcast, watch};
+use tokio::time::Instant;
 use tracing::{error, info, warn};
+use webrtc::rtp::packet::Packet;
+use webrtc::util::Unmarshal;
 
-use crate::state::{AppState, FrameData, Protocol};
+use crate::state::{AppState, MediaType, Protocol, StreamInfo};
 
 pub async fn start_rtsp_pipelines(
     app_state: Arc<AppState>,
@@ -35,15 +40,23 @@ pub async fn start_rtsp_pipelines(
     let mut join_set = tokio::task::JoinSet::new();
 
     for mapping in rtsp_mappings {
-        let frame_tx = app_state.rtsp_frame_tx.clone();
+        let state = Arc::clone(&app_state);
         let topic = mapping.topic.clone();
+        let user_id = mapping.entity_id.clone();
         let mut shutdown_rx = shutdown_rx.clone();
+
+        let (packet_tx, _) = broadcast::channel(1024);
 
         join_set.spawn(async move {
             loop {
                 let mut shutdown_rx_clone = shutdown_rx.clone();
-                let pipeline_future =
-                    run_pipeline(&topic, frame_tx.clone(), &mut shutdown_rx_clone);
+                let pipeline_future = run_pipeline(
+                    &topic,
+                    &user_id,
+                    packet_tx.clone(),
+                    Arc::clone(&state),
+                    &mut shutdown_rx_clone,
+                );
 
                 tokio::select! {
                     _ = shutdown_rx.changed() => {
@@ -79,11 +92,13 @@ pub async fn start_rtsp_pipelines(
 
 async fn run_pipeline(
     rtsp_url: &str,
-    frame_tx: broadcast::Sender<FrameData>,
+    user_id: &str,
+    packet_tx: broadcast::Sender<Packet>,
+    state: Arc<AppState>,
     shutdown_rx: &mut watch::Receiver<()>,
 ) -> Result<(), Error> {
     let pipeline_str = format!(
-        "rtspsrc location={0} latency=0 ! rtph264depay ! h264parse config-interval=-1 ! video/x-h264,stream-format=byte-stream,alignment=au ! appsink name=sink emit-signals=true",
+        "rtspsrc location={} latency=0 ! application/x-rtp,media=video,encoding-name=H264 ! appsink name=sink emit-signals=true",
         rtsp_url
     );
 
@@ -97,7 +112,10 @@ async fn run_pipeline(
         .downcast::<AppSink>()
         .map_err(|_| anyhow!("Sink element is not an AppSink"))?;
 
+    let is_registered = Arc::new(AtomicBool::new(false));
     let rtsp_url_clone = rtsp_url.to_string();
+    let user_id_clone = user_id.to_string();
+
     appsink.set_callbacks(
         AppSinkCallbacks::builder()
             .new_sample(move |sink| {
@@ -107,20 +125,46 @@ async fn run_pipeline(
                     .map_readable()
                     .map_err(|_| gstreamer::FlowError::Error)?;
 
-                let frame_data = FrameData {
-                    topic: rtsp_url_clone.clone(),
-                    buffer: Bytes::copy_from_slice(map.as_slice()),
-                };
+                match Packet::unmarshal(&mut map.as_slice()) {
+                    Ok(packet) => {
+                        let ssrc: u32 = packet.header.ssrc;
 
-                if frame_tx.send(frame_data).is_err() {}
+                        if !is_registered.load(Ordering::SeqCst) {
+                            info!(
+                                "RTSP stream {} registered with SSRC: {}",
+                                rtsp_url_clone, ssrc
+                            );
 
+                            let stream_info = StreamInfo {
+                                topic: rtsp_url_clone.clone(),
+                                user_id: user_id_clone.clone(),
+                                packet_tx: packet_tx.clone(),
+                                media_type: MediaType::Video,
+                                last_seen: Arc::new(RwLock::new(Instant::now())),
+                                is_online: Arc::new(RwLock::new(true)),
+                            };
+                            state.streams.insert(ssrc, stream_info);
+                            is_registered.store(true, Ordering::SeqCst);
+                        }
+
+                        if let Some(stream_info) = state.streams.get(&ssrc) {
+                            *stream_info.last_seen.write().unwrap() = Instant::now();
+                        }
+
+                        if packet_tx.send(packet).is_err() {
+                            // Receiver is gone, maybe log this.
+                        }
+                    }
+                    Err(e) => {
+                        warn!("Failed to unmarshal RTP packet from GStreamer: {}", e);
+                    }
+                }
                 Ok(gstreamer::FlowSuccess::Ok)
             })
             .build(),
     );
 
     pipeline_bin.set_state(gstreamer::State::Playing)?;
-
     let bus = pipeline_bin.bus().unwrap();
     let mut bus_stream = bus.stream();
 

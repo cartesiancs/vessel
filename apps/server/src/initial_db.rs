@@ -186,8 +186,8 @@ pub fn create_hydrate_streams(pool: &DbPool, streams: &Arc<DashMap<u32, StreamIn
                     user_id: stream.device_id,
                     packet_tx,
                     media_type,
-                    last_seen: Arc::new(RwLock::new(Instant::now())),
-                    is_online: Arc::new(RwLock::new(false)),
+                    last_seen: Arc::new(std::sync::RwLock::new(Instant::now())),
+                    is_online: Arc::new(std::sync::RwLock::new(false)),
                 };
                 streams.insert(stream.ssrc as u32, stream_info);
             }

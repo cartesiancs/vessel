@@ -27,8 +27,8 @@ pub struct StreamInfo {
     pub user_id: String,
     pub packet_tx: broadcast::Sender<Packet>,
     pub media_type: MediaType,
-    pub last_seen: Arc<RwLock<Instant>>,
-    pub is_online: Arc<RwLock<bool>>,
+    pub last_seen: Arc<std::sync::RwLock<Instant>>,
+    pub is_online: Arc<std::sync::RwLock<bool>>,
 }
 
 pub type StreamManager = Arc<DashMap<u32, StreamInfo>>;
@@ -37,12 +37,6 @@ pub type StreamManager = Arc<DashMap<u32, StreamInfo>>;
 pub struct MqttMessage {
     pub topic: String,
     pub bytes: Bytes,
-}
-
-#[derive(Clone, Debug)]
-pub struct FrameData {
-    pub topic: String,
-    pub buffer: Bytes,
 }
 
 #[derive(Serialize, Clone, Debug, PartialEq, Eq)]
@@ -66,7 +60,6 @@ pub struct AppState {
     pub jwt_secret: String,
     pub pool: DbPool,
     pub topic_map: Arc<RwLock<Vec<TopicMapping>>>,
-    pub rtsp_frame_tx: broadcast::Sender<FrameData>,
     pub flow_manager_tx: mpsc::Sender<FlowManagerCommand>,
     pub broadcast_tx: broadcast::Sender<String>,
 }
