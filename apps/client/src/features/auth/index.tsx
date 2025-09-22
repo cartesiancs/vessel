@@ -7,6 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useNavigate } from "react-router";
+import { Badge } from "@/components/ui/badge";
+
+const RECENT_URLS_COOKIE = "recent_server_urls";
+const MAX_RECENT_URLS = 5;
 
 export function LoginForm({
   className,
@@ -17,12 +21,16 @@ export function LoginForm({
   const [password, setPassword] = useState("");
   const [showAuthFields, setShowAuthFields] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [recentUrls, setRecentUrls] = useState<string[]>([]);
   const navigate = useNavigate();
 
-  const handleConnect = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const connectToServer = async (targetUrl: string) => {
+    if (!targetUrl) {
+      toast.error("Server URL cannot be empty.");
+      return;
+    }
     setIsLoading(true);
-    const processedUrl = url.replace(/\/$/, "");
+    const processedUrl = targetUrl.replace(/\/$/, "");
 
     try {
       const response = await fetch(`${processedUrl}/info`, {
@@ -44,7 +52,17 @@ export function LoginForm({
         data.status === "success"
       ) {
         toast.success("Connected to server successfully. Please authenticate.");
-        Cookies.set("server_url", processedUrl, { expires: 1 / 24 });
+
+        const updatedUrls = [
+          processedUrl,
+          ...recentUrls.filter((u) => u !== processedUrl),
+        ].slice(0, MAX_RECENT_URLS);
+
+        setRecentUrls(updatedUrls);
+        Cookies.set(RECENT_URLS_COOKIE, JSON.stringify(updatedUrls), {
+          expires: 365,
+        });
+        Cookies.set("server_url", processedUrl, { expires: 1 });
 
         setShowAuthFields(true);
       } else {
@@ -59,6 +77,11 @@ export function LoginForm({
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleConnect = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await connectToServer(url);
   };
 
   const handleAuth = async (e: React.FormEvent) => {
@@ -89,6 +112,7 @@ export function LoginForm({
 
       if (data.token) {
         Cookies.set("token", data.token, { expires: 1 / 24 });
+        Cookies.set("server_url", processedUrl, { expires: 1 / 24 });
         toast.success("Successfully authenticated.");
         navigate("/dashboard");
       } else {
@@ -107,6 +131,20 @@ export function LoginForm({
     const token = Cookies.get("token");
     if (token) {
       navigate("/dashboard");
+      return;
+    }
+
+    const storedUrls = Cookies.get(RECENT_URLS_COOKIE);
+    if (storedUrls) {
+      try {
+        const parsedUrls = JSON.parse(storedUrls);
+        if (Array.isArray(parsedUrls)) {
+          setRecentUrls(parsedUrls);
+        }
+      } catch (error) {
+        console.error("Failed to parse recent URLs from cookies.", error);
+        Cookies.remove(RECENT_URLS_COOKIE);
+      }
     }
   }, [navigate]);
 
@@ -141,6 +179,26 @@ export function LoginForm({
                   onChange={(e) => setUrl(e.target.value)}
                   disabled={isLoading}
                 />
+                {recentUrls.length > 0 && (
+                  <div className='flex flex-wrap items-center gap-2'>
+                    <span className='text-muted-foreground text-xs'>
+                      Recent:
+                    </span>
+                    {recentUrls.map((recentUrl) => (
+                      <Badge
+                        key={recentUrl}
+                        variant='outline'
+                        className='cursor-pointer'
+                        onClick={async () => {
+                          setUrl(recentUrl);
+                          await connectToServer(recentUrl);
+                        }}
+                      >
+                        {recentUrl}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
               </div>
             ) : (
               <>

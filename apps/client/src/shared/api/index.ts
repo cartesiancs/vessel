@@ -25,3 +25,15 @@ apiClient.interceptors.request.use(
     return Promise.reject(error);
   },
 );
+
+apiClient.interceptors.response.use(
+  (response) => {
+    return response;
+  },
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      window.location.href = "/auth";
+    }
+    return Promise.reject(error);
+  },
+);

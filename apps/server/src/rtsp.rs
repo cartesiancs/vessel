@@ -40,7 +40,6 @@ pub async fn start_rtsp_pipelines(
         let mut shutdown_rx = shutdown_rx.clone();
 
         join_set.spawn(async move {
-            info!("🚀 Launching pipeline for: {}", topic);
             loop {
                 let mut shutdown_rx_clone = shutdown_rx.clone();
                 let pipeline_future =
@@ -104,7 +103,9 @@ async fn run_pipeline(
             .new_sample(move |sink| {
                 let sample = sink.pull_sample().map_err(|_| gstreamer::FlowError::Eos)?;
                 let buffer = sample.buffer().ok_or(gstreamer::FlowError::Error)?;
-                let map = buffer.map_readable().map_err(|_| gstreamer::FlowError::Error)?;
+                let map = buffer
+                    .map_readable()
+                    .map_err(|_| gstreamer::FlowError::Error)?;
 
                 let frame_data = FrameData {
                     topic: rtsp_url_clone.clone(),
