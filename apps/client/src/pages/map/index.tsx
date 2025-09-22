@@ -15,7 +15,6 @@ import {
 import { MapView } from "@/features/map";
 import { LayerSidebar } from "@/features/map-draw/LayerSidebar";
 import { MapToolbar } from "@/features/map-draw/MapToolbar";
-import { EntityDetailsPanel } from "@/features/map-entity/EntityDetailsPanel";
 import { WebRTCProvider } from "@/features/rtc/WebRTCProvider";
 import { AppSidebar } from "@/features/sidebar";
 
@@ -47,7 +46,6 @@ export function MapPage() {
             <LayerSidebar />
             <MapToolbar />
             <MapView />
-            <EntityDetailsPanel />
           </main>
         </SidebarInset>
       </WebRTCProvider>

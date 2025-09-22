@@ -10,6 +10,7 @@ import {
   Maximize,
   Ruler,
   Palette,
+  Minus,
 } from "lucide-react";
 import { useMapDataStore, useMapInteractionStore } from "@/entities/map/store";
 import { Button } from "@/components/ui/button";
@@ -33,7 +34,6 @@ import {
 import { cn } from "@/lib/utils";
 import { MapVertex, UpdateFeaturePayload } from "@/entities/map/types";
 import { calculateFeatureGeometry } from "@/lib/geometry-precision";
-import { useMapEntityStore } from "../map-entity/store";
 
 const FeatureIcon = ({ type }: { type: string }) => {
   switch (type) {
@@ -48,9 +48,15 @@ const FeatureIcon = ({ type }: { type: string }) => {
   }
 };
 
-export function FeatureDetailsPanel() {
-  const { selectedEntity } = useMapEntityStore();
+interface FeatureDetailsPanelProps {
+  isCollapsed: boolean;
+  onToggleCollapse: () => void;
+}
 
+export function FeatureDetailsPanel({
+  isCollapsed,
+  onToggleCollapse,
+}: FeatureDetailsPanelProps) {
   const { selectedFeature, setSelectedFeature } = useMapInteractionStore();
   const { removeFeature, updateFeature } = useMapDataStore();
 
@@ -128,29 +134,43 @@ export function FeatureDetailsPanel() {
     }
   };
 
+  const handleToggleCollapse = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onToggleCollapse();
+  };
+
+  if (!selectedFeature) {
+    return null;
+  }
+
   return (
     <>
-      <div
-        className={cn(
-          "absolute top-[48px] h-[calc(100%-48px)] p-4 transition-all duration-300 ease-in-out z-[1001]",
-          selectedEntity ? "right-[400px]" : "right-0",
-          selectedFeature ? "translate-x-0" : "translate-x-full",
-        )}
-        style={{ width: "340px" }}
-      >
-        {selectedFeature && (
-          <Card className='h-full w-full flex flex-col'>
-            <CardHeader>
-              <div className='flex justify-between items-start'>
-                <CardTitle className='flex items-center'>
-                  <FeatureIcon type={selectedFeature.feature_type} />
-                  Feature #{selectedFeature.id}
-                </CardTitle>
-                <Button variant='ghost' size='icon' onClick={handleClose}>
-                  <X className='h-4 w-4' />
-                </Button>
-              </div>
-            </CardHeader>
+      <Card className='w-full flex flex-col max-h-full bg-background'>
+        <CardHeader
+          onClick={isCollapsed ? onToggleCollapse : undefined}
+          className={cn("flex-shrink-0", isCollapsed && "cursor-pointer")}
+        >
+          <div className='flex justify-between items-start'>
+            <CardTitle className='flex items-center'>
+              <FeatureIcon type={selectedFeature.feature_type} />
+              Feature #{selectedFeature.id}
+            </CardTitle>
+            <div className='flex items-center'>
+              <Button
+                variant='ghost'
+                size='icon'
+                onClick={handleToggleCollapse}
+              >
+                <Minus className='h-4 w-4' />
+              </Button>
+              <Button variant='ghost' size='icon' onClick={handleClose}>
+                <X className='h-4 w-4' />
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+        {!isCollapsed && (
+          <>
             <CardContent className='flex-grow overflow-y-auto space-y-4'>
               {geometryInfo && (
                 <div>
@@ -228,7 +248,7 @@ export function FeatureDetailsPanel() {
                 </div>
               </div>
             </CardContent>
-            <CardFooter className='flex justify-end gap-2'>
+            <CardFooter className='flex-shrink-0 flex justify-end gap-2'>
               {isEditing ? (
                 <>
                   <Button variant='outline' onClick={handleCancel}>
@@ -255,9 +275,9 @@ export function FeatureDetailsPanel() {
                 </>
               )}
             </CardFooter>
-          </Card>
+          </>
         )}
-      </div>
+      </Card>
 
       <AlertDialog open={isDeleteAlertOpen} onOpenChange={setDeleteAlertOpen}>
         <AlertDialogContent className='z-[999999]'>

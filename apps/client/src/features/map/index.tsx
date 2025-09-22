@@ -6,7 +6,7 @@ import L from "leaflet";
 import icon from "leaflet/dist/images/marker-icon.png";
 import iconShadow from "leaflet/dist/images/marker-shadow.png";
 import "./style.css";
-import { useMapDataStore } from "@/entities/map/store";
+import { useMapDataStore, useMapInteractionStore } from "@/entities/map/store";
 
 import { MapEntityRender } from "../map-entity/render";
 import { FeatureDetailsPanel } from "../map-draw/FeatureDetailsPanel";
@@ -14,6 +14,9 @@ import { DrawingPreview } from "../map-draw/FeatureDrawingPreview";
 import { FeatureEditor } from "../map-draw/FeatureEditor";
 import { FeatureRenderer } from "../map-draw/FeatureRenderer";
 import { MapEvents } from "../map-draw/MapEvents";
+import { EntityDetailsPanel } from "../map-entity/EntityDetailsPanel";
+import { useMapEntityStore } from "../map-entity/store";
+import { cn } from "@/lib/utils";
 
 const DefaultIcon = L.icon({
   iconUrl: icon,
@@ -29,6 +32,11 @@ L.Marker.prototype.options.icon = DefaultIcon;
 export function MapView() {
   const [position, setPosition] = useState<[number, number] | null>(null);
   const { layer, fetchAllLayers } = useMapDataStore();
+  const { selectedFeature } = useMapInteractionStore();
+  const { selectedEntity } = useMapEntityStore();
+
+  const [isFeaturePanelCollapsed, setFeaturePanelCollapsed] = useState(false);
+  const [isEntityPanelCollapsed, setEntityPanelCollapsed] = useState(false);
 
   useEffect(() => {
     fetchAllLayers();
@@ -50,9 +58,10 @@ export function MapView() {
     );
   }, [setPosition, fetchAllLayers]);
 
+  const showPanelContainer = selectedFeature || selectedEntity;
+
   return (
-    <>
-      <FeatureDetailsPanel />
+    <div className='relative h-full w-full overflow-hidden'>
       {!position ? (
         <div className='flex items-center justify-center h-full'>
           <span>Loading Map...</span>
@@ -80,6 +89,32 @@ export function MapView() {
           <MapEntityRender />
         </MapContainer>
       )}
-    </>
+
+      <div
+        className={cn(
+          "absolute top-[48px] right-0 h-[calc(100%-48px)] p-4 w-[400px] z-[1001]",
+          "flex flex-col gap-4 overflow-y-auto transition-transform duration-300 ease-in-out",
+          "pointer-events-none",
+          showPanelContainer ? "translate-x-0" : "translate-x-full",
+        )}
+      >
+        {selectedFeature && (
+          <div className='pointer-events-auto'>
+            <FeatureDetailsPanel
+              isCollapsed={isFeaturePanelCollapsed}
+              onToggleCollapse={() => setFeaturePanelCollapsed((prev) => !prev)}
+            />
+          </div>
+        )}
+        {selectedEntity && (
+          <div className='pointer-events-auto'>
+            <EntityDetailsPanel
+              isCollapsed={isEntityPanelCollapsed}
+              onToggleCollapse={() => setEntityPanelCollapsed((prev) => !prev)}
+            />
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
