@@ -1,9 +1,12 @@
-use std::sync::Arc;
-use axum::{extract::{State, Path}, Json};
-use serde_json::{json, Value};
-use crate::{db, error::AppError, handler::auth::AuthUser, hash, state::AppState};
-use rand::{RngCore};
+use crate::{db, error::AppError, handler::auth::AuthUser, lib::hash, state::AppState};
+use axum::{
+    extract::{Path, State},
+    Json,
+};
 use base64::{engine::general_purpose, Engine as _};
+use rand::RngCore;
+use serde_json::{json, Value};
+use std::sync::Arc;
 
 fn generate_api_key() -> String {
     let mut key = [0u8; 32];
@@ -21,7 +24,7 @@ pub async fn issue_token(
     let token_hash = hash::hash_password(&raw_token)?;
 
     db::repository::create_or_replace_device_token(&state.pool, id, &token_hash)?;
-    
+
     Ok(Json(json!({
         "message": "New device token generated successfully. Store this token securely, it will not be shown again.",
         "token": raw_token
@@ -34,10 +37,12 @@ pub async fn get_token_info(
     Path(id): Path<i32>,
 ) -> Result<Json<Value>, AppError> {
     let token_info = db::repository::get_token_info_for_device(&state.pool, id)?;
-    
+
     match token_info {
         Some(info) => Ok(Json(serde_json::to_value(info)?)),
-        None => Ok(Json(json!({ "message": "No token found for this device." })))
+        None => Ok(Json(
+            json!({ "message": "No token found for this device." }),
+        )),
     }
 }
 
@@ -47,5 +52,7 @@ pub async fn revoke_token(
     Path(id): Path<i32>,
 ) -> Result<Json<Value>, AppError> {
     db::repository::delete_token_for_device(&state.pool, id)?;
-    Ok(Json(json!({ "status": "success", "message": "Device token has been revoked." })))
+    Ok(Json(
+        json!({ "status": "success", "message": "Device token has been revoked." }),
+    ))
 }

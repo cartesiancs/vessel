@@ -1,3 +1,4 @@
+use crate::lib::hash::hash_password;
 use crate::{
     db::{
         self,
@@ -6,9 +7,9 @@ use crate::{
     },
     error::AppError,
     handler::auth::AuthUser,
-    hash::hash_password,
     state::AppState,
 };
+
 use axum::{
     extract::{Path, State},
     http::StatusCode,

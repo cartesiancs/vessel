@@ -15,34 +15,33 @@ use tracing_subscriber::{fmt, layer::SubscriberExt, util::SubscriberInitExt, Env
 const LOG_FILE_PATH: &str = "log/app.log";
 
 use crate::{
+    broker_rtp::rtp_receiver,
     db::conn::establish_connection,
     flow::manager_state::FlowManagerActor,
-    initial::{
+    initial_db::{
         create_hydrate_streams, create_initial_admin, create_initial_configurations,
         seed_initial_permissions,
     },
     lib::{entity_map::remap_topics, stream_checker::stream_status_checker},
     logo::print_logo,
     routes::web_server,
-    rtp::rtp_receiver,
     state::{AppState, FrameData, MediaType, MqttMessage, StreamInfo, StreamManager},
 };
 
+mod broker_mqtt;
+mod broker_rtp;
 mod config;
 mod handler;
-mod hash;
-mod initial;
-mod mqtt;
+mod initial_db;
 mod routes;
-mod rtp;
 mod state;
 
+pub mod broker_rtsp;
 pub mod db;
 pub mod error;
 pub mod flow;
 pub mod lib;
 pub mod logo;
-pub mod rtsp;
 
 pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("./migrations");
 
@@ -174,7 +173,7 @@ async fn main() -> Result<()> {
                 mqtt_client_for_flow = Some(client.clone());
                 let mqtt_tx_clone = mqtt_tx.clone();
 
-                set.spawn(mqtt::start_event_loop(
+                set.spawn(broker_mqtt::start_event_loop(
                     client,
                     eventloop,
                     mqtt_tx_clone,
@@ -194,7 +193,7 @@ async fn main() -> Result<()> {
         ));
 
         let app_state_clone = app_state.clone();
-        set.spawn(rtsp::start_rtsp_pipelines(
+        set.spawn(broker_rtsp::start_rtsp_pipelines(
             app_state_clone,
             shutdown_rx.clone(),
         ));

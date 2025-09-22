@@ -7,12 +7,13 @@ import icon from "leaflet/dist/images/marker-icon.png";
 import iconShadow from "leaflet/dist/images/marker-shadow.png";
 import "./style.css";
 import { useMapDataStore } from "@/entities/map/store";
-import { MapEvents } from "./MapEvents";
-import { DrawingPreview } from "./FeatureDrawingPreview";
-import { FeatureRenderer } from "./FeatureRenderer";
-import { FeatureEditor } from "./FeatureEditor";
-import { FeatureDetailsPanel } from "./FeatureDetailsPanel";
+
 import { MapEntityRender } from "../map-entity/render";
+import { FeatureDetailsPanel } from "../map-draw/FeatureDetailsPanel";
+import { DrawingPreview } from "../map-draw/FeatureDrawingPreview";
+import { FeatureEditor } from "../map-draw/FeatureEditor";
+import { FeatureRenderer } from "../map-draw/FeatureRenderer";
+import { MapEvents } from "../map-draw/MapEvents";
 
 const DefaultIcon = L.icon({
   iconUrl: icon,

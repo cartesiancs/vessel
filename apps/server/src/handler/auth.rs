@@ -23,7 +23,7 @@ use crate::{
         repository::get_user_by_name,
     },
     error::AppError,
-    hash::{self, verify_password},
+    lib::hash::verify_password,
     AppState,
 };
 
@@ -218,7 +218,7 @@ impl FromRequestParts<Arc<AppState>> for DeviceTokenAuth {
             let token_info = db::repository::get_token_info_for_device(&pool, device.id)?
                 .ok_or_else(|| anyhow!("No active token for this device"))?;
 
-            let token_valid = hash::verify_password(&token_clone, &token_info.token_hash)?;
+            let token_valid = verify_password(&token_clone, &token_info.token_hash)?;
 
             if token_valid {
                 Ok(device)
