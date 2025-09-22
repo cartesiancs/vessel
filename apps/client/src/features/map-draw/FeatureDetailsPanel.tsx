@@ -9,6 +9,7 @@ import {
   Squircle,
   Maximize,
   Ruler,
+  Palette,
 } from "lucide-react";
 import { useMapDataStore, useMapInteractionStore } from "@/entities/map/store";
 import { Button } from "@/components/ui/button";
@@ -56,11 +57,14 @@ export function FeatureDetailsPanel() {
   const [isEditing, setIsEditing] = useState(false);
   const [editableVertices, setEditableVertices] = useState<MapVertex[]>([]);
   const [isDeleteAlertOpen, setDeleteAlertOpen] = useState(false);
+  const [editableColor, setEditableColor] = useState("#6ec7f0");
 
   const geometryInfo = useMemo(() => {
     if (!selectedFeature) return null;
     return calculateFeatureGeometry(selectedFeature);
   }, [selectedFeature]);
+
+  const defaultColor = "#6ec7f0";
 
   useEffect(() => {
     if (selectedFeature) {
@@ -68,6 +72,16 @@ export function FeatureDetailsPanel() {
       setEditableVertices(
         selectedFeature.vertices.sort((a, b) => a.sequence - b.sequence),
       );
+      try {
+        if (selectedFeature.style_properties) {
+          const styles = JSON.parse(selectedFeature.style_properties);
+          setEditableColor(styles.color || defaultColor);
+        } else {
+          setEditableColor(defaultColor);
+        }
+      } catch {
+        setEditableColor(defaultColor);
+      }
     } else {
       setIsEditing(false);
     }
@@ -89,6 +103,7 @@ export function FeatureDetailsPanel() {
         latitude: v.latitude,
         longitude: v.longitude,
       })),
+      style_properties: JSON.stringify({ color: editableColor }),
     };
     updateFeature(selectedFeature.id, payload);
     setIsEditing(false);
@@ -100,6 +115,16 @@ export function FeatureDetailsPanel() {
       setEditableVertices(
         selectedFeature.vertices.sort((a, b) => a.sequence - b.sequence),
       );
+      try {
+        if (selectedFeature.style_properties) {
+          const styles = JSON.parse(selectedFeature.style_properties);
+          setEditableColor(styles.color || defaultColor);
+        } else {
+          setEditableColor(defaultColor);
+        }
+      } catch {
+        setEditableColor(defaultColor);
+      }
     }
   };
 
@@ -161,6 +186,31 @@ export function FeatureDetailsPanel() {
                   </ul>
                 </div>
               )}
+
+              <div>
+                <h4 className='font-semibold text-sm mb-2'>Style</h4>
+                <div className='p-3 bg-muted rounded-md'>
+                  <div className='flex items-center justify-between'>
+                    <div className='flex items-center'>
+                      <Palette className='h-4 w-4 mr-2 text-muted-foreground' />
+                      <span className='text-sm font-medium'>Color</span>
+                    </div>
+                    {isEditing ? (
+                      <input
+                        type='color'
+                        value={editableColor}
+                        onChange={(e) => setEditableColor(e.target.value)}
+                        className='w-10 h-8 p-1 bg-transparent border rounded-md cursor-pointer'
+                      />
+                    ) : (
+                      <div
+                        className='w-10 h-8 rounded-md border'
+                        style={{ backgroundColor: editableColor }}
+                      />
+                    )}
+                  </div>
+                </div>
+              </div>
 
               <div>
                 <h4 className='font-semibold text-sm mb-2'>Vertices</h4>
