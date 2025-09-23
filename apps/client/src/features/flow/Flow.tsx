@@ -39,8 +39,16 @@ import { RunFlowButton } from "./RunFlow";
 import { FlowLog } from "../flow-log/FlowLog";
 
 export default function FlowPage() {
-  const { nodes, edges, setNodes, setEdges, flows, fetchFlows, currentFlowId } =
-    useFlowStore();
+  const {
+    nodes,
+    edges,
+    setNodes,
+    setEdges,
+    flows,
+    fetchFlows,
+    currentFlowId,
+    resetFlowState,
+  } = useFlowStore();
 
   // const saveAndRunFlow = async () => {
   //   await saveGraph();
@@ -49,7 +57,11 @@ export default function FlowPage() {
 
   useEffect(() => {
     fetchFlows();
-  }, [fetchFlows]);
+
+    return () => {
+      resetFlowState();
+    };
+  }, [fetchFlows, resetFlowState]);
 
   useEffect(() => {
     console.log("Fetched flows from API:", flows);
