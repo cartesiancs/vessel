@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { MapContainer, TileLayer } from "react-leaflet";
+import { MapContainer, TileLayer, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 
@@ -29,7 +29,27 @@ const failedPosition = [39.8283, -98.5795];
 
 L.Marker.prototype.options.icon = DefaultIcon;
 
-export function MapView() {
+function MapResizer({ isSidebarCollapsed }: { isSidebarCollapsed: boolean }) {
+  const map = useMap();
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      map.invalidateSize();
+    }, 310);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [isSidebarCollapsed, map]);
+
+  return null;
+}
+
+export function MapView({
+  isSidebarCollapsed,
+}: {
+  isSidebarCollapsed: boolean;
+}) {
   const [position, setPosition] = useState<[number, number] | null>(null);
   const { layer, fetchAllLayers } = useMapDataStore();
   const { selectedFeature } = useMapInteractionStore();
@@ -78,15 +98,14 @@ export function MapView() {
             attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
             url='https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
           />
-
           {layer?.features.map((feature) => (
             <FeatureRenderer key={`feature-${feature.id}`} feature={feature} />
           ))}
           <MapEvents />
           <DrawingPreview />
           <FeatureEditor />
-
           <MapEntityRender />
+          <MapResizer isSidebarCollapsed={isSidebarCollapsed} />
         </MapContainer>
       )}
 
