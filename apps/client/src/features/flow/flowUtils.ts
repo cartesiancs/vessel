@@ -1,6 +1,6 @@
 import { CustomNode } from "@/entities/custom-nodes/types";
 import { DEFINITION_NODE } from "./flowNode";
-import { NodeTypes, Node } from "./flowTypes";
+import { NodeTypes, Node, DataNodeTypeType } from "./flowTypes";
 
 export function getDefalutValue(type: NodeTypes, id: string) {
   const value = JSON.parse(JSON.stringify(DEFINITION_NODE[type]));
@@ -73,6 +73,42 @@ export function getCustomNode(
   if (!defaultValue) {
     return null;
   }
+
+  return {
+    id: id,
+    title: id,
+    x: x,
+    y: y,
+    width: 120,
+    height: 50,
+    ...defaultValue,
+  };
+}
+
+export function getNodeValue(
+  nodes: DataNodeTypeType,
+  type: NodeTypes,
+  id: string,
+) {
+  const value = JSON.parse(JSON.stringify(nodes[type]));
+
+  for (let index = 0; index < value.connectors.length; index++) {
+    value.connectors[
+      index
+    ].id = `${id}-${value.connectors[index].type}${index}`;
+  }
+
+  return value;
+}
+
+export function getNode(
+  nodes: DataNodeTypeType,
+  type: NodeTypes,
+  id: string,
+  x: number = 100,
+  y: number = 100,
+): Node {
+  const defaultValue = getNodeValue(nodes, type, id);
 
   return {
     id: id,

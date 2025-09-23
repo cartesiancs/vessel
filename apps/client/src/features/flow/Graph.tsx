@@ -37,6 +37,8 @@ import { renderButtonNode } from "./nodes/ButtonNode";
 import { zoomIdentity } from "d3-zoom";
 import { AddCustomNode } from "./AddCustomNode";
 import { useCustomNodeStore } from "@/entities/custom-nodes/store";
+import { useConfigStore } from "@/entities/configurations/store";
+import { isValidConfig } from "../integration/validate";
 
 type NodeGroup = {
   label: string;
@@ -48,6 +50,8 @@ const nodeHoverColor = "#444754";
 
 const nodeLightColor = "#d1d4e3";
 const highlightColor = "#1976d2";
+
+const ros2NodeKey = ["EXT_ROS2_WEBSOCKET_ON", "EXT_ROS2_WEBSOCKET_SEND"];
 
 export function Graph({
   nodes,
@@ -80,6 +84,12 @@ export function Graph({
 
   const edgesRef = useRef(edges);
   const nodesRef = useRef(nodes);
+
+  const { configurations, fetchConfigs } = useConfigStore();
+
+  useEffect(() => {
+    fetchConfigs();
+  }, [fetchConfigs]);
 
   const [nodeRenderers, setNodeRenderers] = useState<
     Record<string, NodeRenderer>
@@ -129,12 +139,14 @@ export function Graph({
       },
     ];
 
-    // if (useRos2) {
-    //   baseGroups.push({
-    //     label: "ROS2",
-    //     nodes: ["ROS2_WEBSOCKET_ON", "ROS2_WEBSOCKET_SEND"],
-    //   });
-    // }
+    const isRos2Connected = isValidConfig(configurations, "ROS");
+
+    if (isRos2Connected) {
+      baseGroups.push({
+        label: "ROS2",
+        nodes: ros2NodeKey,
+      });
+    }
 
     const customNodeTypes = customNodes.map((item) => {
       try {
@@ -152,7 +164,7 @@ export function Graph({
     }
 
     return baseGroups;
-  }, [customNodes]);
+  }, [customNodes, configurations]);
 
   const handleClickOption = (node: Node) => {
     setOpenedNode(node);
@@ -197,14 +209,14 @@ export function Graph({
         renderButtonNode(g, d, () => handleClickOption(d)),
     };
 
-    // if (availableSystemNodes.ROS2_WEBSOCKET_ON) {
-    //   baseRenderers.ROS2_WEBSOCKET_ON = (g, d) =>
-    //     renderButtonNode(g, d, () => handleClickOption(d));
-    // }
-    // if (availableSystemNodes.ROS2_WEBSOCKET_SEND) {
-    //   baseRenderers.ROS2_WEBSOCKET_SEND = (g, d) =>
-    //     renderButtonNode(g, d, () => handleClickOption(d));
-    // }
+    const isRos2Connected = isValidConfig(configurations, "ROS");
+
+    if (isRos2Connected) {
+      ros2NodeKey.forEach((element) => {
+        baseRenderers[element] = (g, d) =>
+          renderButtonNode(g, d, () => handleClickOption(d));
+      });
+    }
 
     const customNodeRenderers = customNodes.reduce((acc, customNode) => {
       acc[customNode.node_type] = (g, d) =>
@@ -216,7 +228,7 @@ export function Graph({
       ...baseRenderers,
       ...customNodeRenderers,
     });
-  }, [customNodes]);
+  }, [customNodes, configurations]);
 
   useEffect(() => {
     edgesRef.current = edges;
