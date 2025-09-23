@@ -101,6 +101,7 @@ async fn main() -> Result<()> {
     let (shutdown_tx, shutdown_rx) = watch::channel(());
 
     let jwt_secret = settings.jwt_secret.clone();
+    let configs = db::repository::get_all_system_configs(&pool)?;
 
     let app_state = Arc::new(AppState {
         streams: streams.clone(),
@@ -110,9 +111,8 @@ async fn main() -> Result<()> {
         topic_map: Arc::new(RwLock::new(Vec::new())),
         flow_manager_tx,
         broadcast_tx,
+        system_configs: configs.clone(),
     });
-
-    let configs = db::repository::get_all_system_configs(&app_state.clone().pool)?;
 
     let mut set = JoinSet::new();
 
@@ -200,6 +200,7 @@ async fn main() -> Result<()> {
         mqtt_client_for_flow,
         mqtt_tx.clone(),
         streams.clone(),
+        configs.clone(),
     );
     tokio::spawn(async move {
         flow_manager.run().await;

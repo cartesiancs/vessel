@@ -12,6 +12,7 @@ pub type DbPool = r2d2::Pool<ConnectionManager<SqliteConnection>>;
 
 use dashmap::DashMap;
 
+use crate::db::models::SystemConfiguration;
 use crate::flow::manager_state::FlowManagerCommand;
 
 #[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq)]
@@ -62,4 +63,5 @@ pub struct AppState {
     pub topic_map: Arc<RwLock<Vec<TopicMapping>>>,
     pub flow_manager_tx: mpsc::Sender<FlowManagerCommand>,
     pub broadcast_tx: broadcast::Sender<String>,
+    pub system_configs: Vec<SystemConfiguration>,
 }

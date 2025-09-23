@@ -11,6 +11,7 @@ use tokio::task::JoinHandle;
 use tokio::time;
 use tracing::{error, info};
 
+use crate::db::models::SystemConfiguration;
 use crate::flow::nodes::branch::BranchNode;
 use crate::flow::nodes::custom_node::CustomNode;
 use crate::flow::nodes::decode_h264::DecodeH264Node;
@@ -91,6 +92,7 @@ pub struct FlowEngine {
     mqtt_tx: Option<broadcast::Sender<MqttMessage>>,
     stream_manager: StreamManager,
     binary_store: BinaryStore,
+    system_configs: Vec<SystemConfiguration>,
 }
 
 impl FlowEngine {
@@ -99,6 +101,7 @@ impl FlowEngine {
         mqtt_tx: Option<broadcast::Sender<MqttMessage>>,
         stream_manager: StreamManager,
         binary_store: BinaryStore,
+        system_configs: Vec<SystemConfiguration>,
     ) -> Result<Self> {
         let nodes_map: HashMap<String, Node> =
             graph.nodes.into_iter().map(|n| (n.id.clone(), n)).collect();
@@ -151,6 +154,7 @@ impl FlowEngine {
             mqtt_tx,
             stream_manager,
             binary_store,
+            system_configs,
         })
     }
 
@@ -228,8 +232,14 @@ impl FlowEngine {
                 self.binary_store.clone(),
             )?)),
 
-            "WEBSOCKET_ON" => Ok(Box::new(WebSocketOnNode::new(&node.data)?)),
-            "WEBSOCKET_SEND" => Ok(Box::new(WebSocketSendNode::new(&node.data)?)),
+            "WEBSOCKET_ON" => Ok(Box::new(WebSocketOnNode::new(
+                &node.data,
+                self.system_configs.clone(),
+            )?)),
+            "WEBSOCKET_SEND" => Ok(Box::new(WebSocketSendNode::new(
+                &node.data,
+                self.system_configs.clone(),
+            )?)),
             s if s.starts_with('_') => Ok(Box::new(CustomNode::new(&node)?)),
             _ => Err(anyhow!(
                 "Unknown or unimplemented node type: {}",
