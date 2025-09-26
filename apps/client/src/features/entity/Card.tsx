@@ -89,7 +89,16 @@ export function EntityCard({
         </CardHeader>
         <CardFooter className='flex-col items-start gap-1 px-4 text-sm'>
           <div className='font-medium'>{item.platform}</div>
-          <div className='text-muted-foreground'></div>
+          <div className='text-muted-foreground'>
+            {isEnabledStream(
+              item.configuration.rtsp_url as string,
+              streamsState,
+            ) ? (
+              <Online />
+            ) : (
+              <Offline />
+            )}
+          </div>
         </CardFooter>
       </Card>
     );

@@ -8,7 +8,11 @@ use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
 use tracing::{error, info};
 
 use super::ExecutableNode;
-use crate::flow::{engine::ExecutionContext, types::ExecutionResult};
+use crate::{
+    db::models::SystemConfiguration,
+    flow::{engine::ExecutionContext, types::ExecutionResult},
+    lib::system_configs::replace_config_placeholders,
+};
 
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -18,12 +22,16 @@ struct WebSocketSendNodeData {
 
 pub struct WebSocketSendNode {
     data: WebSocketSendNodeData,
+    system_configs: Vec<SystemConfiguration>,
 }
 
 impl WebSocketSendNode {
-    pub fn new(node_data: &Value) -> Result<Self> {
+    pub fn new(node_data: &Value, system_configs: Vec<SystemConfiguration>) -> Result<Self> {
         let data: WebSocketSendNodeData = serde_json::from_value(node_data.clone())?;
-        Ok(Self { data })
+        Ok(Self {
+            data,
+            system_configs,
+        })
     }
 }
 
@@ -35,6 +43,7 @@ impl ExecutableNode for WebSocketSendNode {
         inputs: HashMap<String, Value>,
     ) -> Result<ExecutionResult> {
         let url_str = &self.data.url;
+        let result_url = replace_config_placeholders(url_str, &self.system_configs);
 
         let Some(payload) = inputs.get("payload") else {
             if let Ok(payload_str) = serde_json::to_string(&json!({
@@ -56,8 +65,11 @@ impl ExecutableNode for WebSocketSendNode {
             _ => to_string(payload)?,
         };
 
-        info!("Connecting to WebSocket at {} to send message", url_str);
-        let (ws_stream, _) = connect_async(url_str)
+        info!(
+            "Connecting to WebSocket at {} to send message",
+            result_url.clone()
+        );
+        let (ws_stream, _) = connect_async(result_url)
             .await
             .map_err(|e| anyhow!("Failed to connect to WebSocket: {}", e))?;
 

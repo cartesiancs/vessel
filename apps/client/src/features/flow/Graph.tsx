@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import * as d3 from "d3";
 import { Plus, Minus, Lock, LockOpen, SquarePlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -37,6 +37,8 @@ import { renderButtonNode } from "./nodes/ButtonNode";
 import { zoomIdentity } from "d3-zoom";
 import { AddCustomNode } from "./AddCustomNode";
 import { useCustomNodeStore } from "@/entities/custom-nodes/store";
+import { useConfigStore } from "@/entities/configurations/store";
+import { isValidConfig } from "../integration/validate";
 
 type NodeGroup = {
   label: string;
@@ -48,6 +50,8 @@ const nodeHoverColor = "#444754";
 
 const nodeLightColor = "#d1d4e3";
 const highlightColor = "#1976d2";
+
+const ros2NodeKey = ["EXT_ROS2_WEBSOCKET_ON", "EXT_ROS2_WEBSOCKET_SEND"];
 
 export function Graph({
   nodes,
@@ -81,89 +85,86 @@ export function Graph({
   const edgesRef = useRef(edges);
   const nodesRef = useRef(nodes);
 
+  const { configurations, fetchConfigs } = useConfigStore();
+
+  useEffect(() => {
+    fetchConfigs();
+  }, [fetchConfigs]);
+
   const [nodeRenderers, setNodeRenderers] = useState<
     Record<string, NodeRenderer>
-  >({
-    START: (g, d) => renderTitleNode(g, d),
-    SET_VARIABLE: (g, d) => renderVarNode(g, d, () => handleClickOption(d)),
-    SET_VARIABLE_WITH_EXEC: (g, d) =>
-      renderVarNode(g, d, () => handleClickOption(d)),
+  >({});
 
-    CONDITION: (g, d) => renderProcessingNode(g, d),
-    LOG_MESSAGE: (g, d) => renderProcessingNode(g, d),
-    CALCULATION: (g, d) => renderCalcNode(g, d, () => handleClickOption(d)),
-    HTTP_REQUEST: (g, d) => renderHttpNode(g, d, () => handleClickOption(d)),
-    INTERVAL: (g, d) => renderIntervalNode(g, d, () => handleClickOption(d)),
-    LOGIC_OPERATOR: (g, d) => renderLogicNode(g, d, () => handleClickOption(d)),
-    MQTT_PUBLISH: (g, d) => renderMQTTNode(g, d, () => handleClickOption(d)),
-    MQTT_SUBSCRIBE: (g, d) => renderMQTTNode(g, d, () => handleClickOption(d)),
-    TYPE_CONVERTER: (g, d) =>
-      renderButtonNode(g, d, () => handleClickOption(d)),
-    RTP_STREAM_IN: (g, d) => renderButtonNode(g, d, () => handleClickOption(d)),
-    DECODE_OPUS: (g, d) => renderProcessingNode(g, d),
-    DECODE_H264: (g, d) => renderProcessingNode(g, d),
+  const nodeGroups: NodeGroup[] = useMemo(() => {
+    const baseGroups: NodeGroup[] = [
+      {
+        label: "Default",
+        nodes: ["START", "LOG_MESSAGE"],
+      },
+      {
+        label: "Data",
+        nodes: [
+          "SET_VARIABLE",
+          "SET_VARIABLE_WITH_EXEC",
+          "TYPE_CONVERTER",
+          "RTP_STREAM_IN",
+          "DECODE_OPUS",
+          "GST_DECODER",
+        ],
+      },
+      {
+        label: "Logic",
+        nodes: [
+          "CALCULATION",
+          "LOGIC_OPERATOR",
+          "INTERVAL",
+          "BRANCH",
+          "JSON_SELECTOR",
+          "JSON_MODIFY",
+        ],
+      },
+      {
+        label: "Communication",
+        nodes: [
+          "HTTP_REQUEST",
+          "MQTT_PUBLISH",
+          "MQTT_SUBSCRIBE",
+          "WEBSOCKET_SEND",
+          "WEBSOCKET_ON",
+        ],
+      },
+      {
+        label: "AI/ML",
+        nodes: ["YOLO_DETECT"],
+      },
+    ];
 
-    BRANCH: (g, d) => renderProcessingNode(g, d),
-    JSON_SELECTOR: (g, d) => renderButtonNode(g, d, () => handleClickOption(d)),
-    YOLO_DETECT: (g, d) => renderButtonNode(g, d, () => handleClickOption(d)),
-    GST_DECODER: (g, d) => renderButtonNode(g, d, () => handleClickOption(d)),
+    const isRos2Connected = isValidConfig(configurations, "ROS");
 
-    WEBSOCKET_SEND: (g, d) =>
-      renderButtonNode(g, d, () => handleClickOption(d)),
-    WEBSOCKET_ON: (g, d) => renderButtonNode(g, d, () => handleClickOption(d)),
-  });
+    if (isRos2Connected) {
+      baseGroups.push({
+        label: "ROS2",
+        nodes: ros2NodeKey,
+      });
+    }
 
-  const nodeGroups: NodeGroup[] = [
-    {
-      label: "Default",
-      nodes: ["START", "LOG_MESSAGE"],
-    },
-    {
-      label: "Data",
-      nodes: [
-        "SET_VARIABLE",
-        "SET_VARIABLE_WITH_EXEC",
-        "TYPE_CONVERTER",
-        "RTP_STREAM_IN",
-        "DECODE_OPUS",
-        "GST_DECODER",
-      ],
-    },
-    {
-      label: "Logic",
-      nodes: [
-        "CALCULATION",
-        "LOGIC_OPERATOR",
-        "INTERVAL",
-        "BRANCH",
-        "JSON_SELECTOR",
-      ],
-    },
-    {
-      label: "Communication",
-      nodes: [
-        "HTTP_REQUEST",
-        "MQTT_PUBLISH",
-        "MQTT_SUBSCRIBE",
-        "WEBSOCKET_SEND",
-        "WEBSOCKET_ON",
-      ],
-    },
-    {
-      label: "AI/ML",
-      nodes: ["YOLO_DETECT"],
-    },
-    {
-      label: "Custom Node",
-      nodes: customNodes.map((item) => {
-        try {
-          return item.node_type;
-        } catch {
-          return "";
-        }
-      }),
-    },
-  ];
+    const customNodeTypes = customNodes.map((item) => {
+      try {
+        return item.node_type;
+      } catch {
+        return "";
+      }
+    });
+
+    if (customNodeTypes.length > 0) {
+      baseGroups.push({
+        label: "Custom Node",
+        nodes: customNodeTypes,
+      });
+    }
+
+    return baseGroups;
+  }, [customNodes, configurations]);
 
   const handleClickOption = (node: Node) => {
     setOpenedNode(node);
@@ -175,19 +176,59 @@ export function Graph({
   };
 
   useEffect(() => {
-    const customNodeRenderers = customNodes.reduce((acc, customNode) => {
-      const data = JSON.parse(customNode.data);
+    const baseRenderers: Record<string, NodeRenderer> = {
+      START: (g, d) => renderTitleNode(g, d),
+      SET_VARIABLE: (g, d) => renderVarNode(g, d, () => handleClickOption(d)),
+      SET_VARIABLE_WITH_EXEC: (g, d) =>
+        renderVarNode(g, d, () => handleClickOption(d)),
+      CONDITION: (g, d) => renderProcessingNode(g, d),
+      LOG_MESSAGE: (g, d) => renderProcessingNode(g, d),
+      CALCULATION: (g, d) => renderCalcNode(g, d, () => handleClickOption(d)),
+      HTTP_REQUEST: (g, d) => renderHttpNode(g, d, () => handleClickOption(d)),
+      INTERVAL: (g, d) => renderIntervalNode(g, d, () => handleClickOption(d)),
+      LOGIC_OPERATOR: (g, d) =>
+        renderLogicNode(g, d, () => handleClickOption(d)),
+      MQTT_PUBLISH: (g, d) => renderMQTTNode(g, d, () => handleClickOption(d)),
+      MQTT_SUBSCRIBE: (g, d) =>
+        renderMQTTNode(g, d, () => handleClickOption(d)),
+      TYPE_CONVERTER: (g, d) =>
+        renderButtonNode(g, d, () => handleClickOption(d)),
+      RTP_STREAM_IN: (g, d) =>
+        renderButtonNode(g, d, () => handleClickOption(d)),
+      DECODE_OPUS: (g, d) => renderProcessingNode(g, d),
+      DECODE_H264: (g, d) => renderProcessingNode(g, d),
+      BRANCH: (g, d) => renderProcessingNode(g, d),
+      JSON_SELECTOR: (g, d) =>
+        renderButtonNode(g, d, () => handleClickOption(d)),
+      JSON_MODIFY: (g, d) => renderButtonNode(g, d, () => handleClickOption(d)),
+      YOLO_DETECT: (g, d) => renderButtonNode(g, d, () => handleClickOption(d)),
+      GST_DECODER: (g, d) => renderButtonNode(g, d, () => handleClickOption(d)),
+      WEBSOCKET_SEND: (g, d) =>
+        renderButtonNode(g, d, () => handleClickOption(d)),
+      WEBSOCKET_ON: (g, d) =>
+        renderButtonNode(g, d, () => handleClickOption(d)),
+    };
 
-      acc[data.nodeType] = (g, d) =>
+    const isRos2Connected = isValidConfig(configurations, "ROS");
+
+    if (isRos2Connected) {
+      ros2NodeKey.forEach((element) => {
+        baseRenderers[element] = (g, d) =>
+          renderButtonNode(g, d, () => handleClickOption(d));
+      });
+    }
+
+    const customNodeRenderers = customNodes.reduce((acc, customNode) => {
+      acc[customNode.node_type] = (g, d) =>
         renderButtonNode(g, d, () => handleClickOption(d));
       return acc;
     }, {} as Record<string, NodeRenderer>);
 
-    setNodeRenderers((prevRenderers) => ({
-      ...prevRenderers,
+    setNodeRenderers({
+      ...baseRenderers,
       ...customNodeRenderers,
-    }));
-  }, [customNodes]);
+    });
+  }, [customNodes, configurations]);
 
   useEffect(() => {
     edgesRef.current = edges;

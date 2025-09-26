@@ -1,3 +1,4 @@
+use ::rtp::packet::Packet;
 use anyhow::Result;
 use dashmap::DashMap;
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
@@ -6,6 +7,7 @@ use std::{env, sync::Arc};
 use tokio::{
     sync::{broadcast, mpsc, watch, RwLock},
     task::JoinSet,
+    time::Instant,
 };
 use tracing::{error, info, warn};
 use tracing_subscriber::{fmt, layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
@@ -13,31 +15,33 @@ use tracing_subscriber::{fmt, layer::SubscriberExt, util::SubscriberInitExt, Env
 const LOG_FILE_PATH: &str = "log/app.log";
 
 use crate::{
+    broker_rtp::rtp_receiver,
     db::conn::establish_connection,
     flow::manager_state::FlowManagerActor,
-    initial::{create_initial_admin, create_initial_configurations, seed_initial_permissions},
+    initial_db::{
+        create_hydrate_streams, create_initial_admin, create_initial_configurations,
+        seed_initial_permissions,
+    },
     lib::{entity_map::remap_topics, stream_checker::stream_status_checker},
     logo::print_logo,
     routes::web_server,
-    rtp::rtp_receiver,
-    state::{AppState, FrameData, MqttMessage, StreamInfo, StreamManager},
+    state::{AppState, MediaType, MqttMessage, StreamInfo, StreamManager},
 };
 
+mod broker_mqtt;
+mod broker_rtp;
 mod config;
 mod handler;
-mod hash;
-mod initial;
-mod mqtt;
+mod initial_db;
 mod routes;
-mod rtp;
 mod state;
 
+pub mod broker_rtsp;
 pub mod db;
 pub mod error;
 pub mod flow;
 pub mod lib;
 pub mod logo;
-pub mod rtsp;
 
 pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("./migrations");
 
@@ -73,6 +77,8 @@ async fn main() -> Result<()> {
         warn!("APPLICATION IS RUNNING IN DEBUG MODE. ONLY THE WEB SERVER WILL BE ACTIVATED.");
     }
 
+    let streams: Arc<DashMap<u32, StreamInfo>> = Arc::new(DashMap::<u32, StreamInfo>::new());
+
     let pool = establish_connection(&settings.database_url);
 
     {
@@ -86,17 +92,16 @@ async fn main() -> Result<()> {
         create_initial_admin(&mut conn);
         create_initial_configurations(&mut conn);
         seed_initial_permissions(&mut conn);
+        create_hydrate_streams(&pool, &streams);
     }
 
-    let streams = Arc::new(DashMap::<u32, StreamInfo>::new());
-
     let (mqtt_tx, _) = broadcast::channel::<MqttMessage>(1024);
-    let (rtsp_frame_tx, _) = broadcast::channel::<FrameData>(256);
-
-    let jwt_secret = settings.jwt_secret.clone();
-
     let (flow_manager_tx, flow_manager_rx) = mpsc::channel(100);
     let (broadcast_tx, _) = broadcast::channel(1024);
+    let (shutdown_tx, shutdown_rx) = watch::channel(());
+
+    let jwt_secret = settings.jwt_secret.clone();
+    let configs = db::repository::get_all_system_configs(&pool)?;
 
     let app_state = Arc::new(AppState {
         streams: streams.clone(),
@@ -104,14 +109,10 @@ async fn main() -> Result<()> {
         jwt_secret: jwt_secret,
         pool: pool,
         topic_map: Arc::new(RwLock::new(Vec::new())),
-        rtsp_frame_tx,
         flow_manager_tx,
         broadcast_tx,
+        system_configs: configs.clone(),
     });
-
-    let (shutdown_tx, shutdown_rx) = watch::channel(());
-
-    let configs = db::repository::get_all_system_configs(&app_state.clone().pool)?;
 
     let mut set = JoinSet::new();
 
@@ -168,7 +169,7 @@ async fn main() -> Result<()> {
                 mqtt_client_for_flow = Some(client.clone());
                 let mqtt_tx_clone = mqtt_tx.clone();
 
-                set.spawn(mqtt::start_event_loop(
+                set.spawn(broker_mqtt::start_event_loop(
                     client,
                     eventloop,
                     mqtt_tx_clone,
@@ -188,7 +189,7 @@ async fn main() -> Result<()> {
         ));
 
         let app_state_clone = app_state.clone();
-        set.spawn(rtsp::start_rtsp_pipelines(
+        set.spawn(broker_rtsp::start_rtsp_pipelines(
             app_state_clone,
             shutdown_rx.clone(),
         ));
@@ -199,6 +200,7 @@ async fn main() -> Result<()> {
         mqtt_client_for_flow,
         mqtt_tx.clone(),
         streams.clone(),
+        configs.clone(),
     );
     tokio::spawn(async move {
         flow_manager.run().await;

@@ -1,13 +1,9 @@
 use anyhow::Result;
 use tokio::{net::UdpSocket, time::Instant};
-use tracing::{ info, warn};
-use webrtc::{
-    rtp::packet::Packet,
-    util::Unmarshal,
-};
+use tracing::{info, warn};
+use webrtc::{rtp::packet::Packet, util::Unmarshal};
 
-use crate::{ state::{ StreamManager}};
-
+use crate::state::StreamManager;
 
 pub async fn rtp_receiver(addr: String, stream_manager: StreamManager) -> Result<()> {
     let sock = UdpSocket::bind(&addr).await?;
@@ -26,24 +22,23 @@ pub async fn rtp_receiver(addr: String, stream_manager: StreamManager) -> Result
         match Packet::unmarshal(&mut &buf[..n]) {
             Ok(packet) => {
                 let ssrc = packet.header.ssrc;
-            
+
                 if let Some(stream_info) = stream_manager.get(&ssrc) {
-                    let mut is_online_guard = stream_info.is_online.write().await;
+                    let mut is_online_guard = stream_info.is_online.write().unwrap();
                     if !*is_online_guard {
                         *is_online_guard = true;
-                        info!("Topic '{}' (SSRC: {}) is now ONLINE.", &stream_info.topic, ssrc);
+                        info!(
+                            "Topic '{}' (SSRC: {}) is now ONLINE.",
+                            &stream_info.topic, ssrc
+                        );
                     }
                     drop(is_online_guard);
 
-                    let mut last_seen_guard = stream_info.last_seen.write().await;
+                    let mut last_seen_guard = stream_info.last_seen.write().unwrap();
                     *last_seen_guard = Instant::now();
                     drop(last_seen_guard);
 
-                    if stream_info.value().packet_tx.send(packet).is_err() {
-
-                    }
-                } else {
-                    warn!("Received packet from {} with unknown SSRC: {}", from, ssrc);
+                    if stream_info.value().packet_tx.send(packet).is_err() {}
                 }
             }
             Err(e) => {

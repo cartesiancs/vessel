@@ -2,6 +2,7 @@ import { CircleMarker, Polygon, Polyline } from "react-leaflet";
 import { LatLngExpression } from "leaflet";
 import { FeatureWithVertices } from "@/entities/map/types";
 import { useMapInteractionStore } from "@/entities/map/store";
+import { useMemo } from "react";
 
 interface FeatureRendererProps {
   feature: FeatureWithVertices;
@@ -15,6 +16,18 @@ export function FeatureRenderer({ feature }: FeatureRendererProps) {
     .sort((a, b) => a.sequence - b.sequence)
     .map((v) => [v.latitude, v.longitude] as LatLngExpression);
 
+  const featureColor = useMemo(() => {
+    try {
+      if (feature.style_properties) {
+        const styles = JSON.parse(feature.style_properties);
+        return styles.color || "#6ec7f0";
+      }
+    } catch (e) {
+      console.error("Failed to parse style_properties", e);
+    }
+    return "#6ec7f0";
+  }, [feature.style_properties]);
+
   if (positions.length === 0) {
     return null;
   }
@@ -25,12 +38,14 @@ export function FeatureRenderer({ feature }: FeatureRendererProps) {
     },
   };
 
+  const pathOptions = { color: featureColor };
+
   switch (feature.feature_type) {
     case "POINT":
       return (
         <CircleMarker
           center={positions[0]}
-          pathOptions={{ color: "#6ec7f0" }}
+          pathOptions={pathOptions}
           radius={6}
           eventHandlers={eventHandlers}
         />
@@ -40,7 +55,7 @@ export function FeatureRenderer({ feature }: FeatureRendererProps) {
       return (
         <Polyline
           positions={positions}
-          pathOptions={{ color: "#6ec7f0" }}
+          pathOptions={pathOptions}
           eventHandlers={eventHandlers}
         />
       );
@@ -49,7 +64,7 @@ export function FeatureRenderer({ feature }: FeatureRendererProps) {
       return (
         <Polygon
           positions={positions}
-          pathOptions={{ color: "#6ec7f0" }}
+          pathOptions={pathOptions}
           eventHandlers={eventHandlers}
         />
       );

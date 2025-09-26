@@ -3,14 +3,21 @@ import { WebSocketChannel, WebSocketMessage } from "../ws/ws";
 export class WebRTCManager {
   private pc: RTCPeerConnection;
   private signaling: WebSocketChannel;
-  public streams: Map<string, MediaStream>;
-  private onStreamsChanged: (streams: Map<string, MediaStream>) => void;
-  private pendingTopics: string[];
+  public streams: Map<string, { stream: MediaStream; type: "audio" | "video" }>;
+  private onStreamsChanged: (
+    streams: Map<string, { stream: MediaStream; type: "audio" | "video" }>,
+  ) => void;
+  private pendingTopics: Array<{ topic: string; type: "audio" | "video" }>;
   private candidateQueue: RTCIceCandidateInit[] = [];
+
+  public static readonly MAX_AUDIO_STREAMS = 2;
+  public static readonly MAX_VIDEO_STREAMS = 4;
 
   constructor(
     signaling: WebSocketChannel,
-    onStreamsChanged: (streams: Map<string, MediaStream>) => void,
+    onStreamsChanged: (
+      streams: Map<string, { stream: MediaStream; type: "audio" | "video" }>,
+    ) => void,
   ) {
     this.signaling = signaling;
     this.streams = new Map();
@@ -35,20 +42,19 @@ export class WebRTCManager {
     };
 
     this.pc.ontrack = (event) => {
-      const topic = this.pendingTopics.shift();
-      if (!topic) {
+      const pending = this.pendingTopics.shift();
+      if (!pending) {
         return;
       }
+      const { topic, type } = pending;
 
       const track = event.track;
       const stream = new MediaStream([track]);
 
-      console.log(
-        `Track received for topic "${topic}": ${track.kind}, New Stream ID: ${stream.id}`,
-      );
+      console.log(` "${topic}": ${track.kind} : ${stream.id}`);
 
       if (!this.streams.has(topic)) {
-        this.streams.set(topic, stream);
+        this.streams.set(topic, { stream, type });
         this.onStreamsChanged(new Map(this.streams));
       }
     };
@@ -111,11 +117,12 @@ export class WebRTCManager {
 
   public async connect(): Promise<void> {
     try {
-      this.pc.addTransceiver("audio", { direction: "recvonly" });
-      this.pc.addTransceiver("video", { direction: "recvonly" });
-      this.pc.addTransceiver("video", { direction: "recvonly" });
-      this.pc.addTransceiver("video", { direction: "recvonly" });
-      this.pc.addTransceiver("video", { direction: "recvonly" });
+      for (let i = 0; i < WebRTCManager.MAX_AUDIO_STREAMS; i++) {
+        this.pc.addTransceiver("audio", { direction: "recvonly" });
+      }
+      for (let i = 0; i < WebRTCManager.MAX_VIDEO_STREAMS; i++) {
+        this.pc.addTransceiver("video", { direction: "recvonly" });
+      }
 
       const offer = await this.pc.createOffer();
       await this.pc.setLocalDescription(offer);
@@ -129,9 +136,29 @@ export class WebRTCManager {
     }
   }
 
-  public subscribe(topic: string): void {
-    console.log(`Subscribing to topic: ${topic}`);
-    this.pendingTopics.push(topic);
+  public subscribe(topic: string, streamType: "audio" | "video"): void {
+    const currentStreams = Array.from(this.streams.values());
+    const audioCount = currentStreams.filter((s) => s.type === "audio").length;
+    const videoCount = currentStreams.filter((s) => s.type === "video").length;
+
+    if (
+      streamType === "audio" &&
+      audioCount >= WebRTCManager.MAX_AUDIO_STREAMS
+    ) {
+      console.warn("Max audio streams reached. Cannot subscribe.");
+      return;
+    }
+
+    if (
+      streamType === "video" &&
+      videoCount >= WebRTCManager.MAX_VIDEO_STREAMS
+    ) {
+      console.warn("Max video streams reached. Cannot subscribe.");
+      return;
+    }
+
+    console.log(`Subscribing to topic: ${topic} (${streamType})`);
+    this.pendingTopics.push({ topic, type: streamType });
 
     this.signaling.send({
       type: "subscribe_stream",
@@ -148,6 +175,5 @@ export class WebRTCManager {
     }
     this.streams.clear();
     this.onStreamsChanged(new Map(this.streams));
-    console.log("WebRTCManager closed.");
   }
 }

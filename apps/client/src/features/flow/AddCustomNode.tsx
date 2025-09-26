@@ -165,7 +165,10 @@ export function AddCustomNode() {
 
           {view === "list" && (
             <div className='flex-grow overflow-y-auto pr-2'>
-              <div className='flex justify-end mb-4'>
+              <div className='flex justify-end mb-4 gap-2'>
+                <Button size='sm' variant={"outline"}>
+                  <PlusCircle className='mr-2 h-4 w-4' /> Select dir
+                </Button>
                 <Button size='sm' onClick={handleAddNew}>
                   <PlusCircle className='mr-2 h-4 w-4' /> Add New Node
                 </Button>

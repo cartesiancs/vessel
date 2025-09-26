@@ -1,5 +1,5 @@
 use crate::{
-    db,
+    db::{self, models::SystemConfiguration},
     flow::{
         engine::{FlowController, FlowEngine},
         types::Graph,
@@ -44,6 +44,7 @@ pub struct FlowManagerActor {
     mqtt_tx: broadcast::Sender<MqttMessage>,
     stream_manager: StreamManager,
     binary_store: BinaryStore,
+    system_configs: Vec<SystemConfiguration>,
 }
 
 impl FlowManagerActor {
@@ -52,6 +53,7 @@ impl FlowManagerActor {
         mqtt_client: Option<AsyncClient>,
         mqtt_tx: broadcast::Sender<MqttMessage>,
         stream_manager: StreamManager,
+        system_configs: Vec<SystemConfiguration>,
     ) -> Self {
         Self {
             receiver,
@@ -60,6 +62,7 @@ impl FlowManagerActor {
             mqtt_tx,
             stream_manager,
             binary_store: BinaryStore::new(),
+            system_configs,
         }
     }
 
@@ -81,6 +84,7 @@ impl FlowManagerActor {
                         Some(self.mqtt_tx.clone()),
                         self.stream_manager.clone(),
                         self.binary_store.clone(),
+                        self.system_configs.clone(),
                     ) {
                         Ok(engine) => {
                             let engine = Arc::new(engine);

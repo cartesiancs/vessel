@@ -140,7 +140,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({ entry, onDeleteRequest }) => {
           >
             {entry.isDir ? (
               <ChevronRight
-                className={`w-4 h-4 mr-1 transition-transform ${
+                className={`w-4 h-4 mr-0 transition-transform ${
                   isOpen ? "rotate-90" : ""
                 }`}
               />
@@ -171,7 +171,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({ entry, onDeleteRequest }) => {
           </ContextMenuItem>
           <ContextMenuItem
             onSelect={() => onDeleteRequest(entry)}
-            className='text-destructive focus:text-destructive'
+            className='text-red-500 focus:text-red-500'
           >
             <Trash2 className='w-4 h-4 mr-2' />
             Delete
@@ -283,7 +283,7 @@ export const FileTree = () => {
   return (
     <div className='p-2'>
       <div className='flex items-center justify-between mb-2'>
-        <p className='font-bold text-sm'>Project</p>
+        <p className='font-bold text-sm ps-2'>Project</p>
         <div className='flex items-center gap-1'>
           <Button
             variant='ghost'

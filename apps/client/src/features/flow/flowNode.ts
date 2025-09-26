@@ -1,6 +1,6 @@
 import { Node } from "./flowTypes";
 
-type DefaultValueType = {
+export type DefaultValueType = {
   connectors: Node["connectors"];
   nodeType: string;
   data: Node["data"];
@@ -218,6 +218,20 @@ export const DEFINITION_NODE = {
       path: "STRING",
     },
   },
+  JSON_MODIFY: {
+    connectors: [
+      { id: `id`, name: "json", type: "in" },
+      { id: `id`, name: "data", type: "in" },
+      { id: `id`, name: "value", type: "out" },
+    ],
+    nodeType: "JSON_MODIFY",
+    data: {
+      path: "path.to.value",
+    },
+    dataType: {
+      path: "STRING",
+    },
+  },
   DECODE_H264: {
     connectors: [
       { id: `id`, name: "payload", type: "in" },
@@ -278,21 +292,24 @@ export const DEFINITION_NODE = {
       url: "STRING",
     },
   },
-} as const;
-
-export const CUSTOM_NODE: DefaultValueType[] = [
-  {
-    connectors: [
-      { id: "id", name: "number", type: "in" },
-      { id: "id", name: "number", type: "out" },
-    ],
-    nodeType: "_PYTHON_CUSTOM_NODE",
-
+  EXT_ROS2_WEBSOCKET_ON: {
+    connectors: [{ id: "id", name: "payload", type: "out" }],
+    nodeType: "WEBSOCKET_ON",
     data: {
-      path: "{:code}/add_node.py",
+      url: "{:ros2_websocket_url}",
     },
     dataType: {
-      path: "FIXED_STRING",
+      url: "FIXED_STRING",
     },
   },
-];
+  EXT_ROS2_WEBSOCKET_SEND: {
+    connectors: [{ id: "id", name: "payload", type: "in" }],
+    nodeType: "WEBSOCKET_SEND",
+    data: {
+      url: "{:ros2_websocket_url}",
+    },
+    dataType: {
+      url: "FIXED_STRING",
+    },
+  },
+} as const;

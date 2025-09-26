@@ -17,9 +17,13 @@ use tracing::{error, info, warn};
 use url::Url;
 
 use super::ExecutableNode;
-use crate::flow::{
-    engine::{ExecutionContext, TriggerCommand},
-    types::ExecutionResult,
+use crate::{
+    db::models::SystemConfiguration,
+    flow::{
+        engine::{ExecutionContext, TriggerCommand},
+        types::ExecutionResult,
+    },
+    lib::system_configs::replace_config_placeholders,
 };
 
 #[derive(Deserialize, Debug, Clone)]
@@ -30,12 +34,16 @@ pub struct WebSocketOnNodeData {
 
 pub struct WebSocketOnNode {
     data: WebSocketOnNodeData,
+    system_configs: Vec<SystemConfiguration>,
 }
 
 impl WebSocketOnNode {
-    pub fn new(node_data: &Value) -> Result<Self> {
+    pub fn new(node_data: &Value, system_configs: Vec<SystemConfiguration>) -> Result<Self> {
         let data: WebSocketOnNodeData = serde_json::from_value(node_data.clone())?;
-        Ok(Self { data })
+        Ok(Self {
+            data,
+            system_configs,
+        })
     }
 }
 
@@ -110,29 +118,30 @@ impl ExecutableNode for WebSocketOnNode {
         node_id: String,
         trigger_tx: mpsc::Sender<TriggerCommand>,
     ) -> Result<JoinHandle<()>> {
-        let url_str = self.data.url.clone();
+        let url_str: String = self.data.url.clone();
+        let result_url: String = replace_config_placeholders(&url_str, &self.system_configs);
 
         let handle = tokio::spawn(async move {
             loop {
-                if let Err(e) = Url::parse(&url_str) {
+                if let Err(e) = Url::parse(&result_url) {
                     error!(
                         "Invalid WebSocket URL '{}': {}. Aborting trigger.",
-                        url_str, e
+                        result_url, e
                     );
                     break;
                 }
 
-                info!("Connecting to WebSocket at {}", url_str);
-                match connect_async(&url_str).await {
+                info!("Connecting to WebSocket at {}", result_url);
+                match connect_async(&result_url).await {
                     Ok((ws_stream, _)) => {
-                        info!("Successfully connected to WebSocket: {}", url_str);
+                        info!("Successfully connected to WebSocket: {}", result_url);
                         handle_connection(ws_stream, &trigger_tx, &node_id).await;
                         warn!("WebSocket connection lost. Reconnecting in 5 seconds...");
                     }
                     Err(e) => {
                         error!(
                             "Failed to connect to WebSocket '{}': {}. Retrying in 5 seconds...",
-                            url_str, e
+                            result_url, e
                         );
                     }
                 }

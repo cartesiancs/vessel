@@ -46,13 +46,13 @@ export function CodePage() {
         </header>
         <main className='flex-1 overflow-y-auto'>
           <ResizablePanelGroup direction='horizontal' className='w-full h-full'>
-            <ResizablePanel defaultSize={20} minSize={15}>
+            <ResizablePanel defaultSize={30} minSize={15}>
               <div className='h-full overflow-y-auto'>
                 <FileTree />
               </div>
             </ResizablePanel>
             <ResizableHandle withHandle />
-            <ResizablePanel defaultSize={80}>
+            <ResizablePanel defaultSize={70}>
               <FileEditor />
             </ResizablePanel>
           </ResizablePanelGroup>

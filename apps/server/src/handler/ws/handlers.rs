@@ -245,7 +245,7 @@ impl WSActor {
         let stream_futures = self.state.streams.iter().map(|n| async move {
             StreamState {
                 topic: n.topic.clone(),
-                is_online: *n.is_online.read().await,
+                is_online: *n.is_online.read().unwrap(),
             }
         });
 
@@ -385,16 +385,33 @@ impl WSActor {
             return;
         }
 
-        if let Some((ssrc, info)) = self
+        let audio_stream_info = self
             .state
             .streams
             .iter()
             .find(|entry| {
                 entry.value().topic == topic && entry.value().media_type == MediaType::Audio
             })
-            .map(|entry| (*entry.key(), entry.value().clone()))
-        {
+            .map(|entry| entry.value().clone());
+
+        let video_stream_info = self
+            .state
+            .streams
+            .iter()
+            .find(|entry| {
+                entry.value().topic == topic && entry.value().media_type == MediaType::Video
+            })
+            .map(|entry| entry.value().clone());
+
+        if let Some(info) = audio_stream_info {
             subscribed = true;
+            let ssrc = self
+                .state
+                .streams
+                .iter()
+                .find(|e| e.value().topic == info.topic && e.value().media_type == MediaType::Audio)
+                .map(|e| *e.key())
+                .unwrap_or(0);
             info!(
                 "[Audio] Subscribing to topic '{}' with SSRC {}",
                 topic, ssrc
@@ -472,16 +489,15 @@ impl WSActor {
             });
         }
 
-        if let Some((ssrc, info)) = self
-            .state
-            .streams
-            .iter()
-            .find(|entry| {
-                entry.value().topic == topic && entry.value().media_type == MediaType::Video
-            })
-            .map(|entry| (*entry.key(), entry.value().clone()))
-        {
+        if let Some(info) = video_stream_info {
             subscribed = true;
+            let ssrc = self
+                .state
+                .streams
+                .iter()
+                .find(|e| e.value().topic == info.topic && e.value().media_type == MediaType::Video)
+                .map(|e| *e.key())
+                .unwrap_or(0);
             info!(
                 "[Video-UDP] Subscribing to topic '{}' with SSRC {}",
                 topic, ssrc
@@ -558,73 +574,6 @@ impl WSActor {
                 info!(
                     "[Video-UDP] RTP packet forwarding stopped for SSRC: {}",
                     ssrc
-                );
-            });
-        }
-
-        if self
-            .state
-            .topic_map
-            .read()
-            .await
-            .iter()
-            .any(|m| m.topic == topic && m.protocol == crate::state::Protocol::RTSP)
-        {
-            subscribed = true;
-            info!("[Video] Subscribing to topic '{}'", topic);
-
-            let new_rtsp_video_track = Arc::new(TrackLocalStaticSample::new(
-                RTCRtpCodecCapability {
-                    mime_type: MIME_TYPE_H264.to_owned(),
-                    ..Default::default()
-                },
-                format!("video-rtsp-{}", &topic),
-                format!("webrtc-stream-rtsp-{}", &topic),
-            ));
-
-            let rtp_sender = self
-                .pc
-                .add_track(Arc::clone(&new_rtsp_video_track) as Arc<dyn TrackLocal + Send + Sync>)
-                .await
-                .unwrap();
-
-            self.active_tracks.insert(
-                topic.clone(),
-                new_rtsp_video_track.clone() as Arc<dyn TrackLocal + Send + Sync>,
-            );
-
-            tokio::spawn(async move {
-                let mut rtcp_buf = vec![0u8; 1500];
-                while rtp_sender.read(&mut rtcp_buf).await.is_ok() {}
-            });
-
-            let mut rx = self.state.rtsp_frame_tx.subscribe();
-            let topic_clone = topic.clone();
-
-            tokio::spawn(async move {
-                info!(
-                    "[Video] Frame forwarding started for topic: {}",
-                    topic_clone
-                );
-                while let Ok(frame) = rx.recv().await {
-                    if frame.topic == topic_clone {
-                        let sample = webrtc::media::Sample {
-                            data: frame.buffer.clone(),
-                            duration: std::time::Duration::from_millis(33),
-                            ..Default::default()
-                        };
-                        if new_rtsp_video_track.write_sample(&sample).await.is_err() {
-                            warn!(
-                                "[Video] Frame write failed for topic {}, stopping.",
-                                topic_clone
-                            );
-                            break;
-                        }
-                    }
-                }
-                info!(
-                    "[Video] Frame forwarding stopped for topic: {}",
-                    topic_clone
                 );
             });
         }

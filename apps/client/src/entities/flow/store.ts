@@ -25,6 +25,7 @@ interface FlowState {
   createNewFlow: (name: string) => Promise<void>;
   saveGraph: (comment?: string) => Promise<void>;
   loadGraph: () => Promise<void>;
+  resetFlowState: () => void;
 }
 
 export const useFlowStore = create<FlowState>((set, get) => ({
@@ -134,4 +135,5 @@ export const useFlowStore = create<FlowState>((set, get) => ({
       console.error(error);
     }
   },
+  resetFlowState: () => set({ nodes: [], edges: [], currentFlowId: null }),
 }));

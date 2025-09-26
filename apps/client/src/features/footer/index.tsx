@@ -43,11 +43,15 @@ export function Footer() {
       <b className='text-xs text-neutral-600 font-medium'>
         <TokenExpiration />
       </b>
+      <b className='text-xs font-medium'>
+        <WebSocketStatusIndicator />
+      </b>
     </div>
   );
 }
 
 import Cookies from "js-cookie";
+import { WebSocketStatusIndicator } from "../ws/IsConnected";
 
 interface DecodedToken {
   exp: number;

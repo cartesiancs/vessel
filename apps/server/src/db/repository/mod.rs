@@ -1,4 +1,5 @@
 pub mod rbac;
+pub mod streams;
 
 use std::collections::HashMap;
 

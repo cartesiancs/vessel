@@ -11,11 +11,13 @@ use tokio::task::JoinHandle;
 use tokio::time;
 use tracing::{error, info};
 
+use crate::db::models::SystemConfiguration;
 use crate::flow::nodes::branch::BranchNode;
 use crate::flow::nodes::custom_node::CustomNode;
 use crate::flow::nodes::decode_h264::DecodeH264Node;
 use crate::flow::nodes::decode_opus::DecodeOpusNode;
 use crate::flow::nodes::gst_decoder::GstDecoderNode;
+use crate::flow::nodes::json_modify::JsonModifyNode;
 use crate::flow::nodes::json_selector::JsonSelectorNode;
 use crate::flow::nodes::mqtt_publish::MqttPublishNode;
 use crate::flow::nodes::mqtt_subscribe::MqttSubscribeNode;
@@ -90,6 +92,7 @@ pub struct FlowEngine {
     mqtt_tx: Option<broadcast::Sender<MqttMessage>>,
     stream_manager: StreamManager,
     binary_store: BinaryStore,
+    system_configs: Vec<SystemConfiguration>,
 }
 
 impl FlowEngine {
@@ -98,6 +101,7 @@ impl FlowEngine {
         mqtt_tx: Option<broadcast::Sender<MqttMessage>>,
         stream_manager: StreamManager,
         binary_store: BinaryStore,
+        system_configs: Vec<SystemConfiguration>,
     ) -> Result<Self> {
         let nodes_map: HashMap<String, Node> =
             graph.nodes.into_iter().map(|n| (n.id.clone(), n)).collect();
@@ -150,6 +154,7 @@ impl FlowEngine {
             mqtt_tx,
             stream_manager,
             binary_store,
+            system_configs,
         })
     }
 
@@ -215,6 +220,7 @@ impl FlowEngine {
             "DECODE_OPUS" => Ok(Box::new(DecodeOpusNode::new()?)),
             "BRANCH" => Ok(Box::new(BranchNode)),
             "JSON_SELECTOR" => Ok(Box::new(JsonSelectorNode::new(&node.data)?)),
+            "JSON_MODIFY" => Ok(Box::new(JsonModifyNode::new(&node.data)?)),
             "DECODE_H264" => Ok(Box::new(DecodeH264Node::new()?)),
             "YOLO_DETECT" => Ok(Box::new(YoloDetectNode::new(
                 &node.data,
@@ -226,8 +232,14 @@ impl FlowEngine {
                 self.binary_store.clone(),
             )?)),
 
-            "WEBSOCKET_ON" => Ok(Box::new(WebSocketOnNode::new(&node.data)?)),
-            "WEBSOCKET_SEND" => Ok(Box::new(WebSocketSendNode::new(&node.data)?)),
+            "WEBSOCKET_ON" => Ok(Box::new(WebSocketOnNode::new(
+                &node.data,
+                self.system_configs.clone(),
+            )?)),
+            "WEBSOCKET_SEND" => Ok(Box::new(WebSocketSendNode::new(
+                &node.data,
+                self.system_configs.clone(),
+            )?)),
             s if s.starts_with('_') => Ok(Box::new(CustomNode::new(&node)?)),
             _ => Err(anyhow!(
                 "Unknown or unimplemented node type: {}",

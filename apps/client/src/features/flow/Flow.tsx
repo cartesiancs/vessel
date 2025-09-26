@@ -39,8 +39,16 @@ import { RunFlowButton } from "./RunFlow";
 import { FlowLog } from "../flow-log/FlowLog";
 
 export default function FlowPage() {
-  const { nodes, edges, setNodes, setEdges, flows, fetchFlows, currentFlowId } =
-    useFlowStore();
+  const {
+    nodes,
+    edges,
+    setNodes,
+    setEdges,
+    flows,
+    fetchFlows,
+    currentFlowId,
+    resetFlowState,
+  } = useFlowStore();
 
   // const saveAndRunFlow = async () => {
   //   await saveGraph();
@@ -49,7 +57,11 @@ export default function FlowPage() {
 
   useEffect(() => {
     fetchFlows();
-  }, [fetchFlows]);
+
+    return () => {
+      resetFlowState();
+    };
+  }, [fetchFlows, resetFlowState]);
 
   useEffect(() => {
     console.log("Fetched flows from API:", flows);
@@ -178,7 +190,7 @@ export function FlowSidebar() {
   };
 
   return (
-    <aside className='w-84 border-r bg-card text-card-foreground p-4 flex flex-col overflow-scroll'>
+    <aside className='w-86 border-r bg-card text-card-foreground p-4 flex flex-col overflow-scroll'>
       <div className='flex items-center justify-between mb-4'>
         <h2 className='mb-1 text-lg font-semibold tracking-tight'>Files</h2>
         <div className='flex items-center'>

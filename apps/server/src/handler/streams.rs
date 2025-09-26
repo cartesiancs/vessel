@@ -10,6 +10,7 @@ use tokio::{
 use tracing::info;
 
 use crate::{
+    db::{self, models::NewStream},
     handler::auth::DeviceTokenAuth,
     state::{AppState, MediaType, StreamInfo},
 };
@@ -33,6 +34,26 @@ pub async fn register_stream(
 ) -> impl IntoResponse {
     let ssrc = rand::rngs::ThreadRng::default().random_range(0..=i32::MAX) as u32;
 
+    let media_type_str = match payload.media_type {
+        MediaType::Audio => "audio",
+        MediaType::Video => "video",
+    };
+
+    let new_stream_db = NewStream {
+        ssrc: ssrc as i32,
+        topic: &payload.topic,
+        device_id: &auth.device_id,
+        media_type: media_type_str,
+    };
+
+    let db_stream = match db::repository::streams::upsert_stream(&state.pool, &new_stream_db) {
+        Ok(stream) => stream,
+        Err(e) => {
+            tracing::error!("Failed to upsert stream to database: {}", e);
+            return (StatusCode::INTERNAL_SERVER_ERROR).into_response();
+        }
+    };
+
     let (packet_tx, _) = broadcast::channel::<Packet>(1024);
 
     let stream_info = StreamInfo {
@@ -40,8 +61,8 @@ pub async fn register_stream(
         user_id: auth.device_id,
         packet_tx,
         media_type: payload.media_type,
-        last_seen: Arc::new(RwLock::new(Instant::now())),
-        is_online: Arc::new(RwLock::new(false)),
+        last_seen: Arc::new(std::sync::RwLock::new(Instant::now())),
+        is_online: Arc::new(std::sync::RwLock::new(false)),
     };
 
     state.streams.insert(ssrc, stream_info);
@@ -58,11 +79,23 @@ pub async fn register_stream(
         payload.topic, ssrc
     );
 
+    let configs = match db::repository::get_all_system_configs(&state.pool) {
+        Ok(configs) => configs,
+        Err(e) => {
+            tracing::error!("Failed to get system configs: {}", e);
+            return (StatusCode::INTERNAL_SERVER_ERROR).into_response();
+        }
+    };
+
+    let rtp_port = configs
+        .iter()
+        .find(|c| c.key == "rtp_broker_port")
+        .and_then(|c| c.value.parse::<u16>().ok())
+        .unwrap_or(5004);
+
     (
         StatusCode::OK,
-        Json(RegisterStreamResponse {
-            ssrc,
-            rtp_port: 5004,
-        }),
+        Json(RegisterStreamResponse { ssrc, rtp_port }),
     )
+        .into_response()
 }

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { useWebRTC } from "./WebRTCProvider";
+import { WebRTCManager } from "./rtc";
 
 type StreamReceiverProps = {
   topic: string;
@@ -9,11 +10,14 @@ type StreamReceiverProps = {
 
 export function StreamReceiver({ topic, streamType }: StreamReceiverProps) {
   const mediaRef = useRef<HTMLMediaElement>(null);
-  const { rtcManager, streams } = useWebRTC();
+  const { rtcManager, streams, audioStreamCount, videoStreamCount } =
+    useWebRTC();
 
-  const stream = useMemo(() => {
+  const streamInfo = useMemo(() => {
     return streams.get(topic) || null;
   }, [streams, topic]);
+
+  const stream = streamInfo?.stream || null;
 
   useEffect(() => {
     if (stream && mediaRef.current) {
@@ -26,16 +30,28 @@ export function StreamReceiver({ topic, streamType }: StreamReceiverProps) {
 
   const handleSubscribe = () => {
     if (rtcManager) {
-      rtcManager.subscribe(topic);
+      rtcManager.subscribe(topic, streamType);
     } else {
       console.error("RTCManager is not ready.");
     }
   };
 
+  const isLimitReached =
+    (streamType === "audio" &&
+      audioStreamCount >= WebRTCManager.MAX_AUDIO_STREAMS) ||
+    (streamType === "video" &&
+      videoStreamCount >= WebRTCManager.MAX_VIDEO_STREAMS);
+
   if (!stream) {
     return (
-      <Button className='w-full' variant={"outline"} onClick={handleSubscribe}>
+      <Button
+        className='w-full'
+        variant={"outline"}
+        onClick={handleSubscribe}
+        disabled={isLimitReached}
+      >
         {streamType === "audio" ? "Play Audio" : "Play Video"}
+        {isLimitReached && " (Limited)"}
       </Button>
     );
   }
