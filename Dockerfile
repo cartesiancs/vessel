@@ -22,6 +22,6 @@ WORKDIR /app/apps/server
 
 RUN cargo build --release
 
-WORKDIR /app
+WORKDIR /app/target/release
 
-CMD ["npm", "run", "server:prod"]
+CMD ["./server"]
