@@ -23,7 +23,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Blocks, Edit, PlusCircle, Trash2, Loader2 } from "lucide-react";
 import { useCustomNodeStore } from "@/entities/custom-nodes/store";
-import { CustomNode } from "@/entities/custom-nodes/types";
+import {
+  CustomNode,
+  CustomNodeDynamicData,
+  CustomNodeFromApi,
+} from "@/entities/custom-nodes/types";
 import { toast } from "sonner";
 import { JsonCodeEditor } from "../json/JsonEditor";
 
@@ -32,17 +36,19 @@ function CustomNodeForm({
   onCancel,
   initialNode,
 }: {
-  onSubmit: (node: { node_type: string; data: string }) => void;
+  onSubmit: (node: CustomNodeFromApi) => void;
   onCancel: () => void;
-  initialNode?: CustomNode | null;
+  initialNode?: CustomNode | null | undefined;
 }) {
   const [nodeType, setNodeType] = useState(initialNode?.node_type || "_");
-  const [data, setData] = useState(initialNode?.data || "");
+  const [data, setData] = useState(JSON.stringify(initialNode?.data) || "");
   const isEditing = !!initialNode;
 
   useEffect(() => {
     try {
-      setData(JSON.parse(initialNode?.data || ""));
+      if (initialNode?.data) {
+        setData(JSON.stringify(initialNode?.data));
+      }
     } catch {
       console.log("");
     }
@@ -51,7 +57,10 @@ function CustomNodeForm({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      onSubmit({ node_type: nodeType, data: data });
+      onSubmit({
+        node_type: nodeType,
+        data: JSON.parse(data) as CustomNodeDynamicData,
+      });
     } catch {
       toast("Invalid JSON in data field.");
     }
@@ -81,7 +90,7 @@ function CustomNodeForm({
       <div>
         <Label htmlFor='data'>Data (JSON)</Label>
 
-        <JsonCodeEditor value={data} onChange={(e) => setData(e)} />
+        <JsonCodeEditor value={data as string} onChange={(e) => setData(e)} />
       </div>
       <DialogFooter>
         <Button type='button' variant='ghost' onClick={onCancel}>
@@ -128,10 +137,7 @@ export function AddCustomNode() {
     setView("list");
   };
 
-  const handleSubmit = async (nodeData: {
-    node_type: string;
-    data: string;
-  }) => {
+  const handleSubmit = async (nodeData: CustomNodeFromApi) => {
     if (editingNode) {
       await updateNode(editingNode.node_type, nodeData.data);
     } else {
@@ -187,7 +193,7 @@ export function AddCustomNode() {
                       <div>
                         <p className='font-semibold'>{node.node_type}</p>
                         <p className='text-sm text-muted-foreground'>
-                          {JSON.parse(node.data)}
+                          {JSON.stringify(node)}
                         </p>
                       </div>
                       <div className='flex items-center gap-2'>

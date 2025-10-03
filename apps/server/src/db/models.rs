@@ -454,6 +454,12 @@ pub struct CustomNode {
     pub data: String,
 }
 
+#[derive(Serialize, Deserialize, Clone)]
+pub struct CustomNodeResult {
+    pub node_type: String,
+    pub data: Option<Value>,
+}
+
 #[derive(Insertable, Deserialize)]
 #[diesel(table_name = crate::db::schema::custom_nodes)]
 pub struct NewCustomNode<'a> {

@@ -1,5 +1,5 @@
 import { apiClient } from "@/shared/api";
-import { CustomNodeFromApi } from "./types";
+import { CustomNodeDynamicData, CustomNodeFromApi } from "./types";
 
 export const getAllCustomNodes = async (): Promise<CustomNodeFromApi[]> => {
   const response = await apiClient.get("/custom-nodes");
@@ -8,7 +8,7 @@ export const getAllCustomNodes = async (): Promise<CustomNodeFromApi[]> => {
 
 export const createCustomNode = async (node: {
   node_type: string;
-  data: string;
+  data: CustomNodeDynamicData;
 }): Promise<CustomNodeFromApi> => {
   const response = await apiClient.post("/custom-nodes", node);
   return response.data;
@@ -16,7 +16,7 @@ export const createCustomNode = async (node: {
 
 export const updateCustomNode = async (
   node_type: string,
-  data: string,
+  data: CustomNodeDynamicData,
 ): Promise<CustomNodeFromApi> => {
   const response = await apiClient.put(`/custom-nodes/${node_type}`, { data });
   return response.data;

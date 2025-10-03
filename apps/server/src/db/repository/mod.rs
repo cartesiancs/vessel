@@ -11,6 +11,7 @@ use diesel::{
 };
 use serde_json::Value;
 
+use crate::db::models::CustomNodeResult;
 use crate::db::models::{
     CustomNode, FeatureWithVertices, LayerWithFeatures, MapFeature, MapLayer, MapVertex,
     NewCustomNode, NewMapFeature, NewMapLayer, NewMapVertex, Role, UpdateCustomNode,
@@ -162,8 +163,6 @@ pub fn delete_device(pool: &DbPool, target_id: i32) -> Result<usize, anyhow::Err
     let num_deleted = diesel::delete(devices.find(target_id)).execute(&mut conn)?;
     Ok(num_deleted)
 }
-
-// --- Entity CRUD ---
 
 pub fn create_entity(pool: &DbPool, new_entity: NewEntity) -> Result<Entity, anyhow::Error> {
     use crate::db::schema::entities::dsl::*;
@@ -1053,11 +1052,27 @@ pub fn create_custom_node(
     Ok(node)
 }
 
-pub fn get_all_custom_nodes(pool: &DbPool) -> Result<Vec<CustomNode>, anyhow::Error> {
+pub fn get_all_custom_nodes(pool: &DbPool) -> Result<Vec<CustomNodeResult>, anyhow::Error> {
     use crate::db::schema::custom_nodes::dsl::*;
     let mut conn = pool.get()?;
-    let nodes = custom_nodes.load::<CustomNode>(&mut conn)?;
-    Ok(nodes)
+    let nodes = custom_nodes
+        .select(CustomNode::as_select())
+        .load::<CustomNode>(&mut conn)?;
+
+    let nodes_map: Vec<CustomNodeResult> = nodes
+        .into_iter()
+        .map(|(node)| {
+            let configuration_data = serde_json::from_str::<serde_json::Value>(&node.data)
+                .ok()
+                .filter(|v| !v.is_null());
+            CustomNodeResult {
+                node_type: node.node_type,
+                data: configuration_data,
+            }
+        })
+        .collect();
+
+    Ok(nodes_map)
 }
 
 pub fn get_custom_node(pool: &DbPool, target_node_type: &str) -> Result<CustomNode, anyhow::Error> {
@@ -1073,13 +1088,27 @@ pub fn update_custom_node(
     pool: &DbPool,
     target_node_type: &str,
     updated_data: &UpdateCustomNode,
-) -> Result<CustomNode, anyhow::Error> {
+) -> Result<CustomNodeResult, anyhow::Error> {
     use crate::db::schema::custom_nodes::dsl::*;
     let mut conn = pool.get()?;
-    let node = diesel::update(custom_nodes.find(target_node_type))
+    let node: CustomNode = diesel::update(custom_nodes.find(target_node_type))
         .set(updated_data)
         .get_result(&mut conn)?;
-    Ok(node)
+
+    let configuration_data = if node.data.is_empty() {
+        None
+    } else {
+        serde_json::from_str::<Value>(&node.data)
+            .ok()
+            .filter(|v| v.is_object())
+    };
+
+    let result = CustomNodeResult {
+        node_type: node.node_type,
+        data: configuration_data,
+    };
+
+    Ok(result)
 }
 
 pub fn delete_custom_node(pool: &DbPool, target_node_type: &str) -> Result<(), anyhow::Error> {

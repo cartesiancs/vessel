@@ -1,28 +1,25 @@
 import { create } from "zustand";
-import { CustomNodeState, CustomNode } from "./types";
+import { CustomNodeState } from "./types";
 import * as api from "./api";
 
-const parseNodeData = (nodeFromApi: {
-  node_type: string;
-  data: string;
-}): CustomNode => {
-  try {
-    return {
-      ...nodeFromApi,
-      data: nodeFromApi.data,
-    };
-  } catch (error) {
-    console.error(
-      `Failed to parse data for node ${nodeFromApi.node_type}`,
-      error,
-    );
-    // Return a default/error state if parsing fails
-    return {
-      node_type: nodeFromApi.node_type,
-      data: "",
-    };
-  }
-};
+// const parseNodeData = (nodeFromApi: CustomNodeFromApi): CustomNodeFromApi => {
+//   try {
+//     return {
+//       ...nodeFromApi,
+//       data: nodeFromApi.data,
+//     };
+//   } catch (error) {
+//     console.error(
+//       `Failed to parse data for node ${nodeFromApi.node_type}`,
+//       error,
+//     );
+//     // Return a default/error state if parsing fails
+//     return {
+//       node_type: nodeFromApi.node_type,
+//       data: {},
+//     };
+//   }
+// };
 
 export const useCustomNodeStore = create<CustomNodeState>((set) => ({
   nodes: [],
@@ -32,8 +29,7 @@ export const useCustomNodeStore = create<CustomNodeState>((set) => ({
     set({ isLoading: true, error: null });
     try {
       const nodesFromApi = await api.getAllCustomNodes();
-      const parsedNodes = nodesFromApi.map(parseNodeData);
-      set({ nodes: parsedNodes, isLoading: false });
+      set({ nodes: nodesFromApi, isLoading: false });
     } catch {
       set({ error: "Failed to fetch nodes.", isLoading: false });
     }
@@ -42,9 +38,8 @@ export const useCustomNodeStore = create<CustomNodeState>((set) => ({
     set({ isLoading: true, error: null });
     try {
       const newNodeFromApi = await api.createCustomNode(node);
-      const parsedNode = parseNodeData(newNodeFromApi);
       set((state) => ({
-        nodes: [...state.nodes, parsedNode],
+        nodes: [...state.nodes, newNodeFromApi],
         isLoading: false,
       }));
     } catch {
@@ -55,10 +50,9 @@ export const useCustomNodeStore = create<CustomNodeState>((set) => ({
     set({ isLoading: true, error: null });
     try {
       const updatedNodeFromApi = await api.updateCustomNode(node_type, data);
-      const parsedNode = parseNodeData(updatedNodeFromApi);
       set((state) => ({
         nodes: state.nodes.map((n) =>
-          n.node_type === node_type ? parsedNode : n,
+          n.node_type === node_type ? updatedNodeFromApi : n,
         ),
         isLoading: false,
       }));
