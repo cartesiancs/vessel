@@ -1,0 +1,55 @@
+{
+  "name": "custom-node",
+  "version": "1.0.0",
+  "description": "",
+  "nodes": [
+    {
+      "nodeId": "_add_number",
+      "data": {
+        "connectors": [
+          {
+            "id": "id",
+            "name": "a",
+            "type": "in"
+          },
+          {
+            "id": "id",
+            "name": "b",
+            "type": "in"
+          },
+          {
+            "id": "id",
+            "name": "number",
+            "type": "out"
+          }
+        ],
+        "nodeType": "_add_number",
+        "data": {
+          "path": "add_number.py"
+        },
+        "dataType": {
+          "path": "FIXED_STRING"
+        }
+      }
+    },
+    {
+      "nodeId": "_random_number",
+      "data": {
+        "connectors": [
+          {
+            "id": "id",
+            "name": "number",
+            "type": "out"
+          }
+        ],
+        "nodeType": "_random_number",
+        "data": {
+          "path": "random.py"
+        },
+        "dataType": {
+          "path": "FIXED_STRING"
+        }
+      }
+    }
+  ]
+}
