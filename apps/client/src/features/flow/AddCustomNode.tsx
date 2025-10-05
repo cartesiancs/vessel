@@ -188,7 +188,7 @@ export function AddCustomNode() {
                   nodes.map((node) => (
                     <div
                       key={node.node_type}
-                      className='flex items-center justify-between p-3 border rounded-lg'
+                      className='flex items-center justify-between p-3 border'
                     >
                       <div>
                         <p className='font-semibold'>{node.node_type}</p>

@@ -259,7 +259,7 @@ export function Intergration() {
       {integrations.map((integration) => (
         <div
           key={integration.id}
-          className='flex items-center gap-4 rounded-lg border p-4'
+          className='flex items-center gap-4 border p-4'
         >
           {integration.icon}
           <div className='flex-grow'>

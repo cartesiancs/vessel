@@ -70,7 +70,7 @@ export function DeviceTokenManager({ deviceId }: Props) {
         </CardHeader>
         <CardContent className='space-y-4'>
           {tokenInfo ? (
-            <div className='flex items-center justify-between p-3 border rounded-lg'>
+            <div className='flex items-center justify-between p-3 border'>
               <div>
                 <p className='font-semibold'>Token is active</p>
                 <p className='text-sm text-muted-foreground'>
@@ -116,7 +116,7 @@ export function DeviceTokenManager({ deviceId }: Props) {
               </div>
             </div>
           ) : (
-            <div className='flex items-center justify-between p-3 border rounded-lg bg-muted/50'>
+            <div className='flex items-center justify-between p-3 border bg-muted/50'>
               <div>
                 <p className='font-semibold text-muted-foreground'>
                   No active token

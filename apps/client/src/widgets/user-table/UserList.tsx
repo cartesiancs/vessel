@@ -68,7 +68,7 @@ export const UserTable: FC = () => {
         <div className='text-center p-8 text-destructive'>{error}</div>
       )}
       {!isLoading && !error && (
-        <div className='rounded-lg border'>
+        <div className=' border'>
           <Table>
             <TableHeader>
               <TableRow>

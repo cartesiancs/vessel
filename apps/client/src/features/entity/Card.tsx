@@ -42,7 +42,7 @@ export function EntityCard({
     return (
       <Card key={item.id}>
         <CardHeader className='px-4'>
-          <CardDescription>Entity : {item.friendly_name}</CardDescription>
+          <CardDescription>{item.friendly_name}</CardDescription>
           <CardTitle className='text-2xl font-semibold tabular-nums'>
             {item.configuration && (
               <StreamReceiver
@@ -77,7 +77,7 @@ export function EntityCard({
     return (
       <Card key={item.id}>
         <CardHeader className='px-4'>
-          <CardDescription>Entity : {item.friendly_name}</CardDescription>
+          <CardDescription>{item.friendly_name}</CardDescription>
           <CardTitle className='text-2xl font-semibold tabular-nums'>
             {item.configuration && (
               <StreamReceiver
@@ -112,7 +112,7 @@ export function EntityCard({
     return (
       <Card key={item.id}>
         <CardHeader className='px-4'>
-          <CardDescription>Entity : {item.friendly_name}</CardDescription>
+          <CardDescription>{item.friendly_name}</CardDescription>
           <CardTitle className='text-2xl font-semibold tabular-nums'>
             {item.configuration && (
               <StreamReceiver
@@ -142,7 +142,7 @@ export function EntityCard({
   return (
     <Card key={item.id}>
       <CardHeader className='px-4'>
-        <CardDescription>Entity : {item.friendly_name}</CardDescription>
+        <CardDescription>{item.friendly_name}</CardDescription>
         <CardTitle className='text-2xl font-semibold tabular-nums truncate'>
           {item.state?.state || "N/A"}
         </CardTitle>
