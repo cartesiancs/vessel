@@ -27,6 +27,7 @@
     "clsx": "^2.1.1",
     "concurrently": "^9.1.2",
     "lucide-react": "^0.539.0",
+    "monaco-editor": "^0.53.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-error-boundary": "^6.0.0",
