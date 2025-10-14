@@ -4,6 +4,7 @@ use std::time::{Duration, Instant};
 use tokio::sync::watch;
 use tracing::info;
 
+use crate::db;
 use crate::state::AppState;
 
 const STREAM_TIMEOUT: Duration = Duration::from_secs(10);
@@ -30,24 +31,23 @@ pub async fn stream_status_checker(
                     let ssrc = *entry.key();
                     let stream_info = entry.value();
 
-                    let is_online = *stream_info.is_online.read().unwrap();
+                    let _is_online = *stream_info.is_online.read().unwrap();
                     let last_seen = *stream_info.last_seen.read().unwrap();
 
-                    if is_online && last_seen.elapsed() > STREAM_TIMEOUT {
+                    if last_seen.elapsed() > STREAM_TIMEOUT {
                         let mut is_online_guard = stream_info.is_online.write().unwrap();
-                        if *is_online_guard {
-                            *is_online_guard = false;
-                            info!(
-                                "Topic '{}' (SSRC: {}) is now OFFLINE due to timeout.",
-                                &stream_info.topic, ssrc
-                            );
-                            offline_ssrcs.push(ssrc);
-                        }
+                        *is_online_guard = false;
+                        info!(
+                            "Topic '{}' (SSRC: {}) is now OFFLINE due to timeout.",
+                            &stream_info.topic, ssrc
+                        );
+                        offline_ssrcs.push(ssrc);
                     }
                 }
 
                 for ssrc in offline_ssrcs {
                     if let Some((_, removed_stream)) = app_state.streams.remove(&ssrc) {
+                        // db::repository::streams::delete_stream(&app_state.pool, ssrc.try_into().unwrap());
                         info!(
                             "Removed timed-out stream for topic '{}' (SSRC: {})",
                             removed_stream.topic, ssrc
