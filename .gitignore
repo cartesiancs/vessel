@@ -9,3 +9,4 @@ database.db
 *.log
 /storage
 /config.toml
+/.venv

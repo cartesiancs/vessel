@@ -18,10 +18,10 @@ use crate::{
     broker_rtp::rtp_receiver,
     db::conn::establish_connection,
     flow::manager_state::FlowManagerActor,
-    initial_db::{
-        create_hydrate_streams, create_initial_admin, create_initial_configurations,
-        seed_initial_permissions,
+    init::db_record::{
+        create_initial_admin, create_initial_configurations, seed_initial_permissions,
     },
+    init::streams::create_hydrate_streams,
     lib::{entity_map::remap_topics, stream_checker::stream_status_checker},
     logo::print_logo,
     routes::web_server,
@@ -32,7 +32,7 @@ mod broker_mqtt;
 mod broker_rtp;
 mod config;
 mod handler;
-mod initial_db;
+mod init;
 mod routes;
 mod state;
 

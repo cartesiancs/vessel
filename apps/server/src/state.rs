@@ -22,7 +22,7 @@ pub enum MediaType {
     Video,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct StreamInfo {
     pub topic: String,
     pub user_id: String,

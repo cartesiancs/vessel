@@ -403,6 +403,7 @@ impl WSActor {
             })
             .map(|entry| entry.value().clone());
 
+        println!("{:?} {:?}", audio_stream_info, self.state.streams);
         if let Some(info) = audio_stream_info {
             subscribed = true;
             let ssrc = self
