@@ -292,8 +292,10 @@ export function FlowSidebar() {
             <AlertDialogCancel onClick={() => setFlowToDelete(null)}>
               Cancel
             </AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteConfirm}>
-              Continue
+            <AlertDialogAction asChild>
+              <Button variant={"destructive"} onClick={handleDeleteConfirm}>
+                Continue
+              </Button>
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
