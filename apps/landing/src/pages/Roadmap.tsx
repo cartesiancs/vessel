@@ -73,7 +73,7 @@ function RoadmapPage() {
           <div className='space-y-10'>
             {roadmapData.map((item, index) => (
               <div key={index} className='flex items-start space-x-6'>
-                <div className='flex-shrink-0 mt-1.5 bg-background rounded-full'>
+                <div className='flex-shrink-0 mt-1.5 bg-background'>
                   {item.icon}
                 </div>
                 <Card
@@ -87,7 +87,7 @@ function RoadmapPage() {
                     <div className='flex justify-between items-center'>
                       <CardTitle>{item.title}</CardTitle>
                       <span
-                        className={`px-3 py-1 text-xs font-semibold rounded-full ${
+                        className={`px-3 py-1 text-xs font-semibold ${
                           item.status === "completed"
                             ? "bg-green-100 text-green-800"
                             : item.status === "in-progress"
