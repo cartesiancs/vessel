@@ -18,7 +18,7 @@ export function Navbar() {
       <div className='h-12 flex items-center justify-between w-full'>
         <div className='flex items-center'>
           <Link to='/' className='mr-6 flex items-center space-x-2 pl-6 gap-1'>
-            <img src='/icon.png' alt='Logo' className='w-8' />
+            <img src='/icon.png' alt='Logo' className='w-8 invert' />
             <span className='hidden font-medium text-sm sm:inline-block'>
               Vessel
             </span>
