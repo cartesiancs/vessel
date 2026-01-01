@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useFadeInOnScroll } from "@/lib/useFadeInOnScroll";
 
 const features = [
   {
@@ -26,10 +27,15 @@ const features = [
 
 export function FeaturesSection() {
   const [activeIndex, setActiveIndex] = useState(0);
+  const { ref: sectionRef, isVisible } = useFadeInOnScroll<HTMLElement>();
 
   return (
-    <section className='w-full'>
-      <div className='container mx-auto max-w-6xl px-4 py-16'>
+    <section ref={sectionRef} className='w-full'>
+      <div
+        className={`container mx-auto max-w-6xl px-4 py-16 transition-all duration-700 ease-out ${
+          isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
+        }`}
+      >
         <div className='mb-12 text-left'>
           <h2 className='mt-3 text-3xl font-bold tracking-tight md:text-4xl'>
             Proactive Security{" "}
@@ -47,8 +53,13 @@ export function FeaturesSection() {
               <button
                 key={feature.title}
                 type='button'
-                className='relative flex min-w-0 basis-0 overflow-hidden border border-border transition-[flex-grow] duration-500 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background'
-                style={{ flexGrow: isActive ? 2.4 : 1 }}
+                className={`relative flex min-w-0 basis-0 overflow-hidden border border-border transition-[flex-grow,opacity,transform] duration-500 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
+                  isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+                }`}
+                style={{
+                  flexGrow: isActive ? 2.4 : 1,
+                  transitionDelay: `${index * 100}ms`,
+                }}
                 onMouseEnter={() => setActiveIndex(index)}
                 onFocus={() => setActiveIndex(index)}
                 onClick={() => setActiveIndex(index)}

@@ -26,11 +26,13 @@ This project is to build a "proactive security system". To achieve this, the fol
 2. **Detect** Threats
 3. **Control** and Respond
 
-This project solves the problems with existing **home security systems**. Current systems fail to protect against burglaries, trespassing, theft—and even war.
+This project solves the problems with existing **home security systems**. Current systems fail to protect against burglaries, trespassing, theft and even war.
 
 So we plan to open-source the technology used in existing defense systems.
 
-This system allows you to analyze video and audio sources with AI/ML technology. And automate actions through Flow-based operations. The Flow provides the flexibility to select multiple AI models and connect them directly to stream sources.
+This system allows you to analyze video and audio sources with AI/ML technology.
+
+And automate actions through Flow-based operations. The Flow provides the flexibility to select multiple AI models and connect them directly to stream sources.
 
 When everything is implemented, individuals will be able to protect themselves from any threats.
 
@@ -46,6 +48,7 @@ When everything is implemented, individuals will be able to protect themselves f
 - Pub/Sub MQTT with Flow
 - Map based UI
 - Home Assistant Integration
+- ROS2 Integration
 
 ## Develop
 
@@ -109,6 +112,12 @@ npm run build
 The compiled binary, named 'server', will be located in the target/release directory.
 
 > To run the server executable, you must have a .env file in the same directory (target/release).
+
+## Principles
+
+1. Local-first
+2. Offline-first
+3. Ultimate control rests with the user
 
 ## Troubleshooting
 

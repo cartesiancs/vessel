@@ -1,3 +1,5 @@
+import { useFadeInOnScroll } from "@/lib/useFadeInOnScroll";
+
 const usecases = [
   {
     title: "Autonomous Perimeter Ops",
@@ -16,9 +18,15 @@ const usecases = [
 ];
 
 export function UsecaseSection() {
+  const { ref: sectionRef, isVisible } = useFadeInOnScroll<HTMLElement>();
+
   return (
-    <section className='w-full'>
-      <div className='container mx-auto max-w-6xl px-4 py-16'>
+    <section ref={sectionRef} className='w-full'>
+      <div
+        className={`container mx-auto max-w-6xl px-4 py-16 transition-all duration-700 ease-out ${
+          isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
+        }`}
+      >
         <div className='mb-12 text-left'>
           <h2 className='mt-3 text-3xl font-bold tracking-tight md:text-4xl'>
             Home Protection{" "}
@@ -31,10 +39,13 @@ export function UsecaseSection() {
         </div>
 
         <div className='space-y-10'>
-          {usecases.map((usecase) => (
+          {usecases.map((usecase, index) => (
             <article
               key={usecase.title}
-              className='group flex min-h-screen flex-col overflow-hidden border border-border bg-card text-card-foreground'
+              className={`group flex min-h-screen flex-col overflow-hidden border border-border bg-card text-card-foreground transition-all duration-700 ease-out ${
+                isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
+              }`}
+              style={{ transitionDelay: `${index * 120}ms` }}
             >
               <div className='relative flex-1'>
                 <img
