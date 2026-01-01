@@ -1,10 +1,11 @@
-import { Button } from "@/components/ui/button";
-import { BookText } from "lucide-react";
-import { FaGithub } from "react-icons/fa";
-
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { FeaturesSection } from "@/components/sections/Features";
+import { UsecaseSection } from "@/components/sections/Usecase";
+import { Button } from "@/components/ui/button";
+import { BookText } from "lucide-react";
+import { FaGithub } from "react-icons/fa";
+import { SubheadingSection } from "@/components/sections/SubheadingSection";
 
 function LandingPage() {
   return (
@@ -36,7 +37,9 @@ function LandingPage() {
           </div>
         </section>
 
+        <SubheadingSection />
         <FeaturesSection />
+        <UsecaseSection />
       </main>
       <Footer />
     </>
