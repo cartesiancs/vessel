@@ -6,6 +6,9 @@ import { Button } from "@/components/ui/button";
 import { BookText } from "lucide-react";
 import { FaGithub } from "react-icons/fa";
 import { SubheadingSection } from "@/components/sections/SubheadingSection";
+import { MidCTASection } from "@/components/sections/MidCta";
+import { FAQSection } from "@/components/sections/Faqs";
+import { FooterCtaSection } from "@/components/sections/FooterCta";
 
 function LandingPage() {
   return (
@@ -40,6 +43,9 @@ function LandingPage() {
         <SubheadingSection />
         <FeaturesSection />
         <UsecaseSection />
+        <MidCTASection />
+        <FAQSection />
+        <FooterCtaSection />
       </main>
       <Footer />
     </>

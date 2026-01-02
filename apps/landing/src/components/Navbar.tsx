@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import {
   NavigationMenu,
   NavigationMenuItem,
@@ -13,8 +14,23 @@ export function Navbar() {
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => {
+      setScrolled(window.scrollY > 0);
+    };
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   return (
-    <header className='fixed flex items-center justify-center top-0 z-50 w-full border-b bg-background/95 backdrop-blur-sm supports-[backdrop-filter]:bg-background/70'>
+    <header
+      className={`fixed flex items-center justify-center top-0 z-50 w-full bg-background/95 backdrop-blur-lg supports-[backdrop-filter]:bg-background/70 ${
+        scrolled ? "border-b" : ""
+      }`}
+    >
       <div className='h-12 flex items-center justify-between w-full'>
         <div className='flex items-center'>
           <Link to='/' className='mr-6 flex items-center space-x-2 pl-6 gap-1'>
@@ -47,15 +63,6 @@ export function Navbar() {
                 GitHub
               </NavigationMenuLink>
             </NavigationMenuItem>
-            {/* <NavigationMenuItem>
-              <NavigationMenuLink
-                className={`${navigationMenuTriggerStyle()} bg-transparent`}
-                onClick={() => navigate("/roadmap")}
-                style={{ cursor: "pointer" }}
-              >
-                Roadmap
-              </NavigationMenuLink>
-            </NavigationMenuItem> */}
           </NavigationMenuList>
         </NavigationMenu>
       </div>
