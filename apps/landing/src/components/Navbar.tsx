@@ -47,7 +47,7 @@ export function Navbar() {
                 GitHub
               </NavigationMenuLink>
             </NavigationMenuItem>
-            <NavigationMenuItem>
+            {/* <NavigationMenuItem>
               <NavigationMenuLink
                 className={`${navigationMenuTriggerStyle()} bg-transparent`}
                 onClick={() => navigate("/roadmap")}
@@ -55,7 +55,7 @@ export function Navbar() {
               >
                 Roadmap
               </NavigationMenuLink>
-            </NavigationMenuItem>
+            </NavigationMenuItem> */}
           </NavigationMenuList>
         </NavigationMenu>
       </div>

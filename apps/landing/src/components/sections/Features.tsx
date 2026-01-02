@@ -30,9 +30,9 @@ export function FeaturesSection() {
   const { ref: sectionRef, isVisible } = useFadeInOnScroll<HTMLElement>();
 
   return (
-    <section ref={sectionRef} className='w-full'>
+    <section ref={sectionRef} className='w-full h-[100%]'>
       <div
-        className={`container mx-auto max-w-6xl px-4 py-16 transition-all duration-700 ease-out ${
+        className={`container mx-auto max-w-6xl px-4 py-50 transition-all duration-700 ease-out ${
           isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
         }`}
       >
@@ -54,7 +54,9 @@ export function FeaturesSection() {
                 key={feature.title}
                 type='button'
                 className={`relative flex min-w-0 basis-0 overflow-hidden border border-border transition-[flex-grow,opacity,transform] duration-500 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
-                  isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+                  isVisible
+                    ? "opacity-100 translate-y-0"
+                    : "opacity-0 translate-y-4"
                 }`}
                 style={{
                   flexGrow: isActive ? 2.4 : 1,
