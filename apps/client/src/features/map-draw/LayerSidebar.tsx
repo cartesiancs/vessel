@@ -62,7 +62,7 @@ export function LayerSidebar() {
                 key={layer.id}
                 onClick={() => setActiveLayer(layer.id)}
                 className={cn(
-                  "px-2 py-1 rounded-md cursor-pointer hover:bg-muted flex justify-between items-center",
+                  "px-2 py-1 cursor-pointer hover:bg-muted flex justify-between items-center",
                   activeLayerId === layer.id && "bg-muted",
                 )}
               >
