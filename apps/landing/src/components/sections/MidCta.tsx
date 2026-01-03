@@ -86,7 +86,10 @@ export function MidCTASection() {
   const { ref: sectionRef, isVisible } = useFadeInOnScroll<HTMLElement>();
 
   return (
-    <section ref={sectionRef} className='h-full w-full bg-black text-white'>
+    <section
+      ref={sectionRef}
+      className='h-full w-full bg-neutral-950 text-white'
+    >
       <div
         className={cx(
           "container mx-auto flex h-full max-w-6xl flex-col gap-12 px-4 py-16 md:flex-row md:items-center md:justify-between",
