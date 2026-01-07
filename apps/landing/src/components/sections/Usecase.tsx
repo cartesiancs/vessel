@@ -11,7 +11,7 @@ type Usecase = {
 
 const usecases: Usecase[] = [
   {
-    title: "Autonomous Perimeter Ops",
+    title: "Realtime Control",
     description:
       "Coordinate sensors, cameras, and automated responses across large sites without relying on cloud connectivity.",
     image: "/images/map.png",
@@ -21,6 +21,13 @@ const usecases: Usecase[] = [
     title: "Mission Control Watchtower",
     description:
       "Fuse live feeds, alerts, and playbooks into a single command layer for faster, safer decisions.",
+    image: "/images/dashboard.png",
+    alt: "Mission control dashboard",
+  },
+  {
+    title: "CCTV Dashboard",
+    description:
+      "RTSP and low-level UDP RTP video stream support. Aggregate multiple media sources for real-time visibility and control.",
     image: "/images/dashboard.png",
     alt: "Mission control dashboard",
   },

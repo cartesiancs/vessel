@@ -3,21 +3,21 @@ import { useFadeInOnScroll } from "@/lib/useFadeInOnScroll";
 
 const features = [
   {
-    title: "Visual Logic Builder",
+    title: "Flow",
     description:
       "Orchestrate sensors and automations with a flow-based editor that connects devices, AI models, and actions.",
     image: "/images/flow.png",
     alt: "Flow visual editor",
   },
   {
-    title: "Real-Time Monitoring",
+    title: "Dashboard",
     description:
       "Track streams, alerts, and system health in one place with a centralized command view.",
     image: "/images/dashboard.png",
     alt: "Dashboard monitoring",
   },
   {
-    title: "Map-Based Control",
+    title: "Map",
     description:
       "Coordinate devices spatially with a map UI for faster decisions and responses.",
     image: "/images/map.png",
@@ -38,10 +38,8 @@ export function FeaturesSection() {
       >
         <div className='mb-12 text-left'>
           <h2 className='mt-3 text-3xl font-bold tracking-tight md:text-4xl'>
-            Proactive Security{" "}
-            <span className='text-neutral-500'>
-              Platform, Local-First by Design
-            </span>
+            C2 Platform,{" "}
+            <span className='text-neutral-500'>Local-First by Design</span>
           </h2>
         </div>
 

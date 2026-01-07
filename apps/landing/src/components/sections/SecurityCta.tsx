@@ -27,7 +27,7 @@ export function SecurityCTASection() {
           <div className='mt-8 flex flex-wrap items-center gap-4'>
             <button
               type='button'
-              className='inline-flex h-11 items-center justify-center bg-white px-5 text-sm font-medium text-black transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80'
+              className='inline-flex h-11 items-center justify-center bg-white px-5 text-sm font-medium text-black transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80 cursor-pointer'
               onClick={() =>
                 window.open("https://github.com/cartesiancs/vessel")
               }
@@ -37,7 +37,7 @@ export function SecurityCTASection() {
 
             <button
               type='button'
-              className='inline-flex h-11 items-center justify-center border border-white/30 bg-transparent px-5 text-sm font-medium text-white transition-colors hover:border-white/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80'
+              className='inline-flex h-11 items-center justify-center border border-white/30 bg-transparent px-5 text-sm font-medium text-white transition-colors hover:border-white/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80 cursor-pointer'
               onClick={() => (location.href = "/privacy")}
             >
               Privacy

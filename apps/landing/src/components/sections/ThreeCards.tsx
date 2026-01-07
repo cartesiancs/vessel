@@ -12,23 +12,22 @@ const cards: Card[] = [
   {
     image: "/images/flow.png",
     alt: "Device connections",
-    title: "Connect your devices.",
+    title: "Home Assistant.",
     description:
-      "Bring cameras, sensors, and edge nodes into one command layer with a visual, flow-based setup.",
+      "Connect with every supported device. Powered by the world’s most powerful IoT hub.",
   },
   {
     image: "/images/flow.png",
     alt: "Threat detection",
-    title: "Detect threats in real time.",
-    description:
-      "Turn signals into actionable alerts by routing events through your detection and escalation logic.",
+    title: "Robot Control.",
+    description: "Control robots in real time with ROS 2’s powerful protocols.",
   },
   {
     image: "/images/flow.png",
     alt: "Automated response",
-    title: "Orchestrate and respond.",
+    title: "Fundamental Control.",
     description:
-      "Automate playbooks that coordinate devices and actions when conditions are met—no cloud required.",
+      "Bring real-time data from WebSocket, MQTT, and HTTP straight into your flow logic.",
   },
 ];
 

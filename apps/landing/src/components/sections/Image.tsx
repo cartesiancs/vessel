@@ -19,9 +19,9 @@ export function ImageSection() {
       >
         <div className='mx-auto max-w-4xl text-center'>
           <h2 className='text-4xl font-semibold tracking-tight md:text-6xl md:leading-[1.05]'>
-            <span className='text-white/70'>Offline First.</span>
+            <span className='text-white/70'>Integration</span>
             <br />
-            <span className='text-white'>No internet required.</span>
+            <span className='text-white'>with powerful tools</span>
           </h2>
         </div>
 

@@ -29,17 +29,19 @@ export function FooterCtaSection() {
           </p>
 
           <div className='mt-10'>
-            <a
-              href='#'
+            <button
               className={cx(
                 "inline-flex h-12 items-center justify-center px-6",
                 "border border-white/25 bg-transparent text-base font-medium text-white",
                 "transition-colors hover:border-white/45 hover:bg-white/5",
-                "focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30",
+                "focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30 cursor-pointer",
               )}
+              onClick={() =>
+                window.open("https://github.com/cartesiancs/vessel")
+              }
             >
               See GitHub
-            </a>
+            </button>
           </div>
         </div>
       </div>

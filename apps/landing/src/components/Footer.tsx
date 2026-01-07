@@ -2,12 +2,22 @@ const footerNav = {
   resources: [
     { name: "Roadmap", href: "/roadmap" },
     { name: "Usecase", href: "/usecase" },
+    { name: "Privacy", href: "/privacy" },
 
     { name: "GitHub", href: "https://github.com/cartesiancs/vessel" },
   ],
   company: [
     { name: "About", href: "https://cartesiancs.com/about" },
     { name: "LinkedIn", href: "https://www.linkedin.com/company/cartesiancs" },
+    { name: "X", href: "https://x.com/cartesiancs" },
+    {
+      name: "Instagram",
+      href: "https://www.instagram.com/cartesiancs.official/",
+    },
+    {
+      name: "Youtube",
+      href: "https://www.youtube.com/@cartesiancs",
+    },
   ],
 };
 
