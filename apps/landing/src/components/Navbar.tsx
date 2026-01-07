@@ -46,6 +46,15 @@ export function Navbar() {
             <NavigationMenuItem>
               <NavigationMenuLink
                 className={`${navigationMenuTriggerStyle()} bg-transparent`}
+                onClick={() => navigate("/pricing")}
+                style={{ cursor: "pointer" }}
+              >
+                Pricing
+              </NavigationMenuLink>
+            </NavigationMenuItem>
+            <NavigationMenuItem>
+              <NavigationMenuLink
+                className={`${navigationMenuTriggerStyle()} bg-transparent`}
                 onClick={() => openInNewTab("/docs/introduction")}
                 style={{ cursor: "pointer" }}
               >

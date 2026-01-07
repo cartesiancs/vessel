@@ -1,5 +1,6 @@
 const footerNav = {
   resources: [
+    { name: "Pricing", href: "/pricing" },
     { name: "Roadmap", href: "/roadmap" },
     { name: "Usecase", href: "/usecase" },
     { name: "Privacy", href: "/privacy" },
