@@ -9,9 +9,9 @@ import { SubheadingSection } from "@/components/sections/SubheadingSection";
 import { MidCTASection } from "@/components/sections/MidCta";
 import { FAQSection } from "@/components/sections/Faqs";
 import { FooterCtaSection } from "@/components/sections/FooterCta";
-import { ImageSection } from "@/components/sections/Image";
 import { ThreeCardsSection } from "@/components/sections/ThreeCards";
 import { SecurityCTASection } from "@/components/sections/SecurityCta";
+import { IntegrationSection } from "@/components/sections/IntegrationImage";
 
 function LandingPage() {
   return (
@@ -47,7 +47,7 @@ function LandingPage() {
         <FeaturesSection />
         <UsecaseSection />
         <MidCTASection />
-        <ImageSection />
+        <IntegrationSection />
         <ThreeCardsSection />
         <SecurityCTASection />
         <FAQSection />

@@ -10,20 +10,20 @@ type Card = {
 
 const cards: Card[] = [
   {
-    image: "/images/flow.png",
+    image: "/images/ha.webp",
     alt: "Device connections",
     title: "Home Assistant.",
     description:
       "Connect with every supported device. Powered by the world’s most powerful IoT hub.",
   },
   {
-    image: "/images/flow.png",
+    image: "/images/robotarm.webp",
     alt: "Threat detection",
     title: "Robot Control.",
     description: "Control robots in real time with ROS 2’s powerful protocols.",
   },
   {
-    image: "/images/flow.png",
+    image: "/images/watch.webp",
     alt: "Automated response",
     title: "Fundamental Control.",
     description:

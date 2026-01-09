@@ -156,9 +156,9 @@ function PricingPage() {
                 <Button
                   className='h-11 w-full text-base'
                   variant='ghost'
-                  onClick={() =>
-                    window.open("https://cartesiancs.com/contact", "_blank")
-                  }
+                  onClick={() => {
+                    window.location.href = "mailto:info@cartesiancs.com";
+                  }}
                 >
                   Contact Us
                 </Button>
