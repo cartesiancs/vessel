@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useNavigate } from "react-router";
 import { Badge } from "@/components/ui/badge";
+import { DEMO_SERVER_URL, DEMO_TOKEN, isDemoMode } from "@/shared/demo";
 
 const RECENT_URLS_COOKIE = "recent_server_urls";
 const MAX_RECENT_URLS = 5;
@@ -25,6 +26,14 @@ export function LoginForm({
   const navigate = useNavigate();
 
   const connectToServer = async (targetUrl: string) => {
+    if (isDemoMode) {
+      Cookies.set("server_url", DEMO_SERVER_URL, { expires: 1 });
+      Cookies.set("token", DEMO_TOKEN, { expires: 1 });
+      toast.success("Demo mode enabled. Loading demo dashboard...");
+      navigate("/dashboard");
+      return;
+    }
+
     if (!targetUrl) {
       toast.error("Server URL cannot be empty.");
       return;
@@ -130,6 +139,16 @@ export function LoginForm({
   useEffect(() => {
     const token = Cookies.get("token");
     if (token) {
+      navigate("/dashboard");
+      return;
+    }
+
+    if (isDemoMode) {
+      Cookies.set("server_url", DEMO_SERVER_URL, { expires: 1 });
+      Cookies.set("token", DEMO_TOKEN, { expires: 1 });
+      toast.message("Demo mode active", {
+        description: "Using mock data without a backend.",
+      });
       navigate("/dashboard");
       return;
     }

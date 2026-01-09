@@ -8,6 +8,8 @@ import {
 } from "react";
 import { useWebSocket } from "../ws/WebSocketProvider";
 import { WebRTCManager } from "./rtc";
+import { isDemoMode } from "@/shared/demo";
+import { WebSocketChannel } from "../ws/ws";
 
 type StreamInfo = {
   stream: MediaStream;
@@ -39,9 +41,22 @@ export function WebRTCProvider({ children }: WebRTCProviderProps) {
   const { wsManager, isConnected } = useWebSocket();
   const [rtcManager, setRtcManager] = useState<WebRTCManager | null>(null);
   const [streams, setStreams] = useState<Map<string, StreamInfo>>(new Map());
+  const [demoMode] = useState(isDemoMode);
 
   useEffect(() => {
+    if (demoMode) {
+      setRtcManager(null);
+      setStreams(new Map());
+      return;
+    }
+
     if (isConnected && wsManager) {
+      if (!(wsManager instanceof WebSocketChannel)) {
+        setRtcManager(null);
+        setStreams(new Map());
+        return;
+      }
+
       console.log("WebSocket connected, initializing WebRTCManager.");
 
       const onStreamsChanged = (newStreams: Map<string, StreamInfo>) => {
@@ -57,7 +72,7 @@ export function WebRTCProvider({ children }: WebRTCProviderProps) {
         setRtcManager(null);
       };
     }
-  }, [isConnected, wsManager]);
+  }, [demoMode, isConnected, wsManager]);
 
   const { audioStreamCount, videoStreamCount } = useMemo(() => {
     const counts = { audioStreamCount: 0, videoStreamCount: 0 };
@@ -71,12 +86,19 @@ export function WebRTCProvider({ children }: WebRTCProviderProps) {
     return counts;
   }, [streams]);
 
-  const value = {
-    rtcManager,
-    streams,
-    audioStreamCount,
-    videoStreamCount,
-  };
+  const value = demoMode
+    ? {
+        rtcManager: null,
+        streams: new Map(),
+        audioStreamCount: 0,
+        videoStreamCount: 0,
+      }
+    : {
+        rtcManager,
+        streams,
+        audioStreamCount,
+        videoStreamCount,
+      };
 
   return (
     <WebRTCContext.Provider value={value}>{children}</WebRTCContext.Provider>

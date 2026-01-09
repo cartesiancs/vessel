@@ -26,6 +26,7 @@ import { useLogout } from "../auth/hook";
 import { useEffect, useState } from "react";
 import Cookies from "js-cookie";
 import { parseJwt } from "@/lib/jwt";
+import { isDemoMode } from "@/shared/demo";
 
 export function NavFooter({
   user,
@@ -38,12 +39,15 @@ export function NavFooter({
 }) {
   const { isMobile } = useSidebar();
   const { logout } = useLogout();
-  const [userId, setUserId] = useState<string>("");
+  const [userId, setUserId] = useState<string>(isDemoMode ? "demo" : "");
 
   useEffect(() => {
+    if (isDemoMode) return;
     if (Cookies.get("token")) {
       const parse = parseJwt(Cookies.get("token") || "");
-      setUserId(parse.sub);
+      if (parse?.sub && typeof parse.sub === "string") {
+        setUserId(parse.sub);
+      }
     }
   }, []);
 
