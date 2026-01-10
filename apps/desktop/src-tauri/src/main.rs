@@ -10,8 +10,10 @@ use std::{
 };
 
 use serde::Serialize;
-use tauri::api::process::{Command, CommandChild, CommandEvent};
 use tauri::{AppHandle, Manager, State};
+use tauri_plugin_prevent_default::{Builder as PreventBuilder, KeyboardShortcut};
+use tauri_plugin_shell::process::CommandChild;
+use tauri_plugin_shell::{process::CommandEvent, ShellExt};
 
 const DEFAULT_LISTEN: &str = "0.0.0.0:8080";
 const CONFIG_FILE: &str = "config.toml";
@@ -29,17 +31,17 @@ struct SidecarStatus {
     working_dir: String,
 }
 
-fn ensure_workdir(app: &AppHandle, state: &SidecarManager) -> tauri::Result<PathBuf> {
+fn ensure_workdir(
+    app: &AppHandle,
+    state: &SidecarManager,
+) -> Result<PathBuf, Box<dyn std::error::Error>> {
     let mut guard = state.workdir.lock().unwrap();
     if let Some(existing) = guard.clone() {
         return Ok(existing);
     }
 
-    let resolver = app.path_resolver();
-    let base = resolver
-        .app_data_dir()
-        .or_else(|| resolver.app_config_dir())
-        .unwrap_or(std::env::current_dir()?);
+    let resolver = app.path();
+    let base = resolver.app_data_dir().unwrap_or(std::env::current_dir()?);
 
     fs::create_dir_all(&base)?;
     fs::create_dir_all(base.join("log"))?;
@@ -105,11 +107,15 @@ fn write_log(path: &Path, msg: &str) {
     }
 }
 
+fn bytes_to_line(bytes: Vec<u8>) -> String {
+    String::from_utf8_lossy(&bytes).trim_end().to_string()
+}
+
 fn start_server_sidecar(
-    _app: &AppHandle,
+    app: &AppHandle,
     state: &SidecarManager,
     workdir: &Path,
-) -> tauri::Result<()> {
+) -> Result<(), Box<dyn std::error::Error>> {
     {
         let guard = state.child.lock().unwrap();
         if guard.is_some() {
@@ -117,9 +123,6 @@ fn start_server_sidecar(
         }
     }
 
-    let mut command = Command::new_sidecar("server")?;
-
-    // Ensure dynamic libs like libpython / libsqlite are discoverable when launched from the app data dir.
     let extra_paths = [
         "/opt/homebrew/opt/python@3.12/Frameworks/Python.framework/Versions/3.12/lib",
         "/opt/homebrew/opt/sqlite/lib",
@@ -132,10 +135,7 @@ fn start_server_sidecar(
         .filter(|s| !s.is_empty())
         .map(|s| s.to_string())
         .collect();
-    for path in extra_paths
-        .iter()
-        .chain(default_fallbacks.iter())
-    {
+    for path in extra_paths.iter().chain(default_fallbacks.iter()) {
         if !merged.iter().any(|p| p == path) {
             merged.push(path.to_string());
         }
@@ -143,21 +143,17 @@ fn start_server_sidecar(
     let merged_fallback = merged.join(":");
 
     let mut envs = std::collections::HashMap::new();
-    envs.insert(
-        "DYLD_FALLBACK_LIBRARY_PATH".to_string(),
-        merged_fallback,
-    );
+    envs.insert("DYLD_FALLBACK_LIBRARY_PATH".to_string(), merged_fallback);
 
     let sidecar_log = workdir.join("log/sidecar.log");
     write_log(
         &sidecar_log,
-        &format!(
-            "Spawning server sidecar in {}",
-            workdir.display()
-        ),
+        &format!("Spawning server sidecar in {}", workdir.display()),
     );
 
-    command = command
+    let command = app
+        .shell()
+        .sidecar("server")?
         .current_dir(workdir.to_path_buf())
         .envs(envs);
 
@@ -167,21 +163,21 @@ fn start_server_sidecar(
         &format!("Server sidecar started with pid {:?}", child.pid()),
     );
 
+    let sidecar_log2 = sidecar_log.clone();
     tauri::async_runtime::spawn(async move {
         while let Some(event) = rx.recv().await {
             match event {
                 CommandEvent::Terminated(payload) => {
-                    println!("Server sidecar terminated: {:?}", payload);
+                    write_log(&sidecar_log2, &format!("terminated: {:?}", payload));
                 }
                 CommandEvent::Error(err) => {
-                    eprintln!("Server sidecar error: {}", err);
-                    write_log(&sidecar_log, &format!("Error: {}", err));
+                    write_log(&sidecar_log2, &format!("error: {}", err));
                 }
                 CommandEvent::Stdout(line) => {
-                    write_log(&sidecar_log, &format!("stdout: {}", line));
+                    write_log(&sidecar_log2, &format!("stdout: {}", bytes_to_line(line)));
                 }
                 CommandEvent::Stderr(line) => {
-                    write_log(&sidecar_log, &format!("stderr: {}", line));
+                    write_log(&sidecar_log2, &format!("stderr: {}", bytes_to_line(line)));
                 }
                 _ => {}
             }
@@ -220,17 +216,25 @@ fn stop_sidecar(state: State<'_, SidecarManager>) -> Result<(), String> {
 }
 
 fn main() {
-    use tauri::App;
-
     tauri::Builder::default()
         .manage(SidecarManager::default())
+        .plugin(tauri_plugin_shell::init())
+        .plugin(
+            PreventBuilder::new()
+                // Block Backspace navigation
+                .shortcut(KeyboardShortcut::new("Backspace"))
+                // Also block browser back/forward shortcuts
+                .shortcut(KeyboardShortcut::new("Alt+Left"))
+                .shortcut(KeyboardShortcut::new("Alt+Right"))
+                .build(),
+        )
         .invoke_handler(tauri::generate_handler![
             get_sidecar_status,
             start_sidecar,
             stop_sidecar
         ])
-        .setup(|app: &mut App| {
-            let handle = app.handle();
+        .setup(|app| {
+            let handle = app.handle().clone();
             let state = app.state::<SidecarManager>();
             let workdir = ensure_workdir(&handle, &state)?;
             start_server_sidecar(&handle, &state, &workdir)?;
