@@ -5,7 +5,7 @@
   "type": "module",
   "main": "maindist/main.js",
   "scripts": {
-    "dev": "npm run build:main && concurrently \"npm run dev:vite\"",
+    "dev": "concurrently \"npm run dev:vite\"",
     "dev:vite": "vite --host",
     "build:main": "tsc -p ./configs/electron",
     "build:app": "tsc -b && vite build",

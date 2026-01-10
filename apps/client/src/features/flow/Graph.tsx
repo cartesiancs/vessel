@@ -39,6 +39,7 @@ import { AddCustomNode } from "./AddCustomNode";
 import { useCustomNodeStore } from "@/entities/custom-nodes/store";
 import { useConfigStore } from "@/entities/configurations/store";
 import { isValidConfig } from "../integration/validate";
+import { SelectedItemActions } from "./SelectedItemActions";
 
 type NodeGroup = {
   label: string;
@@ -80,7 +81,7 @@ export function Graph({
   const svgRef = useRef<SVGSVGElement>(null);
   const gRef = useRef<SVGGElement>(null);
   const zoomRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null);
-  const transformRef = useRef(zoomIdentity);
+  const transformRef = useRef<d3.ZoomTransform>(zoomIdentity);
 
   const edgesRef = useRef(edges);
   const nodesRef = useRef(nodes);
@@ -339,42 +340,48 @@ export function Graph({
     };
   }, [gridSize, gridColor, locked]);
 
+  const deleteSelectedNode = useCallback(() => {
+    if (!selectedElement || selectedElement.type !== "node") return;
+
+    const removedNode = nodesRef.current.find(
+      (n) => n.id === selectedElement.id,
+    );
+    const removedConnIds = removedNode
+      ? removedNode.connectors.map((c) => c.id)
+      : [];
+
+    onNodesChange?.(
+      nodesRef.current.filter((n) => n.id !== selectedElement.id),
+    );
+    onEdgesChange?.(
+      edgesRef.current.filter(
+        (ed) =>
+          !removedConnIds.includes(ed.source) &&
+          !removedConnIds.includes(ed.target),
+      ),
+    );
+
+    setSelectedElement(null);
+  }, [selectedElement, onNodesChange, onEdgesChange]);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key !== "Backspace" || !selectedElement) return;
-
-      if (selectedElement.type === "node") {
-        const removedNode = nodesRef.current.find(
-          (n) => n.id === selectedElement.id,
-        );
-        const removedConnIds = removedNode
-          ? removedNode.connectors.map((c) => c.id)
-          : [];
-
-        onNodesChange?.(
-          nodesRef.current.filter((n) => n.id !== selectedElement.id),
-        );
-        onEdgesChange?.(
-          edgesRef.current.filter(
-            (ed) =>
-              !removedConnIds.includes(ed.source) &&
-              !removedConnIds.includes(ed.target),
-          ),
-        );
-      } else {
+      if (e.key !== "Backspace") return;
+      if (selectedElement?.type === "node") {
+        deleteSelectedNode();
+      } else if (selectedElement?.type === "edge") {
         onEdgesChange?.(
           edgesRef.current.filter((ed) => ed.id !== selectedElement.id),
         );
+        setSelectedElement(null);
       }
-
-      setSelectedElement(null);
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [selectedElement, onNodesChange, onEdgesChange]);
+  }, [selectedElement, onEdgesChange, deleteSelectedNode]);
 
   useEffect(() => {
     const g = d3.select(gRef.current);
@@ -785,6 +792,10 @@ export function Graph({
       <svg ref={svgRef} width='100%' height='100%'>
         <g ref={gRef} />
       </svg>
+      <SelectedItemActions
+        selectedElement={selectedElement}
+        onDeleteNode={deleteSelectedNode}
+      />
       <div
         style={{
           position: "absolute",
