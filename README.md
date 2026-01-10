@@ -17,6 +17,7 @@
 ## About The Project
 
 ![banner](./.github/banner.png)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fcartesiancs%2Fvessel.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fcartesiancs%2Fvessel?ref=badge_shield)
 
 Vessel is the **C2 (Command & Control) software** for connecting, monitoring, and orchestrating arrays of physical sensors via an intuitive, visual flow-based interface.
 
@@ -135,6 +136,9 @@ Please refer to our [CONTRIBUTING.md](CONTRIBUTING.md) for details.
 ## License
 
 Distributed under the Apache-2.0 License. See [LICENSE](LICENSE) for more information.
+
+
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fcartesiancs%2Fvessel.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fcartesiancs%2Fvessel?ref=badge_large)
 
 ## Disclaimer
 
