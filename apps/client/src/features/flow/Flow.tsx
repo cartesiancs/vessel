@@ -72,7 +72,10 @@ export default function FlowPage() {
       <div className='flex-1 flex flex-col relative overflow-hidden'>
         {currentFlowId ? (
           <>
-            <div className='flex-1 relative min-h-0'>
+            <div
+              className='flex-1 relative min-h-0'
+              data-allow-backspace='true'
+            >
               <Graph
                 nodes={nodes}
                 edges={edges}
@@ -192,7 +195,7 @@ export function FlowSidebar() {
   return (
     <aside className='w-86 border-r bg-card text-card-foreground p-4 flex flex-col overflow-scroll'>
       <div className='flex items-center justify-between mb-4'>
-        <h2 className='mb-1 text-lg font-semibold tracking-tight'>Files</h2>
+        <h2 className='mb-1 text-md font-semibold tracking-tight'>Flows</h2>
         <div className='flex items-center'>
           <Dialog onOpenChange={(open) => !open && setNewFlowName("")}>
             <DialogTrigger asChild>

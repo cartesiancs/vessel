@@ -6,7 +6,7 @@ import { ensureSidecarRunning, getDesktopServerUrl, isTauri } from "@/shared/des
 
 export const useDesktopSidecar = () => {
   useEffect(() => {
-    if (!isTauri || isDemoMode) {
+    if (!isTauri() || isDemoMode) {
       return;
     }
 

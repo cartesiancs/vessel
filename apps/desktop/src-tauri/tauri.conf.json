@@ -13,6 +13,7 @@
     "security": {
       "capabilities": ["main"]
     },
+    "withGlobalTauri": true,
     "windows": [
       {
         "title": "Vessel",

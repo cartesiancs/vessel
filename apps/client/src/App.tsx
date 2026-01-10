@@ -18,6 +18,7 @@ import { CodePage } from "./pages/code";
 import { AuthenticatedLayout } from "./widgets/auth/AuthenticatedLayout";
 import { TopBarWrapper } from "./widgets/auth/TopBarWrapper";
 import { useDesktopSidecar } from "./hooks/useDesktopSidecar";
+import { usePreventBackNavigation } from "./hooks/usePreventBackNavigation";
 
 const router = createBrowserRouter([
   {
@@ -138,6 +139,7 @@ const router = createBrowserRouter([
 
 function App() {
   useDesktopSidecar();
+  usePreventBackNavigation();
 
   return (
     <>

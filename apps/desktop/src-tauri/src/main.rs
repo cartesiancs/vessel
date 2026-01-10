@@ -216,30 +216,61 @@ fn stop_sidecar(state: State<'_, SidecarManager>) -> Result<(), String> {
 }
 
 fn main() {
+    // JS snippet that blocks Backspace navigation while allowing edits in inputs/contentEditable.
+    // Runs for every webview we create.
+    const PREVENT_NAV_JS: &str = r#"
+      const shouldAllowBackspace = (event) => {
+        const path = event.composedPath ? event.composedPath() : [event.target];
+        return path.some((el) => {
+          if (!el || !el.tagName) return false;
+          const tag = el.tagName.toUpperCase();
+          const dataset = el.dataset || {};
+          if (dataset.allowBackspace === 'true') return true;
+          return el.isContentEditable || tag === 'INPUT' || tag === 'TEXTAREA';
+        });
+      };
+
+      const preventBackNavigation = (e) => {
+        if (e.key !== 'Backspace') return;
+        if (shouldAllowBackspace(e)) return;
+        e.preventDefault();
+        e.stopPropagation();
+      };
+
+      window.addEventListener('keydown', preventBackNavigation, { capture: true });
+    "#;
+
     tauri::Builder::default()
         .manage(SidecarManager::default())
         .plugin(tauri_plugin_shell::init())
         .plugin(
             PreventBuilder::new()
-                // Block Backspace navigation
-                .shortcut(KeyboardShortcut::new("Backspace"))
-                // Also block browser back/forward shortcuts
+                // Block browser back/forward shortcuts
                 .shortcut(KeyboardShortcut::new("Alt+Left"))
                 .shortcut(KeyboardShortcut::new("Alt+Right"))
                 .build(),
         )
-        .invoke_handler(tauri::generate_handler![
-            get_sidecar_status,
-            start_sidecar,
-            stop_sidecar
-        ])
+        .on_page_load(|window, _| {
+            let _ = window.eval(PREVENT_NAV_JS);
+        })
         .setup(|app| {
+            // Inject navigation guard script into all existing webviews and re-apply after page loads.
+            for window in app.webview_windows().values() {
+                let _ = window.eval(PREVENT_NAV_JS);
+            }
+
+            // Start the server sidecar.
             let handle = app.handle().clone();
             let state = app.state::<SidecarManager>();
             let workdir = ensure_workdir(&handle, &state)?;
             start_server_sidecar(&handle, &state, &workdir)?;
             Ok(())
         })
+        .invoke_handler(tauri::generate_handler![
+            get_sidecar_status,
+            start_sidecar,
+            stop_sidecar
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
