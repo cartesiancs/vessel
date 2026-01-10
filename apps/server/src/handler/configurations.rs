@@ -1,8 +1,19 @@
-use std::sync::Arc;
-use axum::{extract::{State, Path}, Json};
+use crate::{
+    db::{
+        self,
+        models::{NewSystemConfiguration, SystemConfiguration},
+    },
+    error::AppError,
+    handler::auth::AuthUser,
+    state::AppState,
+};
+use axum::{
+    extract::{Path, State},
+    Json,
+};
 use serde::Deserialize;
 use serde_json::{json, Value};
-use crate::{db::{self, models::{NewSystemConfiguration, SystemConfiguration}}, error::AppError, handler::auth::AuthUser, state::AppState};
+use std::sync::Arc;
 
 #[derive(Deserialize)]
 pub struct SystemConfigPayload {
@@ -57,5 +68,7 @@ pub async fn delete_config(
     Path(id): Path<i32>,
 ) -> Result<Json<Value>, AppError> {
     db::repository::delete_system_config(&state.pool, id)?;
-    Ok(Json(json!({ "status": "success", "message": "System configuration deleted" })))
+    Ok(Json(
+        json!({ "status": "success", "message": "System configuration deleted" }),
+    ))
 }

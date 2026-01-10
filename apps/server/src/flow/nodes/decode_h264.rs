@@ -1,7 +1,7 @@
 use anyhow::{anyhow, Result};
 use async_trait::async_trait;
-use gstreamer::{self as gst, glib};
 use gstreamer::prelude::*;
+use gstreamer::{self as gst, glib};
 use gstreamer_app::{AppSink, AppSrc};
 use serde_json::{json, Value};
 use std::collections::HashMap;
@@ -32,7 +32,7 @@ impl DecodeH264Node {
             .ok_or_else(|| anyhow!("Failed to get 'appsrc' from pipeline"))?
             .downcast::<AppSrc>()
             .map_err(|_| anyhow!("Failed to downcast 'appsrc' element"))?;
-        
+
         appsrc.set_property("is-live", true);
         appsrc.set_property("format", gst::Format::Time);
         appsrc.set_property("do-timestamp", true);
@@ -68,7 +68,8 @@ impl DecodeH264Node {
                 .build(),
         );
 
-        let bus = pipeline.bus()
+        let bus = pipeline
+            .bus()
             .ok_or_else(|| anyhow!("Failed to get GStreamer bus from pipeline"))?;
 
         bus.add_watch(move |_, msg| {
@@ -91,7 +92,9 @@ impl DecodeH264Node {
         pipeline.set_state(gst::State::Playing)?;
 
         // FIX: 파이프라인의 상태가 'Playing'으로 완전히 전환될 때까지 최대 5초간 기다립니다.
-        pipeline.state(gst::ClockTime::from_seconds(5)).0
+        pipeline
+            .state(gst::ClockTime::from_seconds(5))
+            .0
             .map_err(|err| anyhow!("Failed to set pipeline to Playing: {}", err))?;
 
         Ok(Self {
@@ -115,9 +118,11 @@ impl ExecutableNode for DecodeH264Node {
             .ok_or_else(|| anyhow!("'payload' input missing or not a string"))?;
 
         let rtp_packet_data = base64::decode(encoded_packet)?;
-        
+
         let buffer = gst::Buffer::from_slice(rtp_packet_data);
-        self.appsrc.push_buffer(buffer).map_err(|e| anyhow!("Failed to push buffer to GStreamer appsrc: {}", e))?;
+        self.appsrc
+            .push_buffer(buffer)
+            .map_err(|e| anyhow!("Failed to push buffer to GStreamer appsrc: {}", e))?;
 
         let mut frame_rx = self.frame_rx.lock().await;
 
@@ -132,12 +137,8 @@ impl ExecutableNode for DecodeH264Node {
                     ..Default::default()
                 })
             }
-            Err(mpsc::error::TryRecvError::Empty) => {
-                Ok(ExecutionResult::default())
-            }
-            Err(e) => {
-                Err(anyhow!("MPSC channel error in DecodeH264Node: {}", e))
-            }
+            Err(mpsc::error::TryRecvError::Empty) => Ok(ExecutionResult::default()),
+            Err(e) => Err(anyhow!("MPSC channel error in DecodeH264Node: {}", e)),
         }
     }
 }

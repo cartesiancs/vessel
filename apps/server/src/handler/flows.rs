@@ -1,11 +1,19 @@
-use std::sync::Arc;
-use axum::{extract::{State, Path}, Json};
+use crate::{
+    db::{
+        self,
+        models::{Flow, FlowVersion, NewFlow, NewFlowVersion},
+    },
+    error::AppError,
+    handler::auth::AuthUser,
+    state::AppState,
+};
+use axum::{
+    extract::{Path, State},
+    Json,
+};
 use serde::Deserialize;
 use serde_json::{json, Value};
-use crate::{
-    db::{self, models::{Flow, FlowVersion, NewFlow, NewFlowVersion}}, error::AppError, handler::auth::{AuthUser}, state::AppState
-};
-
+use std::sync::Arc;
 
 #[derive(Deserialize)]
 pub struct FlowPayload {
@@ -27,7 +35,6 @@ pub async fn get_all_flows(
     let flows = db::repository::get_all_flows(&state.pool)?;
     Ok(Json(flows))
 }
-
 
 pub async fn create_flow(
     State(state): State<Arc<AppState>>,
@@ -55,9 +62,10 @@ pub async fn update_flow(
         enabled: payload.enabled,
     };
     db::repository::update_flow(&state.pool, id, &updated_flow)?;
-    Ok(Json(json!({ "status": "success", "message": "Flow updated successfully" })))
+    Ok(Json(
+        json!({ "status": "success", "message": "Flow updated successfully" }),
+    ))
 }
-
 
 pub async fn delete_flow(
     State(state): State<Arc<AppState>>,
@@ -65,11 +73,10 @@ pub async fn delete_flow(
     AuthUser(_user): AuthUser,
 ) -> Result<Json<Value>, AppError> {
     db::repository::delete_flow(&state.pool, id)?;
-    Ok(Json(json!({ "status": "success", "message": "Flow deleted" })))
+    Ok(Json(
+        json!({ "status": "success", "message": "Flow deleted" }),
+    ))
 }
-
-
-
 
 pub async fn create_flow_version(
     State(state): State<Arc<AppState>>,
@@ -79,7 +86,7 @@ pub async fn create_flow_version(
 ) -> Result<Json<FlowVersion>, AppError> {
     let new_version_data = NewFlowVersion {
         flow_id,
-        version: 1, 
+        version: 1,
         graph_json: &payload.graph_json,
         comment: payload.comment.as_deref(),
     };
@@ -95,4 +102,3 @@ pub async fn get_flow_versions(
     let versions = db::repository::get_versions_for_flow(&state.pool, flow_id)?;
     Ok(Json(versions))
 }
-

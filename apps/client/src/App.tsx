@@ -17,6 +17,7 @@ import { SetupPage } from "./pages/setup";
 import { CodePage } from "./pages/code";
 import { AuthenticatedLayout } from "./widgets/auth/AuthenticatedLayout";
 import { TopBarWrapper } from "./widgets/auth/TopBarWrapper";
+import { useDesktopSidecar } from "./hooks/useDesktopSidecar";
 
 const router = createBrowserRouter([
   {
@@ -136,6 +137,8 @@ const router = createBrowserRouter([
 ]);
 
 function App() {
+  useDesktopSidecar();
+
   return (
     <>
       <RouterProvider router={router} />

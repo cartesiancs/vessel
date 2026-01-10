@@ -1,0 +1,45 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "build": {
+    "beforeDevCommand": "cd ../.. && npm run build --workspace=client && cargo build --release -p server && HOST=$(rustc -vV | sed -n 's/^host: //p') && BIN=target/release/server && cp \"$BIN\" \"${BIN}-${HOST}\" && npm run dev:vite --workspace=client",
+    "beforeBuildCommand": "cd ../.. && npm run build --workspace=client && cargo build --release -p server && HOST=$(rustc -vV | sed -n 's/^host: //p') && BIN=target/release/server && cp \"$BIN\" \"${BIN}-${HOST}\"",
+    "devPath": "http://localhost:5175",
+    "distDir": "../../client/dist"
+  },
+  "package": {
+    "productName": "Vessel",
+    "version": "0.1.0"
+  },
+  "tauri": {
+    "allowlist": {
+      "all": false,
+      "shell": {
+        "all": false,
+        "sidecar": true
+      },
+      "dialog": {
+        "open": true
+      },
+      "path": {
+        "all": true
+      }
+    },
+    "bundle": {
+      "identifier": "com.vessel.desktop",
+      "icon": [],
+      "externalBin": ["../../../target/release/server"]
+    },
+    "windows": [
+      {
+        "title": "Vessel",
+        "width": 1280,
+        "height": 800,
+        "resizable": true,
+        "fullscreen": false
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  }
+}

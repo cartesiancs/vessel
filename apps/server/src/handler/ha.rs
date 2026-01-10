@@ -1,16 +1,14 @@
-use std::sync::Arc;
-use axum::{extract::{Path, State}, Json};
-use anyhow::{anyhow, bail}; 
+use anyhow::{anyhow, bail};
+use axum::{
+    extract::{Path, State},
+    Json,
+};
 use reqwest::header;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
+use std::sync::Arc;
 
-use crate::{
-    db,
-    error::AppError,
-    handler::auth::AuthUser,
-    state::AppState,
-};
+use crate::{db, error::AppError, handler::auth::AuthUser, state::AppState};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct HaState {
@@ -56,8 +54,11 @@ pub async fn get_all_states(
         let states = response.json::<Vec<HaState>>().await?;
         Ok(Json(states))
     } else {
-       let error_text = response.text().await.unwrap_or_else(|_| "Could not read error body".to_string());
-        
+        let error_text = response
+            .text()
+            .await
+            .unwrap_or_else(|_| "Could not read error body".to_string());
+
         let err = anyhow!(
             "Home Assistant returned an error. Status: {}, Body: {}",
             status,
@@ -95,7 +96,7 @@ pub async fn post_state(
         .ok_or_else(|| anyhow!("Home Assistant Token is not configured."))?;
 
     let api_url = format!("{}/api/states/{}", ha_url.trim_end_matches('/'), entity_id);
-    
+
     let mut ha_body = json!({ "state": payload.state });
     if let Some(attributes) = payload.attributes {
         if let Some(obj) = ha_body.as_object_mut() {
@@ -118,8 +119,11 @@ pub async fn post_state(
         let new_state = response.json::<HaState>().await?;
         Ok(Json(new_state))
     } else {
-        let error_text = response.text().await.unwrap_or_else(|_| "Could not read error body".to_string());
-        
+        let error_text = response
+            .text()
+            .await
+            .unwrap_or_else(|_| "Could not read error body".to_string());
+
         let err = anyhow!(
             "Home Assistant returned an error. Status: {}, Body: {}",
             status,

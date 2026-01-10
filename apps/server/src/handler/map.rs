@@ -1,12 +1,15 @@
-use std::sync::Arc;
-use axum::{extract::{State, Path}, Json};
-use serde::{Deserialize};
-use serde_json::{json, Value};
-use crate::{db, error::AppError, handler::auth::AuthUser, state::AppState};
 use crate::db::models::{
-    NewMapLayer, UpdateMapLayer, MapLayer, LayerWithFeatures,
-    NewMapFeature, UpdateMapFeature, NewMapVertex, MapFeature, FeatureWithVertices
+    FeatureWithVertices, LayerWithFeatures, MapFeature, MapLayer, NewMapFeature, NewMapLayer,
+    NewMapVertex, UpdateMapFeature, UpdateMapLayer,
 };
+use crate::{db, error::AppError, handler::auth::AuthUser, state::AppState};
+use axum::{
+    extract::{Path, State},
+    Json,
+};
+use serde::Deserialize;
+use serde_json::{json, Value};
+use std::sync::Arc;
 
 #[derive(Deserialize)]
 pub struct LayerPayload {
@@ -91,7 +94,9 @@ pub async fn delete_layer(
     Path(id): Path<i32>,
 ) -> Result<Json<Value>, AppError> {
     db::repository::delete_map_layer(&state.pool, id)?;
-    Ok(Json(json!({ "status": "success", "message": "Layer deleted" })))
+    Ok(Json(
+        json!({ "status": "success", "message": "Layer deleted" }),
+    ))
 }
 
 pub async fn create_feature(
@@ -107,13 +112,18 @@ pub async fn create_feature(
         created_by_user_id: user.id,
     };
 
-    let new_vertices = payload.vertices.into_iter().enumerate().map(|(i, v)| NewMapVertex {
-        feature_id: 0,
-        latitude: v.latitude,
-        longitude: v.longitude,
-        altitude: v.altitude,
-        sequence: i as i32,
-    }).collect();
+    let new_vertices = payload
+        .vertices
+        .into_iter()
+        .enumerate()
+        .map(|(i, v)| NewMapVertex {
+            feature_id: 0,
+            latitude: v.latitude,
+            longitude: v.longitude,
+            altitude: v.altitude,
+            sequence: i as i32,
+        })
+        .collect();
 
     let feature = db::repository::create_map_feature(&state.pool, new_feature, new_vertices)?;
     Ok(Json(feature))
@@ -138,15 +148,19 @@ pub async fn update_feature(
         name: payload.name,
         style_properties: payload.style_properties,
     };
-    
+
     let new_vertices = payload.vertices.map(|vertices| {
-        vertices.into_iter().enumerate().map(|(i, v)| NewMapVertex {
-            feature_id: 0,
-            latitude: v.latitude,
-            longitude: v.longitude,
-            altitude: v.altitude,
-            sequence: i as i32,
-        }).collect()
+        vertices
+            .into_iter()
+            .enumerate()
+            .map(|(i, v)| NewMapVertex {
+                feature_id: 0,
+                latitude: v.latitude,
+                longitude: v.longitude,
+                altitude: v.altitude,
+                sequence: i as i32,
+            })
+            .collect()
     });
 
     let feature = db::repository::update_map_feature(&state.pool, id, &update_data, new_vertices)?;
@@ -159,5 +173,7 @@ pub async fn delete_feature(
     Path(id): Path<i32>,
 ) -> Result<Json<Value>, AppError> {
     db::repository::delete_map_feature(&state.pool, id)?;
-    Ok(Json(json!({ "status": "success", "message": "Feature deleted" })))
+    Ok(Json(
+        json!({ "status": "success", "message": "Feature deleted" }),
+    ))
 }

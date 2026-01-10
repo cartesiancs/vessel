@@ -101,6 +101,14 @@ docker build -t server .
 docker run -p 0.0.0.0:8080:8080 server:latest
 ```
 
+### Option3. Desktop (Tauri)
+
+```bash
+npm run desktop
+```
+
+Builds the Rust server sidecar in release mode, starts the Vite dev server for the client, and launches the Tauri shell. For a packaged build use `npm run desktop:build`.
+
 ## Compile
 
 This command compiles the entire project, including both the server and the client, into a single executable file.
