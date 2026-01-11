@@ -242,10 +242,11 @@ impl WSActor {
     }
 
     async fn handle_get_all_stream_state(&self, payload: serde_json::Value) {
-        let stream_futures = self.state.streams.iter().map(|n| async move {
+        let stream_futures = self.state.streams.iter().map(|entry| async move {
+            let stream = entry.value();
             StreamState {
-                topic: n.topic.clone(),
-                is_online: *n.is_online.read().unwrap(),
+                topic: stream.descriptor.topic.clone(),
+                is_online: *stream.is_online.read().unwrap(),
             }
         });
 
@@ -390,29 +391,23 @@ impl WSActor {
             .streams
             .iter()
             .find(|entry| {
-                entry.value().topic == topic && entry.value().media_type == MediaType::Audio
+                entry.value().descriptor.topic == topic
+                    && entry.value().descriptor.media_type == MediaType::Audio
             })
-            .map(|entry| entry.value().clone());
+            .map(|entry| (*entry.key(), entry.value().clone()));
 
         let video_stream_info = self
             .state
             .streams
             .iter()
             .find(|entry| {
-                entry.value().topic == topic && entry.value().media_type == MediaType::Video
+                entry.value().descriptor.topic == topic
+                    && entry.value().descriptor.media_type == MediaType::Video
             })
-            .map(|entry| entry.value().clone());
+            .map(|entry| (*entry.key(), entry.value().clone()));
 
-        println!("{:?} {:?}", audio_stream_info, self.state.streams);
-        if let Some(info) = audio_stream_info {
+        if let Some((ssrc, info)) = audio_stream_info {
             subscribed = true;
-            let ssrc = self
-                .state
-                .streams
-                .iter()
-                .find(|e| e.value().topic == info.topic && e.value().media_type == MediaType::Audio)
-                .map(|e| *e.key())
-                .unwrap_or(0);
             info!(
                 "[Audio] Subscribing to topic '{}' with SSRC {}",
                 topic, ssrc
@@ -490,15 +485,8 @@ impl WSActor {
             });
         }
 
-        if let Some(info) = video_stream_info {
+        if let Some((ssrc, info)) = video_stream_info {
             subscribed = true;
-            let ssrc = self
-                .state
-                .streams
-                .iter()
-                .find(|e| e.value().topic == info.topic && e.value().media_type == MediaType::Video)
-                .map(|e| *e.key())
-                .unwrap_or(0);
             info!(
                 "[Video-UDP] Subscribing to topic '{}' with SSRC {}",
                 topic, ssrc

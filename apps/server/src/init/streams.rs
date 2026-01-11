@@ -1,21 +1,11 @@
-use std::sync::Arc;
-
-use dashmap::DashMap;
-use diesel::{
-    ExpressionMethods, OptionalExtension, QueryDsl, RunQueryDsl, SelectableHelper, SqliteConnection,
-};
-use rtp::packet::Packet;
-use tokio::sync::{broadcast, RwLock};
-use tokio::time::Instant;
+use tokio::sync::broadcast;
 use tracing::{error, info, warn};
+use webrtc::rtp::packet::Packet;
 
-use crate::db::models::{NewPermission, Permission, User};
-use crate::db::models::{NewSystemConfiguration, NewUser, SystemConfiguration};
-use crate::db::repository::{self, streams};
-use crate::lib::hash::hash_password;
-use crate::state::{DbPool, MediaType, StreamInfo};
+use crate::db::repository;
+use crate::state::{DbPool, MediaType, Protocol, StreamDescriptor, StreamManager};
 
-pub fn create_hydrate_streams(pool: &DbPool, streams: &Arc<DashMap<u32, StreamInfo>>) {
+pub fn create_hydrate_streams(pool: &DbPool, streams: &StreamManager) {
     info!("Hydrating streams from database...");
     match repository::streams::get_all_streams(&pool) {
         Ok(db_streams) => {
@@ -33,15 +23,15 @@ pub fn create_hydrate_streams(pool: &DbPool, streams: &Arc<DashMap<u32, StreamIn
                     }
                 };
 
-                let stream_info = StreamInfo {
+                let descriptor = StreamDescriptor {
+                    id: stream.ssrc as u32,
                     topic: stream.topic,
                     user_id: stream.device_id,
-                    packet_tx,
                     media_type,
-                    last_seen: Arc::new(std::sync::RwLock::new(Instant::now())),
-                    is_online: Arc::new(std::sync::RwLock::new(false)),
+                    protocol: Protocol::Udp,
                 };
-                streams.insert(stream.ssrc as u32, stream_info);
+
+                streams.insert_with_sender(descriptor, packet_tx);
             }
             info!("Hydrated {} streams into memory.", streams.len());
         }

@@ -1,19 +1,12 @@
-use std::sync::Arc;
-
-use dashmap::DashMap;
 use diesel::{
     ExpressionMethods, OptionalExtension, QueryDsl, RunQueryDsl, SelectableHelper, SqliteConnection,
 };
-use rtp::packet::Packet;
-use tokio::sync::{broadcast, RwLock};
-use tokio::time::Instant;
-use tracing::{error, info, warn};
+use tracing::info;
 
 use crate::db::models::{NewPermission, Permission, User};
 use crate::db::models::{NewSystemConfiguration, NewUser, SystemConfiguration};
-use crate::db::repository::{self, streams};
 use crate::lib::hash::hash_password;
-use crate::state::{DbPool, MediaType, StreamInfo};
+use crate::state::DbPool;
 
 pub fn create_initial_admin(conn: &mut SqliteConnection) {
     use crate::db::schema::users::dsl::*;

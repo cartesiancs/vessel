@@ -4,16 +4,10 @@ use axum::{
     response::IntoResponse,
     Json,
 };
-use rand::Rng;
-use rtp::packet::Packet;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::sync::Arc;
-use tokio::{
-    sync::{broadcast, RwLock},
-    time::Instant,
-};
-use tracing::{error, info};
+use tracing::error;
 
 use crate::{
     db::{
@@ -21,7 +15,7 @@ use crate::{
         repository::{get_entity_by_entity_id, set_entity_state},
     },
     handler::auth::DeviceTokenAuth,
-    state::{AppState, MediaType, StreamInfo},
+    state::AppState,
 };
 
 #[derive(Deserialize)]

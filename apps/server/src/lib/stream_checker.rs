@@ -1,10 +1,9 @@
 use anyhow::Result;
 use std::sync::Arc;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 use tokio::sync::watch;
 use tracing::info;
 
-use crate::db;
 use crate::state::AppState;
 
 const STREAM_TIMEOUT: Duration = Duration::from_secs(10);
@@ -39,7 +38,7 @@ pub async fn stream_status_checker(
                         *is_online_guard = false;
                         info!(
                             "Topic '{}' (SSRC: {}) is now OFFLINE due to timeout.",
-                            &stream_info.topic, ssrc
+                            &stream_info.descriptor.topic, ssrc
                         );
                         offline_ssrcs.push(ssrc);
                     }
@@ -50,7 +49,7 @@ pub async fn stream_status_checker(
                         // db::repository::streams::delete_stream(&app_state.pool, ssrc.try_into().unwrap());
                         info!(
                             "Removed timed-out stream for topic '{}' (SSRC: {})",
-                            removed_stream.topic, ssrc
+                            removed_stream.descriptor.topic, ssrc
                         );
                     }
                 }

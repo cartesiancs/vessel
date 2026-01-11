@@ -1,18 +1,13 @@
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 use rand::Rng;
-use rtp::packet::Packet;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-use tokio::{
-    sync::{broadcast, RwLock},
-    time::Instant,
-};
 use tracing::info;
 
 use crate::{
     db::{self, models::NewStream},
     handler::auth::DeviceTokenAuth,
-    state::{AppState, MediaType, StreamInfo},
+    state::{AppState, MediaType, Protocol, StreamDescriptor},
 };
 
 #[derive(Deserialize)]
@@ -46,7 +41,7 @@ pub async fn register_stream(
         media_type: media_type_str,
     };
 
-    let db_stream = match db::repository::streams::upsert_stream(&state.pool, &new_stream_db) {
+    let _db_stream = match db::repository::streams::upsert_stream(&state.pool, &new_stream_db) {
         Ok(stream) => stream,
         Err(e) => {
             tracing::error!("Failed to upsert stream to database: {}", e);
@@ -54,18 +49,15 @@ pub async fn register_stream(
         }
     };
 
-    let (packet_tx, _) = broadcast::channel::<Packet>(1024);
-
-    let stream_info = StreamInfo {
+    let descriptor = StreamDescriptor {
+        id: ssrc,
         topic: payload.topic.clone(),
         user_id: auth.device_id,
-        packet_tx,
         media_type: payload.media_type,
-        last_seen: Arc::new(std::sync::RwLock::new(Instant::now())),
-        is_online: Arc::new(std::sync::RwLock::new(false)),
+        protocol: Protocol::Udp,
     };
 
-    state.streams.insert(ssrc, stream_info);
+    state.streams.register(descriptor);
 
     info!(
         "[API] SSRC {} for topic '{}' inserted. Manager size: {}",

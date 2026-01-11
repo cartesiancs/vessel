@@ -58,11 +58,11 @@ impl DecodeH264Node {
                     let sample = sink.pull_sample().map_err(|_| gst::FlowError::Eos)?;
                     let buffer = sample.buffer().ok_or(gst::FlowError::Error)?;
                     let map = buffer.map_readable().map_err(|_| gst::FlowError::Error)?;
-                    
+
                     if let Err(e) = frame_tx.try_send(map.as_slice().to_vec()) {
                         warn!("Failed to send frame from GStreamer thread, channel might be full or closed: {}", e);
                     }
-                    
+
                     Ok(gst::FlowSuccess::Ok)
                 })
                 .build(),

@@ -1,100 +1,121 @@
 use anyhow::{anyhow, Error, Result};
+use async_trait::async_trait;
 use futures_util::StreamExt;
 use gstreamer::prelude::*;
 use gstreamer_app::{AppSink, AppSinkCallbacks};
 use std::sync::{
     atomic::{AtomicBool, Ordering},
-    Arc, RwLock,
+    Arc,
 };
-use tokio::sync::{broadcast, watch};
+use tokio::sync::{broadcast, watch, RwLock};
+use tokio::task::JoinSet;
 use tokio::time::Instant;
 use tracing::{error, info, warn};
 use webrtc::rtp::packet::Packet;
 use webrtc::util::Unmarshal;
 
-use crate::state::{AppState, MediaType, Protocol, StreamInfo};
+use crate::media::adapter::MediaAdapter;
+use crate::state::{MediaType, Protocol, StreamDescriptor, StreamManager, TopicMapping};
 
-pub async fn start_rtsp_pipelines(
-    app_state: Arc<AppState>,
-    shutdown_rx: watch::Receiver<()>,
-) -> Result<()> {
-    if let Err(e) = gstreamer::init() {
-        error!("Failed to initialize GStreamer: {}", e);
-        return Ok(());
+pub struct RtspPullAdapter {
+    streams: StreamManager,
+    topic_map: Arc<RwLock<Vec<TopicMapping>>>,
+}
+
+impl RtspPullAdapter {
+    pub fn new(streams: StreamManager, topic_map: Arc<RwLock<Vec<TopicMapping>>>) -> Self {
+        Self { streams, topic_map }
     }
 
-    let topic_map = app_state.topic_map.read().await;
-    let rtsp_mappings: Vec<_> = topic_map
-        .iter()
-        .filter(|mapping| mapping.protocol == Protocol::RTSP)
-        .cloned()
-        .collect();
-    drop(topic_map);
+    async fn start_pipelines(&self, mut shutdown_rx: watch::Receiver<()>) -> Result<()> {
+        if let Err(e) = gstreamer::init() {
+            error!("Failed to initialize GStreamer: {}", e);
+            return Ok(());
+        }
 
-    if rtsp_mappings.is_empty() {
-        info!("No RTSP streams found in topic map.");
-        return Ok(());
-    }
+        let topic_map = self.topic_map.read().await;
+        let rtsp_mappings: Vec<_> = topic_map
+            .iter()
+            .filter(|mapping| mapping.protocol == Protocol::RTSP)
+            .cloned()
+            .collect();
+        drop(topic_map);
 
-    info!("Found {} RTSP streams to launch.", rtsp_mappings.len());
-    let mut join_set = tokio::task::JoinSet::new();
+        if rtsp_mappings.is_empty() {
+            info!("No RTSP streams found in topic map.");
+            return Ok(());
+        }
 
-    for mapping in rtsp_mappings {
-        let state = Arc::clone(&app_state);
-        let topic = mapping.topic.clone();
-        let user_id = mapping.entity_id.clone();
-        let mut shutdown_rx = shutdown_rx.clone();
+        info!("Found {} RTSP streams to launch.", rtsp_mappings.len());
+        let mut join_set = JoinSet::new();
 
-        let (packet_tx, _) = broadcast::channel(1024);
+        for mapping in rtsp_mappings {
+            let topic = mapping.topic.clone();
+            let user_id = mapping.entity_id.clone();
+            let streams = self.streams.clone();
+            let mut shutdown_rx = shutdown_rx.clone();
+            let (packet_tx, _) = broadcast::channel(1024);
 
-        join_set.spawn(async move {
-            loop {
-                let mut shutdown_rx_clone = shutdown_rx.clone();
-                let pipeline_future = run_pipeline(
-                    &topic,
-                    &user_id,
-                    packet_tx.clone(),
-                    Arc::clone(&state),
-                    &mut shutdown_rx_clone,
-                );
+            join_set.spawn(async move {
+                loop {
+                    let mut shutdown_rx_clone = shutdown_rx.clone();
+                    let pipeline_future = run_pipeline(
+                        &topic,
+                        &user_id,
+                        packet_tx.clone(),
+                        streams.clone(),
+                        &mut shutdown_rx_clone,
+                    );
 
-                tokio::select! {
-                    _ = shutdown_rx.changed() => {
-                        info!("Shutdown signal received, stopping pipeline loop for {}", topic);
-                        break;
-                    }
-                    pipeline_result = pipeline_future => {
-                        match pipeline_result {
-                            Ok(_) => {
-                                info!("Pipeline for {} finished gracefully.", topic);
-                                break;
-                            }
-                            Err(e) => {
-                                error!("Error in pipeline for {}. Restarting...: {}", topic, e);
-                                tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
+                    tokio::select! {
+                        _ = shutdown_rx.changed() => {
+                            info!("Shutdown signal received, stopping pipeline loop for {}", topic);
+                            break;
+                        }
+                        pipeline_result = pipeline_future => {
+                            match pipeline_result {
+                                Ok(_) => {
+                                    info!("Pipeline for {} finished gracefully.", topic);
+                                    break;
+                                }
+                                Err(e) => {
+                                    error!("Error in pipeline for {}. Restarting...: {}", topic, e);
+                                    tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
+                                }
                             }
                         }
                     }
                 }
-            }
-        });
-    }
-
-    while let Some(res) = join_set.join_next().await {
-        if let Err(e) = res {
-            error!("A pipeline task failed: {}", e);
+            });
         }
+
+        while let Some(res) = join_set.join_next().await {
+            if let Err(e) = res {
+                error!("A pipeline task failed: {}", e);
+            }
+        }
+
+        info!("All RTSP pipelines have shut down.");
+        Ok(())
+    }
+}
+
+#[async_trait]
+impl MediaAdapter for RtspPullAdapter {
+    fn protocol(&self) -> Protocol {
+        Protocol::RTSP
     }
 
-    info!("All RTSP pipelines have shut down.");
-    Ok(())
+    async fn start(&self, shutdown: watch::Receiver<()>) -> Result<()> {
+        self.start_pipelines(shutdown).await
+    }
 }
 
 async fn run_pipeline(
     rtsp_url: &str,
     user_id: &str,
     packet_tx: broadcast::Sender<Packet>,
-    state: Arc<AppState>,
+    streams: StreamManager,
     shutdown_rx: &mut watch::Receiver<()>,
 ) -> Result<(), Error> {
     let pipeline_str = format!(
@@ -115,6 +136,8 @@ async fn run_pipeline(
     let is_registered = Arc::new(AtomicBool::new(false));
     let rtsp_url_clone = rtsp_url.to_string();
     let user_id_clone = user_id.to_string();
+    let streams_for_cb = streams.clone();
+    let packet_tx_for_cb = packet_tx.clone();
 
     appsink.set_callbacks(
         AppSinkCallbacks::builder()
@@ -135,23 +158,23 @@ async fn run_pipeline(
                                 rtsp_url_clone, ssrc
                             );
 
-                            let stream_info = StreamInfo {
+                            let descriptor = StreamDescriptor {
+                                id: ssrc,
                                 topic: rtsp_url_clone.clone(),
                                 user_id: user_id_clone.clone(),
-                                packet_tx: packet_tx.clone(),
                                 media_type: MediaType::Video,
-                                last_seen: Arc::new(RwLock::new(Instant::now())),
-                                is_online: Arc::new(RwLock::new(true)),
+                                protocol: Protocol::RTSP,
                             };
-                            state.streams.insert(ssrc, stream_info);
+                            streams_for_cb.insert_with_sender(descriptor, packet_tx_for_cb.clone());
+                            streams_for_cb.mark_online(ssrc);
                             is_registered.store(true, Ordering::SeqCst);
                         }
 
-                        if let Some(stream_info) = state.streams.get(&ssrc) {
-                            *stream_info.last_seen.write().unwrap() = Instant::now();
+                        if let Some(stream_handle) = streams_for_cb.get_by_ssrc(ssrc) {
+                            *stream_handle.last_seen.write().unwrap() = Instant::now();
                         }
 
-                        if packet_tx.send(packet).is_err() {
+                        if packet_tx_for_cb.send(packet).is_err() {
                             // Receiver is gone, maybe log this.
                         }
                     }
