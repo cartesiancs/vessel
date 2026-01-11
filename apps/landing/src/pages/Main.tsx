@@ -12,6 +12,7 @@ import { FooterCtaSection } from "@/components/sections/FooterCta";
 import { ThreeCardsSection } from "@/components/sections/ThreeCards";
 import { SecurityCTASection } from "@/components/sections/SecurityCta";
 import { IntegrationSection } from "@/components/sections/IntegrationImage";
+import { ListCardsSection } from "@/components/sections/ListCards";
 
 function LandingPage() {
   return (
@@ -46,6 +47,7 @@ function LandingPage() {
         <SubheadingSection />
         <FeaturesSection />
         <UsecaseSection />
+        <ListCardsSection />
         <MidCTASection />
         <IntegrationSection />
         <ThreeCardsSection />
