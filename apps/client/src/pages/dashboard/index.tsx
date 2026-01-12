@@ -29,10 +29,12 @@ import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { useConfigStore } from "@/entities/configurations/store";
 import { HaDashboard } from "@/features/ha";
-import { useNavigate } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 
 export function DashboardPage() {
-  const [selectedDashboard, setSelectedDashboard] = useState("main");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialView = searchParams.get("view") || "main";
+  const [selectedDashboard, setSelectedDashboard] = useState(initialView);
   const navigate = useNavigate();
 
   const { configurations, fetchConfigs } = useConfigStore();
@@ -56,8 +58,27 @@ export function DashboardPage() {
     ].filter(Boolean) as { id: string; name: string }[];
   }, [configurations]);
 
+  useEffect(() => {
+    const view = searchParams.get("view");
+    if (view && view !== selectedDashboard) {
+      setSelectedDashboard(view);
+    }
+  }, [searchParams, selectedDashboard]);
+
+  useEffect(() => {
+    if (!dashboards.find((d) => d.id === selectedDashboard)) {
+      setSelectedDashboard("main");
+      setSearchParams({ view: "main" }, { replace: true });
+    }
+  }, [dashboards, selectedDashboard, setSearchParams]);
+
   const handleAddDashboard = () => {
     navigate("/dynamic-dashboard");
+  };
+
+  const handleSelect = (value: string) => {
+    setSelectedDashboard(value);
+    setSearchParams({ view: value }, { replace: true });
   };
 
   return (
@@ -81,7 +102,7 @@ export function DashboardPage() {
                   <div className='flex items-center gap-2'>
                     <Select
                       value={selectedDashboard}
-                      onValueChange={setSelectedDashboard}
+                      onValueChange={handleSelect}
                     >
                       <SelectTrigger
                         size='sm'

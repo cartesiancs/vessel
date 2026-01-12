@@ -11,6 +11,9 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   SidebarRail,
 } from "@/components/ui/sidebar";
 import { AccountSwitcher } from "../account-switcher";
@@ -18,6 +21,7 @@ import { useLocation, useNavigate } from "react-router";
 import {
   Key,
   LayoutDashboard,
+  PanelsTopLeft,
   MonitorSmartphone,
   ScrollText,
   Server,
@@ -27,9 +31,17 @@ import {
   Blocks,
   CircleDashed,
   Code,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 import { NavFooter } from "./footer";
 import { isElectron } from "@/lib/electron";
+import { useDynamicDashboardStore } from "@/entities/dynamic-dashboard/store";
+import { useConfigStore } from "@/entities/configurations/store";
+import { ComponentProps, useEffect, useMemo, useState } from "react";
+
+const DYNAMIC_DASHBOARD_OPEN_KEY = "dynamic-dashboard-menu-open";
+const CONTROLS_OPEN_KEY = "controls-menu-open";
 
 const data = {
   versions: ["main"],
@@ -42,6 +54,11 @@ const data = {
           title: "Controls",
           url: "/dashboard",
           icon: <LayoutDashboard />,
+        },
+        {
+          title: "Dynamic Dashboard",
+          url: "/dynamic-dashboard",
+          icon: <PanelsTopLeft />,
         },
         {
           title: "Servers",
@@ -116,10 +133,94 @@ const data = {
   ],
 };
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
   const location = useLocation();
   const currentPath = location.pathname;
   const navigate = useNavigate();
+  const {
+    dashboards,
+    loadDashboards,
+    hasLoaded,
+    isLoading,
+    setActiveDashboard,
+    activeDashboardId,
+  } = useDynamicDashboardStore();
+  const {
+    configurations,
+    fetchConfigs,
+    isLoading: isConfigLoading,
+  } = useConfigStore();
+
+  const [dynamicOpen, setDynamicOpen] = useState<boolean>(() => {
+    if (typeof window === "undefined") return true;
+    try {
+      const saved = localStorage.getItem(DYNAMIC_DASHBOARD_OPEN_KEY);
+      return saved === null ? true : saved === "true";
+    } catch {
+      return true;
+    }
+  });
+
+  const [controlsOpen, setControlsOpen] = useState<boolean>(() => {
+    if (typeof window === "undefined") return true;
+    try {
+      const saved = localStorage.getItem(CONTROLS_OPEN_KEY);
+      return saved === null ? true : saved === "true";
+    } catch {
+      return true;
+    }
+  });
+
+  const dashboardView = useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    return params.get("view") || "main";
+  }, [location.search]);
+
+  const controlViews = useMemo(() => {
+    const hasConfig = (key: string) =>
+      configurations.some((c) => c.key === key && c.value);
+
+    const isHaConnected =
+      hasConfig("home_assistant_url") && hasConfig("home_assistant_token");
+    const isRos2Connected = hasConfig("ros2_websocket_url");
+
+    return [
+      { id: "main", name: "Dashboard" },
+      isHaConnected && { id: "ha", name: "Home Assistant" },
+      isRos2Connected && { id: "ros2", name: "ROS2" },
+    ].filter(Boolean) as { id: string; name: string }[];
+  }, [configurations]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        DYNAMIC_DASHBOARD_OPEN_KEY,
+        dynamicOpen ? "true" : "false",
+      );
+    } catch {
+      // ignore storage write errors
+    }
+  }, [dynamicOpen]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(CONTROLS_OPEN_KEY, controlsOpen ? "true" : "false");
+    } catch {
+      // ignore storage write errors
+    }
+  }, [controlsOpen]);
+
+  useEffect(() => {
+    if (!hasLoaded && !isLoading) {
+      loadDashboards();
+    }
+  }, [hasLoaded, isLoading, loadDashboards]);
+
+  useEffect(() => {
+    if (!configurations.length && !isConfigLoading) {
+      fetchConfigs();
+    }
+  }, [configurations.length, isConfigLoading, fetchConfigs]);
 
   return (
     <Sidebar
@@ -142,18 +243,104 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             <SidebarGroupContent>
               <SidebarMenu>
                 {group.items.map((item) => {
-                  const isActive = currentPath === item.url;
+                  const isDynamic = item.url === "/dynamic-dashboard";
+                  const isControls = item.url === "/dashboard";
+                  const isActive =
+                    currentPath === item.url ||
+                    (isDynamic && currentPath.startsWith("/dynamic-dashboard"));
                   return (
                     <SidebarMenuItem key={item.title}>
                       <SidebarMenuButton
                         asChild
                         isActive={isActive}
-                        onClick={() => navigate(item.url)}
+                        onClick={() => {
+                          if (isDynamic) {
+                            setDynamicOpen((prev) => !prev);
+                            navigate(item.url);
+                          } else if (isControls) {
+                            setControlsOpen((prev) => !prev);
+                            navigate(item.url);
+                          } else {
+                            navigate(item.url);
+                          }
+                        }}
                       >
                         <span>
                           {item.icon} {item.title}
+                          {isDynamic && (
+                            <span className='ml-auto flex items-center'>
+                              {dynamicOpen ? (
+                                <ChevronDown className='h-4 w-4 text-muted-foreground' />
+                              ) : (
+                                <ChevronRight className='h-4 w-4 text-muted-foreground' />
+                              )}
+                            </span>
+                          )}
+                          {isControls && (
+                            <span className='ml-auto flex items-center'>
+                              {controlsOpen ? (
+                                <ChevronDown className='h-4 w-4 text-muted-foreground' />
+                              ) : (
+                                <ChevronRight className='h-4 w-4 text-muted-foreground' />
+                              )}
+                            </span>
+                          )}
                         </span>
                       </SidebarMenuButton>
+
+                      {isControls &&
+                        controlViews.length > 0 &&
+                        controlsOpen && (
+                          <SidebarMenuSub>
+                            {controlViews.map((view) => {
+                              const subActive =
+                                isActive &&
+                                (dashboardView === view.id ||
+                                  currentPath ===
+                                    `/dashboard?view=${encodeURIComponent(
+                                      view.id,
+                                    )}`);
+                              return (
+                                <SidebarMenuSubItem key={view.id}>
+                                  <SidebarMenuSubButton
+                                    isActive={subActive}
+                                    onClick={() => {
+                                      navigate(`/dashboard?view=${view.id}`);
+                                    }}
+                                  >
+                                    <span className='truncate'>
+                                      {view.name}
+                                    </span>
+                                  </SidebarMenuSubButton>
+                                </SidebarMenuSubItem>
+                              );
+                            })}
+                          </SidebarMenuSub>
+                        )}
+
+                      {isDynamic && dashboards.length > 0 && dynamicOpen && (
+                        <SidebarMenuSub>
+                          {dashboards.map((db) => {
+                            const subActive =
+                              isActive &&
+                              (currentPath === `/dynamic-dashboard/${db.id}` ||
+                                activeDashboardId === db.id);
+                            return (
+                              <SidebarMenuSubItem key={db.id}>
+                                <SidebarMenuSubButton
+                                  isActive={subActive}
+                                  onClick={() => {
+                                    setActiveDashboard(db.id);
+                                    navigate(`/dynamic-dashboard/${db.id}`);
+                                  }}
+                                >
+                                  <span className='truncate'>{db.name}</span>
+                                </SidebarMenuSubButton>
+                              </SidebarMenuSubItem>
+                            );
+                          })}
+                        </SidebarMenuSub>
+                      )}
                     </SidebarMenuItem>
                   );
                 })}

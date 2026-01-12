@@ -48,7 +48,7 @@ export function DynamicDashboardPage() {
   } = useDynamicDashboardStore();
   const setActiveDashboard = setActiveDashboardStore;
   const { entities, streamsState } = useEntitiesData();
-  const [editMode, setEditMode] = useState(true);
+  const [editMode, setEditMode] = useState(false);
 
   const currentDashboard = useMemo(
     () => dashboards.find((d) => d.id === activeDashboardId),
@@ -166,7 +166,9 @@ export function DynamicDashboardPage() {
                           variant='outline'
                           size='icon'
                           onClick={async () => {
-                            const id = await cloneDashboard(currentDashboard.id);
+                            const id = await cloneDashboard(
+                              currentDashboard.id,
+                            );
                             if (id) navigate(`/dynamic-dashboard/${id}`);
                           }}
                         >
@@ -185,10 +187,10 @@ export function DynamicDashboardPage() {
                             if (nextId) {
                               navigate(`/dynamic-dashboard/${nextId}`);
                             }
-                            }}
-                          >
-                            <Trash2 className='h-4 w-4' />
-                          </Button>
+                          }}
+                        >
+                          <Trash2 className='h-4 w-4' />
+                        </Button>
                       </>
                     )}
                   </div>
