@@ -202,6 +202,33 @@ pub struct NewSystemConfiguration<'a> {
     pub description: Option<&'a str>,
 }
 
+#[derive(Queryable, Identifiable, Serialize, Clone, Selectable)]
+#[diesel(table_name = crate::db::schema::dynamic_dashboards)]
+#[diesel(primary_key(id))]
+pub struct DynamicDashboard {
+    pub id: String,
+    pub name: String,
+    pub layout: String,
+    pub created_at: NaiveDateTime,
+    pub updated_at: NaiveDateTime,
+}
+
+#[derive(Insertable)]
+#[diesel(table_name = crate::db::schema::dynamic_dashboards)]
+pub struct NewDynamicDashboard<'a> {
+    pub id: &'a str,
+    pub name: &'a str,
+    pub layout: &'a str,
+}
+
+#[derive(AsChangeset)]
+#[diesel(table_name = crate::db::schema::dynamic_dashboards)]
+pub struct UpdateDynamicDashboard<'a> {
+    pub name: Option<&'a str>,
+    pub layout: Option<&'a str>,
+    pub updated_at: Option<NaiveDateTime>,
+}
+
 #[derive(Queryable, Selectable, Identifiable, Associations, Serialize, Clone)]
 #[diesel(table_name = device_tokens)]
 #[diesel(belongs_to(Device))]

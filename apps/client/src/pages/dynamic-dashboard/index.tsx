@@ -42,6 +42,9 @@ export function DynamicDashboardPage() {
     cloneDashboard,
     addGroup,
     deleteGroup,
+    loadDashboards,
+    hasLoaded,
+    isLoading,
   } = useDynamicDashboardStore();
   const setActiveDashboard = setActiveDashboardStore;
   const { entities, streamsState } = useEntitiesData();
@@ -53,30 +56,43 @@ export function DynamicDashboardPage() {
   );
 
   useEffect(() => {
-    const hasDashboards = dashboards.length > 0;
+    if (!hasLoaded && !isLoading) {
+      loadDashboards();
+    }
+  }, [hasLoaded, isLoading, loadDashboards]);
 
-    // Create an initial dashboard only when none exist.
-    if (!hasDashboards) {
-      const id = createDashboard();
-      navigate(`/dynamic-dashboard/${id}`, { replace: true });
+  useEffect(() => {
+    if (!hasLoaded || isLoading) {
       return;
     }
 
-    // Pick a valid dashboard id to use (URL param or first available).
-    const foundFromParam = dashboards.find(
-      (d) => d.id === params.dashboardId,
-    );
-    const targetId = foundFromParam?.id ?? dashboards[0]?.id;
+    const sync = async () => {
+      const hasDashboards = dashboards.length > 0;
+      if (!hasDashboards) {
+        const id = await createDashboard();
+        if (id) {
+          navigate(`/dynamic-dashboard/${id}`, { replace: true });
+        }
+        return;
+      }
 
-    // Sync the active dashboard only when it differs.
-    if (targetId && activeDashboardId !== targetId) {
-      setActiveDashboard(targetId);
-    }
+      const foundFromParam = dashboards.find(
+        (d) => d.id === params.dashboardId,
+      );
+      const targetId = foundFromParam?.id ?? dashboards[0]?.id;
 
-    // Keep the URL in sync but avoid navigating to the same id.
-    if (targetId && params.dashboardId !== targetId) {
-      navigate(`/dynamic-dashboard/${targetId}`, { replace: true });
-    }
+      // Sync the active dashboard only when it differs.
+      if (targetId && activeDashboardId !== targetId) {
+        setActiveDashboard(targetId);
+      }
+
+      // Keep the URL in sync but avoid navigating to the same id.
+      if (targetId && params.dashboardId !== targetId) {
+        navigate(`/dynamic-dashboard/${targetId}`, { replace: true });
+      }
+    };
+
+    sync();
   }, [
     dashboards,
     params.dashboardId,
@@ -84,11 +100,15 @@ export function DynamicDashboardPage() {
     createDashboard,
     navigate,
     setActiveDashboard,
+    hasLoaded,
+    isLoading,
   ]);
 
-  const handleAddDashboard = () => {
-    const id = createDashboard();
-    navigate(`/dynamic-dashboard/${id}`);
+  const handleAddDashboard = async () => {
+    const id = await createDashboard();
+    if (id) {
+      navigate(`/dynamic-dashboard/${id}`);
+    }
   };
 
   const handleSelectDashboard = (id: string) => {
@@ -145,26 +165,26 @@ export function DynamicDashboardPage() {
                         <Button
                           variant='outline'
                           size='icon'
-                          onClick={() => {
-                            const id = cloneDashboard(currentDashboard.id);
+                          onClick={async () => {
+                            const id = await cloneDashboard(currentDashboard.id);
                             if (id) navigate(`/dynamic-dashboard/${id}`);
                           }}
                         >
                           <Copy className='h-4 w-4' />
                         </Button>
-                          <Button
-                            variant='ghost'
-                            size='icon'
-                            onClick={() => {
-                              const remaining = dashboards.filter(
-                                (d) => d.id !== currentDashboard.id,
-                              );
-                              deleteDashboard(currentDashboard.id);
+                        <Button
+                          variant='ghost'
+                          size='icon'
+                          onClick={async () => {
+                            const remaining = dashboards.filter(
+                              (d) => d.id !== currentDashboard.id,
+                            );
+                            await deleteDashboard(currentDashboard.id);
 
-                              const nextId = remaining[0]?.id;
-                              if (nextId) {
-                                navigate(`/dynamic-dashboard/${nextId}`);
-                              }
+                            const nextId = remaining[0]?.id;
+                            if (nextId) {
+                              navigate(`/dynamic-dashboard/${nextId}`);
+                            }
                             }}
                           >
                             <Trash2 className='h-4 w-4' />

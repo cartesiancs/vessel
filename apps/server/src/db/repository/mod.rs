@@ -1,5 +1,6 @@
 pub mod rbac;
 pub mod streams;
+pub mod dashboards;
 
 use std::collections::HashMap;
 

@@ -14,8 +14,8 @@ use tracing::info;
 
 use crate::{
     handler::{
-        auth::auth_with_password, configurations, custom_nodes, device_tokens, devices, entities,
-        flows, ha, log, map, permissions, roles, stat, state, storage, streams, users,
+        auth::auth_with_password, configurations, custom_nodes, dashboards, device_tokens, devices,
+        entities, flows, ha, log, map, permissions, roles, stat, state, storage, streams, users,
         ws::ws_handler,
     },
     state::AppState,
@@ -175,6 +175,16 @@ pub async fn web_server(
             get(custom_nodes::get_custom_node_handler)
                 .put(custom_nodes::update_custom_node_handler)
                 .delete(custom_nodes::delete_custom_node_handler),
+        )
+        .route(
+            "/dynamic-dashboards",
+            get(dashboards::list_dashboards).post(dashboards::create_dashboard),
+        )
+        .route(
+            "/dynamic-dashboards/:id",
+            get(dashboards::get_dashboard)
+                .put(dashboards::update_dashboard)
+                .delete(dashboards::delete_dashboard),
         )
         .route(
             "/storage/",

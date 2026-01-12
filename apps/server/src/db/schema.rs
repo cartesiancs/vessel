@@ -29,6 +29,16 @@ diesel::table! {
 }
 
 diesel::table! {
+    dynamic_dashboards (id) {
+        id -> Text,
+        name -> Text,
+        layout -> Text,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
+    }
+}
+
+diesel::table! {
     entities (id) {
         id -> Integer,
         entity_id -> Text,
@@ -217,6 +227,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     custom_nodes,
     device_tokens,
     devices,
+    dynamic_dashboards,
     entities,
     entities_configurations,
     events,

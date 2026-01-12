@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import * as api from "./api";
 
 export type DashboardItemType =
   | "entity-card"
@@ -49,9 +49,13 @@ type CreateItemPayload = {
 export interface DynamicDashboardState {
   dashboards: DynamicDashboard[];
   activeDashboardId?: string;
-  createDashboard: (name?: string) => string;
-  cloneDashboard: (dashboardId: string) => string | null;
-  deleteDashboard: (dashboardId: string) => void;
+  isLoading: boolean;
+  hasLoaded: boolean;
+  error?: string | null;
+  loadDashboards: () => Promise<void>;
+  createDashboard: (name?: string) => Promise<string | null>;
+  cloneDashboard: (dashboardId: string) => Promise<string | null>;
+  deleteDashboard: (dashboardId: string) => Promise<void>;
   setActiveDashboard: (dashboardId?: string) => void;
   updateDashboardMeta: (
     dashboardId: string,
@@ -88,6 +92,8 @@ export interface DynamicDashboardState {
   ) => void;
   deleteItem: (dashboardId: string, groupId: string, itemId: string) => void;
 }
+
+const saveTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
 const DEFAULT_ITEM_SIZES: Record<DashboardItemType, { w: number; h: number }> =
   {
@@ -172,27 +178,114 @@ const createDefaultDashboard = (name: string): DynamicDashboard => ({
 });
 
 export const useDynamicDashboardStore = create<DynamicDashboardState>()(
-  persist(
-    (set, get) => ({
-      dashboards: [createDefaultDashboard("Dynamic Dashboard 1")],
+  (set, get) => {
+    const scheduleSync = (dashboardId: string, includeName?: boolean) => {
+      const dashboard = get().dashboards.find((d) => d.id === dashboardId);
+      if (!dashboard) return;
+
+      if (saveTimers.has(dashboardId)) {
+        clearTimeout(saveTimers.get(dashboardId));
+      }
+
+      const layoutPayload = { groups: dashboard.groups };
+
+      const timer = setTimeout(async () => {
+        try {
+          await api.updateDashboard(dashboardId, {
+            layout: layoutPayload,
+            name: includeName ? dashboard.name : undefined,
+          });
+        } catch (err) {
+          console.error("Failed to sync dashboard layout", err);
+        }
+      }, 500);
+
+      saveTimers.set(dashboardId, timer);
+    };
+
+    const isDashboardGroup = (value: unknown): value is DashboardGroup => {
+      if (!value || typeof value !== "object") return false;
+      const candidate = value as Partial<DashboardGroup>;
+      return (
+        typeof candidate.id === "string" &&
+        typeof candidate.title === "string" &&
+        typeof candidate.cols === "number" &&
+        typeof candidate.rows === "number" &&
+        Array.isArray(candidate.items)
+      );
+    };
+
+    const parseLayoutGroups = (layout: unknown): DashboardGroup[] => {
+      if (
+        layout &&
+        typeof layout === "object" &&
+        Array.isArray((layout as { groups?: unknown }).groups)
+      ) {
+        const rawGroups = (layout as { groups: unknown }).groups as unknown[];
+        return rawGroups.filter(isDashboardGroup) as DashboardGroup[];
+      }
+      return [];
+    };
+
+    const mapDtoToDashboard = (
+      dto: api.DynamicDashboardDto,
+    ): DynamicDashboard => {
+      return {
+        id: dto.id,
+        name: dto.name,
+        groups: parseLayoutGroups(dto.layout),
+      };
+    };
+
+    return {
+      dashboards: [],
       activeDashboardId: undefined,
-      createDashboard: (name) => {
+      isLoading: false,
+      hasLoaded: false,
+      error: null,
+      loadDashboards: async () => {
+        set({ isLoading: true, error: null });
+        try {
+          const res = await api.listDashboards();
+          const dashboards = res.data.map(mapDtoToDashboard);
+          set((state) => ({
+            dashboards,
+            hasLoaded: true,
+            isLoading: false,
+            activeDashboardId: state.activeDashboardId || dashboards[0]?.id,
+          }));
+        } catch (err) {
+          console.error("Failed to load dashboards", err);
+          set({ error: "Failed to load dashboards", isLoading: false, hasLoaded: true });
+        }
+      },
+      createDashboard: async (name) => {
         const newDashboard = createDefaultDashboard(
           name || `Dynamic Dashboard ${get().dashboards.length + 1}`,
         );
-        set((state) => ({
-          dashboards: [...state.dashboards, newDashboard],
-          activeDashboardId: newDashboard.id,
-        }));
-        return newDashboard.id;
+        try {
+          const res = await api.createDashboard({
+            name: newDashboard.name,
+            layout: { groups: newDashboard.groups },
+          });
+          const created = mapDtoToDashboard(res.data);
+          set((state) => ({
+            dashboards: [...state.dashboards, created],
+            activeDashboardId: created.id,
+          }));
+          return created.id;
+        } catch (err) {
+          console.error("Failed to create dashboard", err);
+          set({ error: "Failed to create dashboard" });
+          return null;
+        }
       },
-      cloneDashboard: (dashboardId) => {
+      cloneDashboard: async (dashboardId) => {
         const target = get().dashboards.find((d) => d.id === dashboardId);
         if (!target) {
           return null;
         }
 
-        const cloneId = createId();
         const clonedGroups = target.groups.map((g) => ({
           ...g,
           id: createId(),
@@ -201,19 +294,36 @@ export const useDynamicDashboardStore = create<DynamicDashboardState>()(
 
         const cloned: DynamicDashboard = {
           ...target,
-          id: cloneId,
+          id: createId(),
           name: `${target.name} (copy)`,
           groups: clonedGroups,
         };
 
-        set((state) => ({
-          dashboards: [...state.dashboards, cloned],
-          activeDashboardId: cloneId,
-        }));
-
-        return cloneId;
+        try {
+          const res = await api.createDashboard({
+            name: cloned.name,
+            layout: { groups: cloned.groups },
+          });
+          const created = mapDtoToDashboard(res.data);
+          set((state) => ({
+            dashboards: [...state.dashboards, created],
+            activeDashboardId: created.id,
+          }));
+          return created.id;
+        } catch (err) {
+          console.error("Failed to clone dashboard", err);
+          set({ error: "Failed to clone dashboard" });
+          return null;
+        }
       },
-      deleteDashboard: (dashboardId) => {
+      deleteDashboard: async (dashboardId) => {
+        try {
+          await api.deleteDashboard(dashboardId);
+        } catch (err) {
+          console.error("Failed to delete dashboard", err);
+          set({ error: "Failed to delete dashboard" });
+        }
+
         set((state) => {
           const filtered = state.dashboards.filter((d) => d.id !== dashboardId);
           const activeDashboardId =
@@ -232,6 +342,7 @@ export const useDynamicDashboardStore = create<DynamicDashboardState>()(
             d.id === dashboardId ? { ...d, ...data } : d,
           ),
         }));
+        scheduleSync(dashboardId, true);
       },
       addGroup: (dashboardId, group) => {
         const id = createId();
@@ -251,6 +362,7 @@ export const useDynamicDashboardStore = create<DynamicDashboardState>()(
             return { ...d, groups: [...d.groups, newGroup] };
           }),
         }));
+        scheduleSync(dashboardId);
         return id;
       },
       updateGroup: (dashboardId, groupId, payload) => {
@@ -287,6 +399,7 @@ export const useDynamicDashboardStore = create<DynamicDashboardState>()(
             return { ...d, groups };
           }),
         }));
+        scheduleSync(dashboardId);
       },
       deleteGroup: (dashboardId, groupId) => {
         set((state) => ({
@@ -296,6 +409,7 @@ export const useDynamicDashboardStore = create<DynamicDashboardState>()(
               : d,
           ),
         }));
+        scheduleSync(dashboardId);
       },
       addItem: (dashboardId, groupId, payload) => {
         let createdId: string | null = null;
@@ -337,6 +451,7 @@ export const useDynamicDashboardStore = create<DynamicDashboardState>()(
 
           return { ...state, dashboards };
         });
+        scheduleSync(dashboardId);
 
         return createdId;
       },
@@ -390,6 +505,10 @@ export const useDynamicDashboardStore = create<DynamicDashboardState>()(
           return updated ? { ...state, dashboards } : state;
         });
 
+        if (updated) {
+          scheduleSync(dashboardId);
+        }
+
         return updated;
       },
       updateItemData: (dashboardId, groupId, itemId, payload) => {
@@ -414,6 +533,7 @@ export const useDynamicDashboardStore = create<DynamicDashboardState>()(
             return { ...d, groups };
           }),
         }));
+        scheduleSync(dashboardId);
       },
       deleteItem: (dashboardId, groupId, itemId) => {
         set((state) => ({
@@ -431,11 +551,8 @@ export const useDynamicDashboardStore = create<DynamicDashboardState>()(
             return { ...d, groups };
           }),
         }));
+        scheduleSync(dashboardId);
       },
-    }),
-    {
-      name: "dynamic-dashboard-store",
-      version: 1,
-    },
-  ),
+    };
+  },
 );
