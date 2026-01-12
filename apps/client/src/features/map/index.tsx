@@ -17,6 +17,10 @@ import { MapEvents } from "../map-draw/MapEvents";
 import { EntityDetailsPanel } from "../map-entity/EntityDetailsPanel";
 import { useMapEntityStore } from "../map-entity/store";
 import { cn } from "@/lib/utils";
+import {
+  MapLastViewTracker,
+  getStoredMapView,
+} from "./MapViewPersistence";
 
 const DefaultIcon = L.icon({
   iconUrl: icon,
@@ -51,6 +55,7 @@ export function MapView({
   isSidebarCollapsed: boolean;
 }) {
   const [position, setPosition] = useState<[number, number] | null>(null);
+  const [initialZoom, setInitialZoom] = useState(13);
   const { layer, fetchAllLayers } = useMapDataStore();
   const { selectedFeature } = useMapInteractionStore();
   const { selectedEntity } = useMapEntityStore();
@@ -60,15 +65,28 @@ export function MapView({
 
   useEffect(() => {
     fetchAllLayers();
+  }, [fetchAllLayers]);
+
+  useEffect(() => {
+    const storedView = getStoredMapView();
+
+    if (storedView) {
+      setPosition([storedView.lat, storedView.lng]);
+      if (typeof storedView.zoom === "number") {
+        setInitialZoom(storedView.zoom);
+      }
+    }
 
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const { latitude, longitude } = pos.coords;
-        setPosition([latitude, longitude]);
+        setPosition((prev) => prev ?? [latitude, longitude]);
       },
       (err) => {
         console.log("Error getting location:", err);
-        setPosition(failedPosition as [number, number]);
+        setPosition(
+          (prev) => prev ?? (failedPosition as [number, number]),
+        );
       },
       {
         enableHighAccuracy: true,
@@ -76,7 +94,7 @@ export function MapView({
         maximumAge: 0,
       },
     );
-  }, [setPosition, fetchAllLayers]);
+  }, []);
 
   const showPanelContainer = selectedFeature || selectedEntity;
 
@@ -89,7 +107,7 @@ export function MapView({
       ) : (
         <MapContainer
           center={position}
-          zoom={13}
+          zoom={initialZoom}
           scrollWheelZoom={true}
           zoomControl={false}
           className='h-full w-full'
@@ -105,6 +123,7 @@ export function MapView({
           <DrawingPreview />
           <FeatureEditor />
           <MapEntityRender />
+          <MapLastViewTracker />
           <MapResizer isSidebarCollapsed={isSidebarCollapsed} />
         </MapContainer>
       )}

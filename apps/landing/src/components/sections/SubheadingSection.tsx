@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-const TITLE = "Spatial control platform for automation";
+const TITLE = "C2 platform for automation";
 
 export function SubheadingSection() {
   const sectionRef = useRef<HTMLElement | null>(null);
