@@ -1,0 +1,441 @@
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+
+export type DashboardItemType =
+  | "entity-card"
+  | "entity-text"
+  | "media"
+  | "button";
+
+export type DashboardItem = {
+  id: string;
+  type: DashboardItemType;
+  label?: string;
+  refId?: string;
+  position: { x: number; y: number };
+  size: { w: number; h: number };
+  minSize: { w: number; h: number };
+  data?: Record<string, unknown>;
+};
+
+export type DashboardGroup = {
+  id: string;
+  title: string;
+  cols: number;
+  rows: number;
+  items: DashboardItem[];
+};
+
+export type DynamicDashboard = {
+  id: string;
+  name: string;
+  groups: DashboardGroup[];
+};
+
+type LayoutPayload = {
+  position?: { x: number; y: number };
+  size?: { w: number; h: number };
+};
+
+type CreateItemPayload = {
+  type: DashboardItemType;
+  label?: string;
+  refId?: string;
+  data?: Record<string, unknown>;
+  size?: { w: number; h: number };
+  minSize?: { w: number; h: number };
+};
+
+export interface DynamicDashboardState {
+  dashboards: DynamicDashboard[];
+  activeDashboardId?: string;
+  createDashboard: (name?: string) => string;
+  cloneDashboard: (dashboardId: string) => string | null;
+  deleteDashboard: (dashboardId: string) => void;
+  setActiveDashboard: (dashboardId?: string) => void;
+  updateDashboardMeta: (
+    dashboardId: string,
+    data: Partial<Pick<DynamicDashboard, "name">>,
+  ) => void;
+  addGroup: (
+    dashboardId: string,
+    group?: Partial<Pick<DashboardGroup, "cols" | "rows" | "title">>,
+  ) => string | null;
+  updateGroup: (
+    dashboardId: string,
+    groupId: string,
+    payload: Partial<Pick<DashboardGroup, "title" | "cols" | "rows">>,
+  ) => void;
+  deleteGroup: (dashboardId: string, groupId: string) => void;
+  addItem: (
+    dashboardId: string,
+    groupId: string,
+    payload: CreateItemPayload,
+  ) => string | null;
+  updateItemLayout: (
+    dashboardId: string,
+    groupId: string,
+    itemId: string,
+    payload: LayoutPayload,
+  ) => boolean;
+  updateItemData: (
+    dashboardId: string,
+    groupId: string,
+    itemId: string,
+    payload: Partial<
+      Pick<DashboardItem, "label" | "refId" | "data" | "minSize" | "type">
+    >,
+  ) => void;
+  deleteItem: (dashboardId: string, groupId: string, itemId: string) => void;
+}
+
+const DEFAULT_ITEM_SIZES: Record<DashboardItemType, { w: number; h: number }> =
+  {
+    "entity-card": { w: 4, h: 3 },
+    "entity-text": { w: 3, h: 2 },
+    media: { w: 6, h: 4 },
+    button: { w: 2, h: 2 },
+  };
+
+const createId = () =>
+  typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : Math.random().toString(36).slice(2);
+
+const isColliding = (a: DashboardItem, b: DashboardItem) => {
+  return (
+    a.position.x < b.position.x + b.size.w &&
+    a.position.x + a.size.w > b.position.x &&
+    a.position.y < b.position.y + b.size.h &&
+    a.position.y + a.size.h > b.position.y
+  );
+};
+
+const clampPosition = (
+  group: DashboardGroup,
+  size: { w: number; h: number },
+  position: { x: number; y: number },
+) => {
+  return {
+    x: Math.min(Math.max(0, position.x), Math.max(0, group.cols - size.w)),
+    y: Math.min(Math.max(0, position.y), Math.max(0, group.rows - size.h)),
+  };
+};
+
+const clampSizeToGroup = (
+  group: DashboardGroup,
+  size: { w: number; h: number },
+  minSize: { w: number; h: number },
+) => {
+  return {
+    w: Math.min(group.cols, Math.max(size.w, minSize.w)),
+    h: Math.min(group.rows, Math.max(size.h, minSize.h)),
+  };
+};
+
+const findOpenSlot = (
+  group: DashboardGroup,
+  size: { w: number; h: number },
+): { x: number; y: number } => {
+  for (let y = 0; y <= group.rows - size.h; y++) {
+    for (let x = 0; x <= group.cols - size.w; x++) {
+      const candidate: DashboardItem = {
+        id: "preview",
+        type: "entity-card",
+        position: { x, y },
+        size,
+        minSize: size,
+      };
+
+      const collides = group.items.some((item) => isColliding(candidate, item));
+      if (!collides) {
+        return { x, y };
+      }
+    }
+  }
+
+  return { x: 0, y: 0 };
+};
+
+const createDefaultGroup = (title: string): DashboardGroup => ({
+  id: createId(),
+  title,
+  cols: 16,
+  rows: 12,
+  items: [],
+});
+
+const createDefaultDashboard = (name: string): DynamicDashboard => ({
+  id: createId(),
+  name,
+  groups: [createDefaultGroup("Main Group")],
+});
+
+export const useDynamicDashboardStore = create<DynamicDashboardState>()(
+  persist(
+    (set, get) => ({
+      dashboards: [createDefaultDashboard("Dynamic Dashboard 1")],
+      activeDashboardId: undefined,
+      createDashboard: (name) => {
+        const newDashboard = createDefaultDashboard(
+          name || `Dynamic Dashboard ${get().dashboards.length + 1}`,
+        );
+        set((state) => ({
+          dashboards: [...state.dashboards, newDashboard],
+          activeDashboardId: newDashboard.id,
+        }));
+        return newDashboard.id;
+      },
+      cloneDashboard: (dashboardId) => {
+        const target = get().dashboards.find((d) => d.id === dashboardId);
+        if (!target) {
+          return null;
+        }
+
+        const cloneId = createId();
+        const clonedGroups = target.groups.map((g) => ({
+          ...g,
+          id: createId(),
+          items: g.items.map((i) => ({ ...i, id: createId() })),
+        }));
+
+        const cloned: DynamicDashboard = {
+          ...target,
+          id: cloneId,
+          name: `${target.name} (copy)`,
+          groups: clonedGroups,
+        };
+
+        set((state) => ({
+          dashboards: [...state.dashboards, cloned],
+          activeDashboardId: cloneId,
+        }));
+
+        return cloneId;
+      },
+      deleteDashboard: (dashboardId) => {
+        set((state) => {
+          const filtered = state.dashboards.filter((d) => d.id !== dashboardId);
+          const activeDashboardId =
+            state.activeDashboardId === dashboardId
+              ? filtered[0]?.id
+              : state.activeDashboardId;
+          return { dashboards: filtered, activeDashboardId };
+        });
+      },
+      setActiveDashboard: (dashboardId) => {
+        set({ activeDashboardId: dashboardId });
+      },
+      updateDashboardMeta: (dashboardId, data) => {
+        set((state) => ({
+          dashboards: state.dashboards.map((d) =>
+            d.id === dashboardId ? { ...d, ...data } : d,
+          ),
+        }));
+      },
+      addGroup: (dashboardId, group) => {
+        const id = createId();
+        set((state) => ({
+          dashboards: state.dashboards.map((d) => {
+            if (d.id !== dashboardId) {
+              return d;
+            }
+
+            const newGroup = {
+              ...createDefaultGroup(group?.title || `Group ${d.groups.length + 1}`),
+              cols: group?.cols || 16,
+              rows: group?.rows || 12,
+              id,
+            };
+
+            return { ...d, groups: [...d.groups, newGroup] };
+          }),
+        }));
+        return id;
+      },
+      updateGroup: (dashboardId, groupId, payload) => {
+        set((state) => ({
+          dashboards: state.dashboards.map((d) => {
+            if (d.id !== dashboardId) {
+              return d;
+            }
+
+            const groups = d.groups.map((g) => {
+              if (g.id !== groupId) {
+                return g;
+              }
+
+              const cols = payload.cols ?? g.cols;
+              const rows = payload.rows ?? g.rows;
+              const adjustedItems = g.items.map((item) => {
+                const size = clampSizeToGroup(
+                  { ...g, cols, rows },
+                  item.size,
+                  item.minSize,
+                );
+                const position = clampPosition(
+                  { ...g, cols, rows },
+                  size,
+                  item.position,
+                );
+                return { ...item, position };
+              });
+
+              return { ...g, ...payload, cols, rows, items: adjustedItems };
+            });
+
+            return { ...d, groups };
+          }),
+        }));
+      },
+      deleteGroup: (dashboardId, groupId) => {
+        set((state) => ({
+          dashboards: state.dashboards.map((d) =>
+            d.id === dashboardId
+              ? { ...d, groups: d.groups.filter((g) => g.id !== groupId) }
+              : d,
+          ),
+        }));
+      },
+      addItem: (dashboardId, groupId, payload) => {
+        let createdId: string | null = null;
+
+        set((state) => {
+          const dashboards = state.dashboards.map((d) => {
+            if (d.id !== dashboardId) {
+              return d;
+            }
+
+            const groups = d.groups.map((g) => {
+              if (g.id !== groupId) {
+                return g;
+              }
+
+              const baseSize =
+                payload.size || DEFAULT_ITEM_SIZES[payload.type] || { w: 3, h: 2 };
+              const minSize =
+                payload.minSize || DEFAULT_ITEM_SIZES[payload.type] || baseSize;
+              const size = clampSizeToGroup(g, baseSize, minSize);
+              const position = findOpenSlot(g, size);
+              const newItem: DashboardItem = {
+                id: createId(),
+                type: payload.type,
+                label: payload.label,
+                refId: payload.refId,
+                position,
+                size,
+                minSize,
+                data: payload.data || {},
+              };
+
+              createdId = newItem.id;
+              return { ...g, items: [...g.items, newItem] };
+            });
+
+            return { ...d, groups };
+          });
+
+          return { ...state, dashboards };
+        });
+
+        return createdId;
+      },
+      updateItemLayout: (dashboardId, groupId, itemId, payload) => {
+        let updated = false;
+
+        set((state) => {
+          const dashboards = state.dashboards.map((d) => {
+            if (d.id !== dashboardId) {
+              return d;
+            }
+
+            const groups = d.groups.map((g) => {
+              if (g.id !== groupId) {
+                return g;
+              }
+
+              const items = g.items.map((item) => {
+                if (item.id !== itemId) {
+                  return item;
+                }
+
+                const nextSize = payload.size
+                  ? clampSizeToGroup(g, payload.size, item.minSize)
+                  : item.size;
+                const nextPos = clampPosition(
+                  g,
+                  nextSize,
+                  payload.position || item.position,
+                );
+
+                const candidate = { ...item, size: nextSize, position: nextPos };
+                const collision = g.items.some(
+                  (other) => other.id !== itemId && isColliding(candidate, other),
+                );
+
+                if (collision) {
+                  return item;
+                }
+
+                updated = true;
+                return candidate;
+              });
+
+              return { ...g, items };
+            });
+
+            return { ...d, groups };
+          });
+
+          return updated ? { ...state, dashboards } : state;
+        });
+
+        return updated;
+      },
+      updateItemData: (dashboardId, groupId, itemId, payload) => {
+        set((state) => ({
+          dashboards: state.dashboards.map((d) => {
+            if (d.id !== dashboardId) {
+              return d;
+            }
+
+            const groups = d.groups.map((g) => {
+              if (g.id !== groupId) {
+                return g;
+              }
+
+              const items = g.items.map((item) =>
+                item.id === itemId ? { ...item, ...payload } : item,
+              );
+
+              return { ...g, items };
+            });
+
+            return { ...d, groups };
+          }),
+        }));
+      },
+      deleteItem: (dashboardId, groupId, itemId) => {
+        set((state) => ({
+          dashboards: state.dashboards.map((d) => {
+            if (d.id !== dashboardId) {
+              return d;
+            }
+
+            const groups = d.groups.map((g) =>
+              g.id === groupId
+                ? { ...g, items: g.items.filter((item) => item.id !== itemId) }
+                : g,
+            );
+
+            return { ...d, groups };
+          }),
+        }));
+      },
+    }),
+    {
+      name: "dynamic-dashboard-store",
+      version: 1,
+    },
+  ),
+);

@@ -29,9 +29,11 @@ import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { useConfigStore } from "@/entities/configurations/store";
 import { HaDashboard } from "@/features/ha";
+import { useNavigate } from "react-router";
 
 export function DashboardPage() {
   const [selectedDashboard, setSelectedDashboard] = useState("main");
+  const navigate = useNavigate();
 
   const { configurations, fetchConfigs } = useConfigStore();
 
@@ -54,7 +56,9 @@ export function DashboardPage() {
     ].filter(Boolean) as { id: string; name: string }[];
   }, [configurations]);
 
-  const handleAddDashboard = () => {};
+  const handleAddDashboard = () => {
+    navigate("/dynamic-dashboard");
+  };
 
   return (
     <WebRTCProvider>

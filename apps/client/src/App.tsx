@@ -19,6 +19,7 @@ import { AuthenticatedLayout } from "./widgets/auth/AuthenticatedLayout";
 import { TopBarWrapper } from "./widgets/auth/TopBarWrapper";
 import { useDesktopSidecar } from "./hooks/useDesktopSidecar";
 import { usePreventBackNavigation } from "./hooks/usePreventBackNavigation";
+import { DynamicDashboardPage } from "./pages/dynamic-dashboard";
 
 const router = createBrowserRouter([
   {
@@ -113,6 +114,14 @@ const router = createBrowserRouter([
         element: (
           <AuthInterceptor>
             <SetupPage />
+          </AuthInterceptor>
+        ),
+      },
+      {
+        path: "/dynamic-dashboard/:dashboardId?",
+        element: (
+          <AuthInterceptor>
+            <DynamicDashboardPage />
           </AuthInterceptor>
         ),
       },
