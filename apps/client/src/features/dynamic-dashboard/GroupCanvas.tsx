@@ -195,7 +195,7 @@ export function GroupCanvas({
 
     resizeObserver.observe(el);
     return () => resizeObserver.disconnect();
-  }, [group.cols]);
+  }, [group.cols, open, isMobile]);
 
   useEffect(() => {
     if (!dragging) {
