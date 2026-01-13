@@ -17,10 +17,7 @@ import { MapEvents } from "../map-draw/MapEvents";
 import { EntityDetailsPanel } from "../map-entity/EntityDetailsPanel";
 import { useMapEntityStore } from "../map-entity/store";
 import { cn } from "@/lib/utils";
-import {
-  MapLastViewTracker,
-  getStoredMapView,
-} from "./MapViewPersistence";
+import { MapLastViewTracker, getStoredMapView } from "./MapViewPersistence";
 import { CurrentLocationMarker } from "./CurrentLocationMarker";
 
 const DefaultIcon = L.icon({
@@ -85,9 +82,7 @@ export function MapView({
       },
       (err) => {
         console.log("Error getting location:", err);
-        setPosition(
-          (prev) => prev ?? (failedPosition as [number, number]),
-        );
+        setPosition((prev) => prev ?? (failedPosition as [number, number]));
       },
       {
         enableHighAccuracy: true,
@@ -109,6 +104,7 @@ export function MapView({
         <MapContainer
           center={position}
           zoom={initialZoom}
+          maxZoom={23}
           scrollWheelZoom={true}
           zoomControl={false}
           className='h-full w-full'
@@ -116,6 +112,8 @@ export function MapView({
           <TileLayer
             attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
             url='https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+            maxNativeZoom={20}
+            maxZoom={23}
           />
           {layer?.features.map((feature) => (
             <FeatureRenderer key={`feature-${feature.id}`} feature={feature} />
