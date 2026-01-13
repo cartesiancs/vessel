@@ -171,10 +171,21 @@ export function FlowHeader() {
 }
 
 export function FlowSidebar() {
-  const { flows, currentFlowId, createNewFlow, setCurrentFlowId, fetchFlows } =
-    useFlowStore();
+  const {
+    flows,
+    currentFlowId,
+    createNewFlow,
+    setCurrentFlowId,
+    fetchFlows,
+    hasUnsavedChanges,
+  } = useFlowStore();
   const [newFlowName, setNewFlowName] = useState("");
   const [flowToDelete, setFlowToDelete] = useState<Flow | null>(null);
+  const [pendingFlowId, setPendingFlowId] = useState<number | null>(null);
+  const [showUnsavedPrompt, setShowUnsavedPrompt] = useState(false);
+
+  const unsavedMessage =
+    "You have unsaved changes in this flow. Switch flows without saving?";
 
   const handleCreateFlow = async () => {
     if (newFlowName) {
@@ -182,6 +193,28 @@ export function FlowSidebar() {
       await fetchFlows();
       setNewFlowName("");
     }
+  };
+
+  const handleFlowSelect = (flowId: number) => {
+    if (hasUnsavedChanges && flowId !== currentFlowId) {
+      setPendingFlowId(flowId);
+      setShowUnsavedPrompt(true);
+      return;
+    }
+    setCurrentFlowId(flowId);
+  };
+
+  const handleConfirmSwitch = () => {
+    if (pendingFlowId !== null) {
+      setCurrentFlowId(pendingFlowId);
+    }
+    setPendingFlowId(null);
+    setShowUnsavedPrompt(false);
+  };
+
+  const handleCancelSwitch = () => {
+    setPendingFlowId(null);
+    setShowUnsavedPrompt(false);
   };
 
   const handleDeleteConfirm = async () => {
@@ -244,7 +277,7 @@ export function FlowSidebar() {
             >
               <Button
                 variant='ghost'
-                onClick={() => setCurrentFlowId(flow.id)}
+                onClick={() => handleFlowSelect(flow.id)}
                 className={` justify-start flex-grow hover:bg-transparent ${
                   currentFlowId === flow.id
                     ? "bg-accent text-accent-foreground"
@@ -299,6 +332,25 @@ export function FlowSidebar() {
               <Button variant={"destructive"} onClick={handleDeleteConfirm}>
                 Continue
               </Button>
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={showUnsavedPrompt} onOpenChange={setShowUnsavedPrompt}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Unsaved changes</AlertDialogTitle>
+            <AlertDialogDescription>
+              {unsavedMessage} Unsaved changes will be lost.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleCancelSwitch}>
+              Stay on this flow
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmSwitch}>
+              Switch anyway
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
