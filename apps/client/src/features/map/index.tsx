@@ -21,6 +21,7 @@ import {
   MapLastViewTracker,
   getStoredMapView,
 } from "./MapViewPersistence";
+import { CurrentLocationMarker } from "./CurrentLocationMarker";
 
 const DefaultIcon = L.icon({
   iconUrl: icon,
@@ -123,6 +124,7 @@ export function MapView({
           <DrawingPreview />
           <FeatureEditor />
           <MapEntityRender />
+          <CurrentLocationMarker />
           <MapLastViewTracker />
           <MapResizer isSidebarCollapsed={isSidebarCollapsed} />
         </MapContainer>
