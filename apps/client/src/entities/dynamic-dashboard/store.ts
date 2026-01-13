@@ -5,17 +5,35 @@ export type DashboardItemType =
   | "entity-card"
   | "entity-text"
   | "media"
-  | "button";
+  | "button"
+  | "map"
+  | "flow";
 
-export type DashboardItem = {
+export type DashboardItemDataMap = {
+  "entity-card": Record<string, never>;
+  "entity-text": Record<string, never>;
+  media: Record<string, never>;
+  button: { action?: string };
+  map: {
+    layerId?: number;
+    center?: [number, number];
+    zoom?: number;
+  };
+  flow: {
+    flowId?: number;
+    autoRun?: boolean;
+  };
+};
+
+export type DashboardItem<T extends DashboardItemType = DashboardItemType> = {
   id: string;
-  type: DashboardItemType;
+  type: T;
   label?: string;
   refId?: string;
   position: { x: number; y: number };
   size: { w: number; h: number };
   minSize: { w: number; h: number };
-  data?: Record<string, unknown>;
+  data?: DashboardItemDataMap[T];
 };
 
 export type DashboardGroup = {
@@ -41,7 +59,7 @@ type CreateItemPayload = {
   type: DashboardItemType;
   label?: string;
   refId?: string;
-  data?: Record<string, unknown>;
+  data?: DashboardItemDataMap[DashboardItemType];
   size?: { w: number; h: number };
   minSize?: { w: number; h: number };
 };
@@ -101,7 +119,18 @@ const DEFAULT_ITEM_SIZES: Record<DashboardItemType, { w: number; h: number }> =
     "entity-text": { w: 3, h: 2 },
     media: { w: 6, h: 4 },
     button: { w: 2, h: 2 },
+    map: { w: 8, h: 6 },
+    flow: { w: 6, h: 4 },
   };
+
+const DEFAULT_ITEM_DATA = {
+  "entity-card": {},
+  "entity-text": {},
+  media: {},
+  button: {},
+  map: {},
+  flow: {},
+} satisfies Record<DashboardItemType, DashboardItemDataMap[DashboardItemType]>;
 
 const createId = () =>
   typeof crypto !== "undefined" && "randomUUID" in crypto
@@ -431,6 +460,7 @@ export const useDynamicDashboardStore = create<DynamicDashboardState>()(
                 payload.minSize || DEFAULT_ITEM_SIZES[payload.type] || baseSize;
               const size = clampSizeToGroup(g, baseSize, minSize);
               const position = findOpenSlot(g, size);
+              const data = payload.data ?? { ...DEFAULT_ITEM_DATA[payload.type] };
               const newItem: DashboardItem = {
                 id: createId(),
                 type: payload.type,
@@ -439,7 +469,7 @@ export const useDynamicDashboardStore = create<DynamicDashboardState>()(
                 position,
                 size,
                 minSize,
-                data: payload.data || {},
+                data,
               };
 
               createdId = newItem.id;

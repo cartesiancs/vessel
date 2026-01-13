@@ -21,6 +21,17 @@ import {
 } from "@/components/ui/select";
 import { Trash2 } from "lucide-react";
 import { useSidebar } from "@/components/ui/sidebar";
+import { useFlowStore } from "@/entities/flow/store";
+import { useMapDataStore } from "@/entities/map/store";
+import { MapPanel } from "./panels/MapPanel";
+import { FlowPanel } from "./panels/FlowPanel";
+
+const isMapItem = (candidate: DashboardItem): candidate is DashboardItem<"map"> =>
+  candidate.type === "map";
+
+const isFlowItem = (
+  candidate: DashboardItem,
+): candidate is DashboardItem<"flow"> => candidate.type === "flow";
 
 const CELL_SIZE = 32;
 
@@ -60,12 +71,23 @@ export function GroupCanvas({
   const updateItemLayout = useDynamicDashboardStore(
     (state) => state.updateItemLayout,
   );
+  const updateItemData = useDynamicDashboardStore(
+    (state) => state.updateItemData,
+  );
   const deleteItem = useDynamicDashboardStore((state) => state.deleteItem);
+  const { layers, fetchAllLayers } = useMapDataStore();
+  const { flows, fetchFlows } = useFlowStore();
 
   const [dragging, setDragging] = useState<DragState | null>(null);
   const [resizing, setResizing] = useState<ResizeState | null>(null);
   const [newButtonLabel, setNewButtonLabel] = useState("Action");
   const [selectedEntityId, setSelectedEntityId] = useState<string | undefined>(
+    undefined,
+  );
+  const [selectedLayerId, setSelectedLayerId] = useState<number | undefined>(
+    undefined,
+  );
+  const [selectedFlowId, setSelectedFlowId] = useState<number | undefined>(
     undefined,
   );
   const [scale, setScale] = useState(1);
@@ -88,6 +110,31 @@ export function GroupCanvas({
       entities.find((e) => String(e.id) === refId)
     );
   };
+
+  useEffect(() => {
+    if (layers.length === 0) {
+      fetchAllLayers().catch((err) => {
+        console.error("Failed to load layers for dashboard", err);
+      });
+    }
+    if (flows.length === 0) {
+      fetchFlows().catch((err) => {
+        console.error("Failed to load flows for dashboard", err);
+      });
+    }
+  }, [fetchAllLayers, fetchFlows, flows.length, layers.length]);
+
+  useEffect(() => {
+    if (!selectedLayerId && layers.length > 0) {
+      setSelectedLayerId(layers[0].id);
+    }
+  }, [layers, selectedLayerId]);
+
+  useEffect(() => {
+    if (!selectedFlowId && flows.length > 0) {
+      setSelectedFlowId(flows[0].id);
+    }
+  }, [flows, selectedFlowId]);
 
   const parseSizeToPx = (value: string) => {
     const trimmed = value.trim();
@@ -249,6 +296,24 @@ export function GroupCanvas({
     });
   };
 
+  const handleAddMapPanel = () => {
+    if (!selectedLayerId) return;
+    addItem(dashboardId, group.id, {
+      type: "map",
+      label: "Map",
+      data: { layerId: selectedLayerId },
+    });
+  };
+
+  const handleAddFlowPanel = () => {
+    if (!selectedFlowId) return;
+    addItem(dashboardId, group.id, {
+      type: "flow",
+      label: "Flow",
+      data: { flowId: selectedFlowId },
+    });
+  };
+
   const renderItem = (item: DashboardItem) => {
     if (item.type === "entity-card") {
       const entity = findEntityByRef(item.refId);
@@ -311,6 +376,32 @@ export function GroupCanvas({
       );
     }
 
+    if (isMapItem(item)) {
+      return (
+        <MapPanel
+          data={item.data}
+          onLayerChange={(layerId) =>
+            updateItemData(dashboardId, group.id, item.id, {
+              data: { ...(item.data ?? {}), layerId },
+            })
+          }
+        />
+      );
+    }
+
+    if (isFlowItem(item)) {
+      return (
+        <FlowPanel
+          data={item.data}
+          onFlowChange={(flowId) =>
+            updateItemData(dashboardId, group.id, item.id, {
+              data: { ...(item.data ?? {}), flowId },
+            })
+          }
+        />
+      );
+    }
+
     return <Placeholder text='Unknown item' />;
   };
 
@@ -369,6 +460,70 @@ export function GroupCanvas({
             />
             <Button variant='outline' size='sm' onClick={handleAddButton}>
               Add Button
+            </Button>
+          </div>
+          <div className='flex items-center gap-1'>
+            <Select
+              value={
+                typeof selectedLayerId === "number"
+                  ? String(selectedLayerId)
+                  : undefined
+              }
+              onValueChange={(value) => {
+                const next = Number(value);
+                setSelectedLayerId(Number.isFinite(next) ? next : undefined);
+              }}
+            >
+              <SelectTrigger className='h-8 w-[160px]'>
+                <SelectValue placeholder='Map layer' />
+              </SelectTrigger>
+              <SelectContent>
+                {layers.map((layer) => (
+                  <SelectItem key={layer.id} value={String(layer.id)}>
+                    {layer.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button
+              variant='outline'
+              size='sm'
+              onClick={handleAddMapPanel}
+              disabled={!selectedLayerId}
+            >
+              Add Map
+            </Button>
+          </div>
+          <div className='flex items-center gap-1'>
+            <Select
+              value={
+                typeof selectedFlowId === "number"
+                  ? String(selectedFlowId)
+                  : undefined
+              }
+              onValueChange={(value) => {
+                const next = Number(value);
+                setSelectedFlowId(Number.isFinite(next) ? next : undefined);
+              }}
+            >
+              <SelectTrigger className='h-8 w-[160px]'>
+                <SelectValue placeholder='Flow' />
+              </SelectTrigger>
+              <SelectContent>
+                {flows.map((flow) => (
+                  <SelectItem key={flow.id} value={String(flow.id)}>
+                    {flow.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button
+              variant='outline'
+              size='sm'
+              onClick={handleAddFlowPanel}
+              disabled={!selectedFlowId}
+            >
+              Add Flow
             </Button>
           </div>
           {onDeleteGroup && (
