@@ -14,9 +14,8 @@ import { toast } from "sonner";
 
 const proFeatures = [
   "Remote Tunnel",
-  "Offline map",
+  "Secure Option",
   "Custom Flow",
-  "External compute for Flow",
   "Advanced data sources",
   "1:1 support",
   "Priority access to new features",
@@ -95,7 +94,7 @@ function PricingPage() {
                 <CardTitle className='text-xl font-semibold'>Pro</CardTitle>
                 <div className='space-y-1'>
                   <div className='text-5xl font-extrabold leading-none'>
-                    $87
+                    $21
                   </div>
                   <p className='text-sm text-muted-foreground'>Per month</p>
                 </div>

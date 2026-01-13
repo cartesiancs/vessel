@@ -29,6 +29,16 @@ import { useDynamicDashboardStore } from "@/entities/dynamic-dashboard/store";
 import { GroupCanvas } from "@/features/dynamic-dashboard/GroupCanvas";
 import { useEntitiesData } from "@/features/entity/useEntitiesData";
 import { Plus, Copy, Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export function DynamicDashboardPage() {
   const params = useParams<{ dashboardId?: string }>();
@@ -49,6 +59,7 @@ export function DynamicDashboardPage() {
   const setActiveDashboard = setActiveDashboardStore;
   const { entities, streamsState } = useEntitiesData();
   const [editMode, setEditMode] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
   const currentDashboard = useMemo(
     () => dashboards.find((d) => d.id === activeDashboardId),
@@ -116,6 +127,24 @@ export function DynamicDashboardPage() {
     navigate(`/dynamic-dashboard/${id}`);
   };
 
+  const handleDeleteDashboard = async () => {
+    if (!currentDashboard) {
+      setDeleteConfirmOpen(false);
+      return;
+    }
+
+    const remaining = dashboards.filter((d) => d.id !== currentDashboard.id);
+    await deleteDashboard(currentDashboard.id);
+    setDeleteConfirmOpen(false);
+
+    const nextId = remaining[0]?.id;
+    if (nextId) {
+      navigate(`/dynamic-dashboard/${nextId}`);
+    } else {
+      navigate(`/dynamic-dashboard`);
+    }
+  };
+
   return (
     <WebRTCProvider>
       <SidebarProvider>
@@ -177,17 +206,7 @@ export function DynamicDashboardPage() {
                         <Button
                           variant='ghost'
                           size='icon'
-                          onClick={async () => {
-                            const remaining = dashboards.filter(
-                              (d) => d.id !== currentDashboard.id,
-                            );
-                            await deleteDashboard(currentDashboard.id);
-
-                            const nextId = remaining[0]?.id;
-                            if (nextId) {
-                              navigate(`/dynamic-dashboard/${nextId}`);
-                            }
-                          }}
+                          onClick={() => setDeleteConfirmOpen(true)}
                         >
                           <Trash2 className='h-4 w-4' />
                         </Button>
@@ -245,6 +264,28 @@ export function DynamicDashboardPage() {
           <Footer />
         </SidebarInset>
       </SidebarProvider>
+
+      <AlertDialog
+        open={deleteConfirmOpen}
+        onOpenChange={(open) => setDeleteConfirmOpen(open)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete dashboard?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. The dashboard layout will be removed.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeleteConfirmOpen(false)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteDashboard}>
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </WebRTCProvider>
   );
 }

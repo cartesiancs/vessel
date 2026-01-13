@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -26,8 +26,9 @@ import { useMapDataStore } from "@/entities/map/store";
 import { MapPanel } from "./panels/MapPanel";
 import { FlowPanel } from "./panels/FlowPanel";
 
-const isMapItem = (candidate: DashboardItem): candidate is DashboardItem<"map"> =>
-  candidate.type === "map";
+const isMapItem = (
+  candidate: DashboardItem,
+): candidate is DashboardItem<"map"> => candidate.type === "map";
 
 const isFlowItem = (
   candidate: DashboardItem,
@@ -92,13 +93,13 @@ export function GroupCanvas({
   );
   const [scale, setScale] = useState(1);
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const videoEntities = useMemo(
-    () =>
-      entities.filter(
-        (e) => e.entity_type === "VIDEO" || e.platform === "RTSP",
-      ),
-    [entities],
-  );
+  // const videoEntities = useMemo(
+  //   () =>
+  //     entities.filter(
+  //       (e) => e.entity_type === "VIDEO" || e.platform === "RTSP",
+  //     ),
+  //   [entities],
+  // );
   const cellSize = CELL_SIZE * scale;
   const gridWidth = group.cols * cellSize;
   const gridHeight = group.rows * cellSize;
@@ -270,23 +271,23 @@ export function GroupCanvas({
     });
   };
 
-  const handleAddEntityText = (entityId?: string) => {
-    if (!entityId) return;
-    addItem(dashboardId, group.id, {
-      type: "entity-text",
-      refId: entityId,
-      label: "Entity Text",
-    });
-  };
+  // const handleAddEntityText = (entityId?: string) => {
+  //   if (!entityId) return;
+  //   addItem(dashboardId, group.id, {
+  //     type: "entity-text",
+  //     refId: entityId,
+  //     label: "Entity Text",
+  //   });
+  // };
 
-  const handleAddMedia = (entityId?: string) => {
-    if (!entityId) return;
-    addItem(dashboardId, group.id, {
-      type: "media",
-      refId: entityId,
-      label: "Media",
-    });
-  };
+  // const handleAddMedia = (entityId?: string) => {
+  //   if (!entityId) return;
+  //   addItem(dashboardId, group.id, {
+  //     type: "media",
+  //     refId: entityId,
+  //     label: "Media",
+  //   });
+  // };
 
   const handleAddButton = () => {
     addItem(dashboardId, group.id, {
@@ -433,23 +434,7 @@ export function GroupCanvas({
             onClick={() => handleAddEntityCard(selectedEntityId)}
             disabled={!selectedEntityId}
           >
-            Add Entity Card
-          </Button>
-          <Button
-            variant='outline'
-            size='sm'
-            onClick={() => handleAddEntityText(selectedEntityId)}
-            disabled={!selectedEntityId}
-          >
-            Add Text
-          </Button>
-          <Button
-            variant='outline'
-            size='sm'
-            onClick={() => handleAddMedia(selectedEntityId)}
-            disabled={!selectedEntityId || videoEntities.length === 0}
-          >
-            Add Media
+            Add Entity
           </Button>
           <div className='flex items-center gap-1'>
             <Input
@@ -463,28 +448,6 @@ export function GroupCanvas({
             </Button>
           </div>
           <div className='flex items-center gap-1'>
-            <Select
-              value={
-                typeof selectedLayerId === "number"
-                  ? String(selectedLayerId)
-                  : undefined
-              }
-              onValueChange={(value) => {
-                const next = Number(value);
-                setSelectedLayerId(Number.isFinite(next) ? next : undefined);
-              }}
-            >
-              <SelectTrigger className='h-8 w-[160px]'>
-                <SelectValue placeholder='Map layer' />
-              </SelectTrigger>
-              <SelectContent>
-                {layers.map((layer) => (
-                  <SelectItem key={layer.id} value={String(layer.id)}>
-                    {layer.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
             <Button
               variant='outline'
               size='sm'
@@ -495,28 +458,6 @@ export function GroupCanvas({
             </Button>
           </div>
           <div className='flex items-center gap-1'>
-            <Select
-              value={
-                typeof selectedFlowId === "number"
-                  ? String(selectedFlowId)
-                  : undefined
-              }
-              onValueChange={(value) => {
-                const next = Number(value);
-                setSelectedFlowId(Number.isFinite(next) ? next : undefined);
-              }}
-            >
-              <SelectTrigger className='h-8 w-[160px]'>
-                <SelectValue placeholder='Flow' />
-              </SelectTrigger>
-              <SelectContent>
-                {flows.map((flow) => (
-                  <SelectItem key={flow.id} value={String(flow.id)}>
-                    {flow.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
             <Button
               variant='outline'
               size='sm'
