@@ -9,6 +9,8 @@ import { Label } from "@/components/ui/label";
 import { useNavigate } from "react-router";
 import { Badge } from "@/components/ui/badge";
 import { DEMO_SERVER_URL, DEMO_TOKEN, isDemoMode } from "@/shared/demo";
+import { DefaultAdminPasswordDialog } from "./DefaultAdminPasswordDialog";
+import { authenticateWithPassword } from "./api";
 
 const RECENT_URLS_COOKIE = "recent_server_urls";
 const MAX_RECENT_URLS = 5;
@@ -23,6 +25,8 @@ export function LoginForm({
   const [showAuthFields, setShowAuthFields] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [recentUrls, setRecentUrls] = useState<string[]>([]);
+  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
+  const [serverUrlForDialog, setServerUrlForDialog] = useState("");
   const navigate = useNavigate();
 
   const connectToServer = async (targetUrl: string) => {
@@ -73,6 +77,7 @@ export function LoginForm({
         });
         Cookies.set("server_url", processedUrl, { expires: 1 });
 
+        setServerUrlForDialog(processedUrl);
         setShowAuthFields(true);
       } else {
         throw new Error("Failed to connect to the server.");
@@ -99,34 +104,26 @@ export function LoginForm({
     const processedUrl = url.replace(/\/$/, "");
 
     try {
-      const response = await fetch(`${processedUrl}/api/auth`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ id, password }),
+      const token = await authenticateWithPassword(processedUrl, {
+        id,
+        password,
       });
 
-      if (!response.ok) {
-        throw new Error("Wrong ID or password.");
+      Cookies.set("token", token, { expires: 1 / 24 });
+      Cookies.set("server_url", processedUrl, { expires: 1 / 24 });
+
+      setServerUrlForDialog(processedUrl);
+
+      if (id === "admin" && password === "admin") {
+        setIsPasswordDialogOpen(true);
+        toast.message("Default admin password detected", {
+          description: "Please change the password before continuing.",
+        });
+        return;
       }
 
-      const data = await response.json();
-
-      if (data.token === "none") {
-        throw new Error(
-          "Authentication failed. Please check your credentials.",
-        );
-      }
-
-      if (data.token) {
-        Cookies.set("token", data.token, { expires: 1 / 24 });
-        Cookies.set("server_url", processedUrl, { expires: 1 / 24 });
-        toast.success("Successfully authenticated.");
-        navigate("/dashboard");
-      } else {
-        throw new Error("Failed to authenticate.");
-      }
+      toast.success("Successfully authenticated.");
+      navigate("/dashboard");
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Failed to authenticate.",
@@ -267,6 +264,21 @@ export function LoginForm({
         </a>
         .
       </div>
+      <DefaultAdminPasswordDialog
+        open={isPasswordDialogOpen}
+        serverUrl={serverUrlForDialog}
+        onSuccess={(refreshedToken) => {
+          Cookies.set("token", refreshedToken, { expires: 1 / 24 });
+          if (serverUrlForDialog) {
+            Cookies.set("server_url", serverUrlForDialog, {
+              expires: 1 / 24,
+            });
+          }
+          setIsPasswordDialogOpen(false);
+          toast.success("Password updated. Logging you in with the new password.");
+          navigate("/dashboard");
+        }}
+      />
     </div>
   );
 }
