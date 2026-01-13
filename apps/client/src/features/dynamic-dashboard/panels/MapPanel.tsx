@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { MapContainer, TileLayer } from "react-leaflet";
+import { MapContainer, TileLayer, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -9,10 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  useMapDataStore,
-  useMapInteractionStore,
-} from "@/entities/map/store";
+import { useMapDataStore, useMapInteractionStore } from "@/entities/map/store";
 import { FeatureRenderer } from "@/features/map-draw/FeatureRenderer";
 import { DashboardItemDataMap } from "@/entities/dynamic-dashboard/store";
 
@@ -61,7 +58,9 @@ export function MapPanel({ data, onLayerChange }: MapPanelProps) {
     if (data?.center) return data.center;
     const positions =
       layer?.features.flatMap((feature) =>
-        feature.vertices.map((v) => [v.latitude, v.longitude] as [number, number]),
+        feature.vertices.map(
+          (v) => [v.latitude, v.longitude] as [number, number],
+        ),
       ) || [];
 
     if (positions.length === 0) {
@@ -104,11 +103,9 @@ export function MapPanel({ data, onLayerChange }: MapPanelProps) {
             ))}
           </SelectContent>
         </Select>
-        <Badge variant='outline'>
-          {layer?.features.length ?? 0} features
-        </Badge>
+        <Badge variant='outline'>{layer?.features.length ?? 0} features</Badge>
       </div>
-      <div className='relative h-full w-full overflow-hidden rounded-md bg-muted/50'>
+      <div className='relative h-full w-full overflow-hidden bg-muted/50'>
         {typeof localLayerId !== "number" ? (
           <div className='flex h-full items-center justify-center text-xs text-muted-foreground'>
             Select a layer to preview the map.
@@ -129,11 +126,32 @@ export function MapPanel({ data, onLayerChange }: MapPanelProps) {
               maxZoom={22}
             />
             {layer?.features.map((feature) => (
-              <FeatureRenderer key={`feature-${feature.id}`} feature={feature} />
+              <FeatureRenderer
+                key={`feature-${feature.id}`}
+                feature={feature}
+              />
             ))}
+            <ResizeInvalidator />
           </MapContainer>
         )}
       </div>
     </div>
   );
+}
+
+function ResizeInvalidator() {
+  const map = useMap();
+
+  useEffect(() => {
+    const container = map.getContainer();
+    const handle = () => map.invalidateSize();
+    handle();
+
+    const observer = new ResizeObserver(() => handle());
+    observer.observe(container);
+
+    return () => observer.disconnect();
+  }, [map]);
+
+  return null;
 }

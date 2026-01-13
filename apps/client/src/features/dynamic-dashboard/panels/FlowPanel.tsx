@@ -9,7 +9,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useFlowStore } from "@/entities/flow/store";
-import { useWebSocket, useWebSocketMessage } from "@/features/ws/WebSocketProvider";
+import {
+  useWebSocket,
+  useWebSocketMessage,
+} from "@/features/ws/WebSocketProvider";
 import { WebSocketMessage } from "@/features/ws/ws";
 import { DashboardItemDataMap } from "@/entities/dynamic-dashboard/store";
 import { Play, Square } from "lucide-react";
@@ -111,7 +114,9 @@ export function FlowPanel({ data, onFlowChange }: FlowPanelProps) {
       <div className='flex items-center justify-between gap-2 text-xs'>
         <Select
           value={
-            typeof selectedFlowId === "number" ? String(selectedFlowId) : undefined
+            typeof selectedFlowId === "number"
+              ? String(selectedFlowId)
+              : undefined
           }
           onValueChange={handleSelect}
         >
@@ -130,7 +135,7 @@ export function FlowPanel({ data, onFlowChange }: FlowPanelProps) {
           {isRunning ? "Running" : "Stopped"}
         </Badge>
       </div>
-      <div className='flex flex-1 flex-col justify-between rounded-md border border-dashed p-3 text-sm'>
+      <div className='flex flex-1 flex-col justify-between border border-dashed p-3 text-sm'>
         <div className='space-y-1'>
           <p className='text-xs text-muted-foreground'>Selected flow</p>
           <p className='font-semibold'>{selectedFlowName}</p>
