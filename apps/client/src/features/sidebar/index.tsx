@@ -61,11 +61,6 @@ const data = {
           icon: <PanelsTopLeft />,
         },
         {
-          title: "Servers",
-          url: "/servers",
-          icon: <Server />,
-        },
-        {
           title: "Flow",
           url: "/flow",
           icon: <Workflow />,
@@ -75,6 +70,11 @@ const data = {
           url: "/map",
           icon: <Map />,
         },
+        {
+          title: "Config",
+          url: "/servers",
+          icon: <Server />,
+        },
       ],
     },
     {
@@ -82,14 +82,14 @@ const data = {
       url: "#",
       items: [
         {
-          title: "Key Manager",
-          url: "/key",
-          icon: <Key />,
-        },
-        {
           title: "Devices",
           url: "/devices",
           icon: <MonitorSmartphone />,
+        },
+        {
+          title: "Key Manager",
+          url: "/key",
+          icon: <Key />,
         },
       ],
     },
