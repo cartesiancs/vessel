@@ -15,6 +15,7 @@ import { toast } from "sonner";
 const proFeatures = [
   "Remote Tunnel",
   "Secure Option",
+  "Streaming Server (10GB)",
   "Custom Flow",
   "Advanced data sources",
   "1:1 support",
@@ -22,6 +23,7 @@ const proFeatures = [
 ];
 
 const freeFeatures = [
+  "Self Host",
   "Core Flow",
   "Realtime device orchestration",
   "Community support",
