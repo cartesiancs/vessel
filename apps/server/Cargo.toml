@@ -55,6 +55,7 @@ uuid = "1.18.1"
 pyo3 = "0.26.0"
 config = { version =  "0.15.15", features = ["toml"] }
 tokio-tungstenite = "0.27.0"
+httparse = "1.9"
 
 
 [[bin]]

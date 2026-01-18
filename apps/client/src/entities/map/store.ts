@@ -34,7 +34,7 @@ export const useMapDataStore = create<MapDataState>((set, get) => ({
   addLayer: async (payload) => {
     try {
       await mapApi.createLayer(payload);
-      await get().fetchAllLayers(); // 목록 새로고침
+      await get().fetchAllLayers(); // refresh list
     } catch (err) {
       set({ error: "Failed to create layer" + err });
     }
@@ -138,7 +138,7 @@ export const useMapDataStore = create<MapDataState>((set, get) => ({
 export const useMapInteractionStore = create<MapInteractionState>(
   (set, get) => ({
     selectedFeature: null,
-    setSelectedFeature: (feature) => set({ selectedFeature: feature }), // 피처 선택 시 엔티티 선택은 해제
+    setSelectedFeature: (feature) => set({ selectedFeature: feature }), // deselect entity when selecting a feature
 
     drawingMode: null,
     currentVertices: [],

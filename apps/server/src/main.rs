@@ -23,6 +23,7 @@ use crate::{
     media::{MediaAdapter, RtpPushAdapter, RtspPullAdapter},
     routes::web_server,
     state::{AppState, MqttMessage, StreamManager, StreamRegistry},
+    tunnel_control::TunnelManager,
 };
 
 mod broker_mqtt;
@@ -31,6 +32,7 @@ mod handler;
 mod init;
 mod routes;
 mod state;
+mod tunnel_control;
 
 pub mod db;
 pub mod error;
@@ -95,6 +97,7 @@ async fn main() -> Result<()> {
     let (flow_manager_tx, flow_manager_rx) = mpsc::channel(100);
     let (broadcast_tx, _) = broadcast::channel(1024);
     let (shutdown_tx, shutdown_rx) = watch::channel(());
+    let tunnel_manager = Arc::new(TunnelManager::new());
 
     let jwt_secret = settings.jwt_secret.clone();
     let configs = db::repository::get_all_system_configs(&pool)?;
@@ -108,6 +111,7 @@ async fn main() -> Result<()> {
         flow_manager_tx,
         broadcast_tx,
         system_configs: configs.clone(),
+        tunnel_manager: tunnel_manager.clone(),
     });
 
     let mut set = JoinSet::new();

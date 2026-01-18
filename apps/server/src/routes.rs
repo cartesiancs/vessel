@@ -15,8 +15,8 @@ use tracing::info;
 use crate::{
     handler::{
         auth::auth_with_password, configurations, custom_nodes, dashboards, device_tokens, devices,
-        entities, flows, ha, log, map, permissions, roles, stat, state, storage, streams, users,
-        ws::ws_handler,
+        entities, flows, ha, log, map, permissions, roles, stat, state, storage, streams, tunnel,
+        users, ws::ws_handler,
     },
     state::AppState,
 };
@@ -146,6 +146,9 @@ pub async fn web_server(
             post(flows::create_flow_version).get(flows::get_flow_versions),
         )
         .route("/stat", get(stat::get_stats))
+        .route("/tunnel/start", post(tunnel::start_tunnel))
+        .route("/tunnel/stop", post(tunnel::stop_tunnel))
+        .route("/tunnel/status", get(tunnel::status_tunnel))
         .route("/logs", get(log::list_log_files_handler))
         .route("/logs/:filename", get(log::get_log_by_filename_handler))
         .route("/logs/latest", get(log::get_latest_log_handler))

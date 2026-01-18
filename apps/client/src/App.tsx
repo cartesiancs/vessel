@@ -20,6 +20,7 @@ import { TopBarWrapper } from "./widgets/auth/TopBarWrapper";
 import { useDesktopSidecar } from "./hooks/useDesktopSidecar";
 import { usePreventBackNavigation } from "./hooks/usePreventBackNavigation";
 import { DynamicDashboardPage } from "./pages/dynamic-dashboard";
+import { SettingsPage } from "./pages/settings";
 
 const router = createBrowserRouter([
   {
@@ -122,6 +123,14 @@ const router = createBrowserRouter([
         element: (
           <AuthInterceptor>
             <DynamicDashboardPage />
+          </AuthInterceptor>
+        ),
+      },
+      {
+        path: "/settings",
+        element: (
+          <AuthInterceptor>
+            <SettingsPage />
           </AuthInterceptor>
         ),
       },

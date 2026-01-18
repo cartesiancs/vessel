@@ -31,6 +31,7 @@ import {
   Blocks,
   CircleDashed,
   Code,
+  RadioTower,
   ChevronDown,
   ChevronRight,
 } from "lucide-react";
@@ -127,6 +128,11 @@ const data = {
           title: "Logs",
           url: "/log",
           icon: <ScrollText />,
+        },
+        {
+          title: "Settings",
+          url: "/settings",
+          icon: <RadioTower />,
         },
       ],
     },

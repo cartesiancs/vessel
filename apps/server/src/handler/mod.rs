@@ -17,3 +17,4 @@ pub mod storage;
 pub mod streams;
 pub mod users;
 pub mod ws;
+pub mod tunnel;

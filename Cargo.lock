@@ -6482,6 +6482,7 @@ dependencies = [
  "futures-util",
  "gstreamer",
  "gstreamer-app",
+ "httparse",
  "image",
  "jsonwebtoken",
  "lazy_static",
