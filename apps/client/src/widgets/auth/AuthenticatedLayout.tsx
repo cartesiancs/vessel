@@ -26,7 +26,9 @@ export function AuthenticatedLayout() {
     try {
       const url = new URL(serverUrlString);
       const host = url.host;
-      setWsUrl(`ws://${host}/signal?token=${token}`);
+      const wsProto = url.protocol === "https:" ? "wss" : "ws";
+
+      setWsUrl(`${wsProto}://${host}/signal?token=${token}`);
     } catch {
       console.error("Invalid server_url in cookies:", serverUrlString);
       navigate("/auth", { replace: true });

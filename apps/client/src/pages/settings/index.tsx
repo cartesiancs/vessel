@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -31,7 +31,7 @@ import { useTunnelStore } from "@/entities/tunnel/store";
 export function SettingsPage() {
   const { status, isLoading, error, refresh, start, stop } = useTunnelStore();
   const [server, setServer] = useState("");
-  const [target, setTarget] = useState("http://127.0.0.1:3000");
+  const [target, setTarget] = useState("http://127.0.0.1:8080");
   const [localError, setLocalError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -43,18 +43,18 @@ export function SettingsPage() {
     if (status.target) setTarget(status.target);
   }, [status.server, status.target]);
 
-  const sessionUrl = useMemo(() => {
-    if (!status.session_id) return null;
-    if (status.server && status.server.startsWith("ws")) {
-      try {
-        const url = new URL(status.server.replace(/^ws/, "http"));
-        return `${url.protocol}//${status.session_id}.${url.host}`;
-      } catch {
-        return null;
-      }
-    }
-    return null;
-  }, [status.session_id, status.server]);
+  // const sessionUrl = useMemo(() => {
+  //   if (!status.session_id) return null;
+  //   if (status.server && status.server.startsWith("ws")) {
+  //     try {
+  //       const url = new URL(status.server.replace(/^ws/, "http"));
+  //       return `${url.protocol}//${status.session_id}.${url.host}`;
+  //     } catch {
+  //       return null;
+  //     }
+  //   }
+  //   return null;
+  // }, [status.session_id, status.server]);
 
   const handleToggle = async (checked: boolean) => {
     setLocalError(null);
@@ -149,7 +149,7 @@ export function SettingsPage() {
                   <Label htmlFor='target'>Local target URL</Label>
                   <Input
                     id='target'
-                    placeholder='http://127.0.0.1:3000'
+                    placeholder='http://127.0.0.1:8080'
                     value={target}
                     onChange={(e) => setTarget(e.target.value)}
                     disabled={isLoading || status.active}
@@ -173,11 +173,6 @@ export function SettingsPage() {
                     <Button size='sm' variant='outline' onClick={copySession}>
                       Copy session ID
                     </Button>
-                    {sessionUrl && (
-                      <Badge variant='secondary' className='font-mono'>
-                        {sessionUrl}
-                      </Badge>
-                    )}
                   </div>
                 )}
               </div>

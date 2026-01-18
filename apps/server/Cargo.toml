@@ -54,7 +54,8 @@ local-ip-address = "0.6.5"
 uuid = "1.18.1"
 pyo3 = "0.26.0"
 config = { version =  "0.15.15", features = ["toml"] }
-tokio-tungstenite = "0.27.0"
+tokio-tungstenite = { version = "0.27", features = ["rustls-tls-native-roots"] }
+tungstenite = { version = "0.27", features = ["rustls-tls-native-roots"] }
 httparse = "1.9"
 
 
