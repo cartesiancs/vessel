@@ -12,6 +12,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import { VesselLogo } from "@/components/icon/Logo";
 
 export function AccountSwitcher({
   versions,
@@ -32,7 +33,7 @@ export function AccountSwitcher({
               className='data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground'
             >
               <div className='bg-background text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center'>
-                <img src='/icon.png' />
+                <VesselLogo />
               </div>
               <div className='flex flex-col gap-0.5 leading-none'>
                 <span className='font-medium'>Server</span>
