@@ -1,0 +1,62 @@
+import { useEffect } from "react";
+import { useNavigate } from "react-router";
+import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { FcGoogle } from "react-icons/fc";
+
+export default function LoginPage() {
+  const navigate = useNavigate();
+  const { user, loading, signInWithGoogle } = useAuth();
+
+  useEffect(() => {
+    if (!loading && user) {
+      navigate("/dashboard");
+    }
+  }, [user, loading, navigate]);
+
+  if (loading) {
+    return (
+      <div className='min-h-screen flex items-center justify-center bg-background'>
+        <p className='text-muted-foreground'>Loading...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className='min-h-screen flex items-center justify-center bg-background px-4'>
+      <Card className='w-full max-w-md bg-black'>
+        <CardHeader className='text-center'>
+          <div className='flex justify-center mb-4'>
+            <img src='/icon.png' alt='Logo' className='w-12 invert' />
+          </div>
+          <CardTitle className='text-2xl'>Welcome to Vessel</CardTitle>
+          <CardDescription>Sign in to access your dashboard</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button
+            variant='outline'
+            className='w-full'
+            size='lg'
+            onClick={signInWithGoogle}
+          >
+            <FcGoogle className='mr-2 h-5 w-5' />
+            Continue with Google
+          </Button>
+          <p className='text-center text-sm text-muted-foreground mt-6'>
+            By signing in, you agree to our{" "}
+            <a href='/privacy' className='underline hover:text-foreground'>
+              Privacy Policy
+            </a>
+          </p>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

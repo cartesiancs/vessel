@@ -4,6 +4,8 @@ import RoadmapPage from "./pages/Roadmap";
 import UsecasePage from "./pages/UseCase";
 import { PrivacyPage } from "./pages/Privacy";
 import PricingPage from "./pages/Pricing";
+import LoginPage from "./pages/Login";
+import DashboardPage from "./pages/Dashboard";
 import { Toaster } from "sonner";
 
 const router = createBrowserRouter([
@@ -26,6 +28,14 @@ const router = createBrowserRouter([
   {
     path: "/pricing",
     element: <PricingPage />,
+  },
+  {
+    path: "/login",
+    element: <LoginPage />,
+  },
+  {
+    path: "/dashboard",
+    element: <DashboardPage />,
   },
 ]);
 
