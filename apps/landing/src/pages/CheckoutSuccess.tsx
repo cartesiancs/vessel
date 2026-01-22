@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
@@ -16,16 +16,54 @@ import { supabase } from "@/lib/supabase";
 
 type SubscriptionStatus = "loading" | "active" | "pending" | "error";
 
+const MAX_POLLS = 10;
+const POLL_INTERVAL = 2000;
+
 export default function CheckoutSuccessPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user, loading: authLoading } = useAuth();
   const [status, setStatus] = useState<SubscriptionStatus>("loading");
-  const [pollCount, setPollCount] = useState(0);
 
   const checkoutId = searchParams.get("checkout_id");
-  const maxPolls = 10;
-  const pollInterval = 2000;
+  const pollCountRef = useRef(0);
+  const timeoutRef = useRef<number | null>(null);
+
+  const checkSubscription = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from("billing_subscriptions")
+        .select("status")
+        .eq("user_id", user.id)
+        .eq("status", "active")
+        .limit(1)
+        .maybeSingle();
+
+      if (error) {
+        console.error("Error checking subscription:", error);
+        setStatus("error");
+        return;
+      }
+
+      if (data) {
+        setStatus("active");
+        return;
+      }
+
+      pollCountRef.current += 1;
+
+      if (pollCountRef.current < MAX_POLLS) {
+        timeoutRef.current = window.setTimeout(checkSubscription, POLL_INTERVAL);
+      } else {
+        setStatus("pending");
+      }
+    } catch (err) {
+      console.error("Unexpected error:", err);
+      setStatus("error");
+    }
+  };
 
   useEffect(() => {
     if (authLoading) return;
@@ -35,41 +73,24 @@ export default function CheckoutSuccessPage() {
       return;
     }
 
-    const checkSubscription = async () => {
-      try {
-        const { data, error } = await supabase
-          .from("billing_subscriptions")
-          .select("status")
-          .eq("user_id", user.id)
-          .eq("status", "active")
-          .limit(1)
-          .maybeSingle();
+    pollCountRef.current = 0;
+    checkSubscription();
 
-        if (error) {
-          console.error("Error checking subscription:", error);
-          setStatus("error");
-          return;
-        }
-
-        if (data) {
-          setStatus("active");
-          return;
-        }
-
-        if (pollCount < maxPolls) {
-          setPollCount((prev) => prev + 1);
-          setTimeout(checkSubscription, pollInterval);
-        } else {
-          setStatus("pending");
-        }
-      } catch (err) {
-        console.error("Unexpected error:", err);
-        setStatus("error");
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
       }
     };
+  }, [user, authLoading, navigate]);
 
+  const handleRetry = () => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    pollCountRef.current = 0;
+    setStatus("loading");
     checkSubscription();
-  }, [user, authLoading, navigate, pollCount]);
+  };
 
   if (authLoading) {
     return (
@@ -158,10 +179,7 @@ export default function CheckoutSuccessPage() {
                 {(status === "pending" || status === "error") && (
                   <Button
                     variant="outline"
-                    onClick={() => {
-                      setPollCount(0);
-                      setStatus("loading");
-                    }}
+                    onClick={handleRetry}
                     className="w-full"
                   >
                     Check again
