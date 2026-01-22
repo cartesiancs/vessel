@@ -6,6 +6,7 @@ import { PrivacyPage } from "./pages/Privacy";
 import PricingPage from "./pages/Pricing";
 import LoginPage from "./pages/Login";
 import DashboardPage from "./pages/Dashboard";
+import CheckoutSuccessPage from "./pages/CheckoutSuccess";
 import { Toaster } from "sonner";
 
 const router = createBrowserRouter([
@@ -36,6 +37,10 @@ const router = createBrowserRouter([
   {
     path: "/dashboard",
     element: <DashboardPage />,
+  },
+  {
+    path: "/checkout/success",
+    element: <CheckoutSuccessPage />,
   },
 ]);
 
