@@ -4,7 +4,7 @@ const footerNav = {
     { name: "Roadmap", href: "/roadmap" },
     { name: "Usecase", href: "/usecase" },
     { name: "Privacy", href: "/privacy" },
-
+    { name: "Privacy Policy", href: "/privacy-policy" },
     { name: "GitHub", href: "https://github.com/cartesiancs/vessel" },
   ],
   company: [

@@ -3,6 +3,7 @@ import LandingPage from "./pages/Main";
 import RoadmapPage from "./pages/Roadmap";
 import UsecasePage from "./pages/UseCase";
 import { PrivacyPage } from "./pages/Privacy";
+import PrivacyPolicyPage from "./pages/PrivacyPolicy";
 import PricingPage from "./pages/Pricing";
 import LoginPage from "./pages/Login";
 import DashboardPage from "./pages/Dashboard";
@@ -25,6 +26,10 @@ const router = createBrowserRouter([
   {
     path: "/privacy",
     element: <PrivacyPage />,
+  },
+  {
+    path: "/privacy-policy",
+    element: <PrivacyPolicyPage />,
   },
   {
     path: "/pricing",

@@ -68,7 +68,7 @@ export default function LoginPage() {
           </Button>
           <p className='text-center text-sm text-muted-foreground mt-6'>
             By signing in, you agree to our{" "}
-            <a href='/privacy' className='underline hover:text-foreground'>
+            <a href='/privacy-policy' className='underline hover:text-foreground'>
               Privacy Policy
             </a>
           </p>
