@@ -1,20 +1,21 @@
 import { useEffect } from "react";
 import { Navigate, useLocation } from "react-router";
-import Cookies from "js-cookie";
 import { parseJwt } from "@/lib/jwt";
+import { storage } from "@/lib/storage";
 import { isDemoMode } from "@/shared/demo";
 
 export function AuthInterceptor({ children }: { children: React.ReactNode }) {
   const location = useLocation();
-  const token = Cookies.get("token");
+  const token = storage.getToken();
 
   useEffect(() => {
     if (isDemoMode) return;
 
-    if (!Cookies.get("token")) {
+    const currentToken = storage.getToken();
+    if (!currentToken) {
       window.location.href = "/auth";
     } else {
-      const parse = parseJwt(Cookies.get("token") || "");
+      const parse = parseJwt(currentToken);
       if (!parse?.exp) {
         window.location.href = "/auth";
         return;

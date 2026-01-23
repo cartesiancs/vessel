@@ -12,7 +12,7 @@ use tokio::{
     net::TcpStream,
     sync::{mpsc, Mutex, oneshot},
 };
-use tokio_tungstenite::{connect_async, tungstenite};
+use tokio_tungstenite::tungstenite;
 use url::Url;
 
 const BINARY_PREFIX: usize = 8;
@@ -51,7 +51,7 @@ impl TunnelManager {
         }
     }
 
-    pub async fn start(&self, server: String, target: String) -> Result<String> {
+    pub async fn start(&self, server: String, target: String, access_token: Option<String>) -> Result<String> {
         let mut guard = self.inner.lock().await;
         if let Some(session) = guard.session_id.clone() {
             return Ok(session);
@@ -63,7 +63,7 @@ impl TunnelManager {
         let target_clone = target.clone();
 
         let handle = tokio::spawn(async move {
-            if let Err(err) = run_agent(server_clone, target_clone, session_tx, cancel_rx).await {
+            if let Err(err) = run_agent(server_clone, target_clone, access_token, session_tx, cancel_rx).await {
                 tracing::warn!("tunnel agent stopped: {err:#}");
             }
         });
@@ -195,11 +195,37 @@ impl TargetInfo {
 async fn run_agent(
     server: String,
     target: String,
+    access_token: Option<String>,
     session_tx: oneshot::Sender<String>,
     mut cancel: oneshot::Receiver<()>,
 ) -> Result<()> {
     let target_info = TargetInfo::parse(&target)?;
-    let (ws_stream, _) = connect_async(server.clone())
+
+    // Parse the server URL to extract host for the Host header
+    let server_url = Url::parse(&server).context("invalid tunnel server URL")?;
+    let server_host = server_url
+        .host_str()
+        .ok_or_else(|| anyhow!("tunnel server URL has no host"))?;
+    let host_header = match server_url.port() {
+        Some(port) => format!("{}:{}", server_host, port),
+        None => server_host.to_string(),
+    };
+
+    // Build WebSocket request with optional Authorization header
+    let mut request = http::Request::builder()
+        .uri(&server)
+        .header("Host", &host_header)
+        .header("Connection", "Upgrade")
+        .header("Upgrade", "websocket")
+        .header("Sec-WebSocket-Version", "13")
+        .header("Sec-WebSocket-Key", tungstenite::handshake::client::generate_key());
+
+    if let Some(token) = &access_token {
+        request = request.header("Authorization", format!("Bearer {}", token));
+    }
+
+    let request = request.body(()).context("failed to build websocket request")?;
+    let (ws_stream, _) = tokio_tungstenite::connect_async(request)
         .await
         .context("failed to connect to tunnel server")?;
     let (mut ws_tx, mut ws_rx) = ws_stream.split();

@@ -50,17 +50,17 @@ export function Footer() {
   );
 }
 
-import Cookies from "js-cookie";
 import { WebSocketStatusIndicator } from "../ws/IsConnected";
 import { parseJwt } from "@/lib/jwt";
 import { isDemoMode } from "@/shared/demo";
+import { storage } from "@/lib/storage";
 
 const TokenExpiration: React.FC = () => {
   const [timeLeft, setTimeLeft] = useState<string>("");
 
   useEffect(() => {
     const calculateTimeLeft = () => {
-      const token = Cookies.get("token");
+      const token = storage.getToken();
 
       if (!token || isDemoMode) {
         setTimeLeft("");

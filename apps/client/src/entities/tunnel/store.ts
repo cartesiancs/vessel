@@ -7,7 +7,7 @@ type TunnelState = {
   isLoading: boolean;
   error: string | null;
   refresh: () => Promise<void>;
-  start: (server: string, target: string) => Promise<void>;
+  start: (server: string, target: string, accessToken?: string) => Promise<void>;
   stop: () => Promise<void>;
 };
 
@@ -32,10 +32,10 @@ export const useTunnelStore = create<TunnelState>((set, get) => ({
       set({ error: message, isLoading: false, status: emptyStatus });
     }
   },
-  start: async (server, target) => {
+  start: async (server, target, accessToken) => {
     set({ isLoading: true, error: null });
     try {
-      const res = await api.startTunnel({ server, target });
+      const res = await api.startTunnel({ server, target, access_token: accessToken });
       set({
         status: {
           active: true,

@@ -9,6 +9,7 @@ use crate::{state::AppState, tunnel_control::TunnelManager};
 pub struct StartRequest {
     pub server: String,
     pub target: String,
+    pub access_token: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -30,7 +31,7 @@ pub async fn start_tunnel(
 ) -> Result<Json<StartResponse>, StatusCode> {
     let session_id = state
         .tunnel_manager
-        .start(payload.server, payload.target)
+        .start(payload.server, payload.target, payload.access_token)
         .await
         .map_err(|_| StatusCode::BAD_GATEWAY)?;
     Ok(Json(StartResponse { session_id }))

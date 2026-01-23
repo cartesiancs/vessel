@@ -28,10 +28,17 @@
     }
   },
   "bundle": {
+    "active": true,
+    "targets": ["dmg"],
     "icon": [],
     "externalBin": ["../../../target/release/server"]
   },
   "plugins": {
+    "deep-link": {
+      "desktop": {
+        "schemes": ["vessel"]
+      }
+    },
     "prevent-default": {
       "back": true,
       "backspace": true,

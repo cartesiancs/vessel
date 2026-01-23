@@ -8,6 +8,7 @@ export type TunnelStatus = {
 export type StartTunnelRequest = {
   server: string;
   target: string;
+  access_token?: string;
 };
 
 export type StartTunnelResponse = {

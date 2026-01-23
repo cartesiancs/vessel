@@ -1,8 +1,8 @@
 import { useEffect } from "react";
-import Cookies from "js-cookie";
 
 import { isDemoMode } from "@/shared/demo";
 import { ensureSidecarRunning, getDesktopServerUrl, isTauri } from "@/shared/desktop";
+import { storage } from "@/lib/storage";
 
 export const useDesktopSidecar = () => {
   useEffect(() => {
@@ -13,11 +13,11 @@ export const useDesktopSidecar = () => {
     const bootstrap = async () => {
       await ensureSidecarRunning();
 
-      const current = Cookies.get("server_url");
+      const current = storage.getServerUrl();
       if (!current) {
         const baseUrl = await getDesktopServerUrl();
         if (baseUrl) {
-          Cookies.set("server_url", baseUrl, { expires: 30 });
+          storage.setServerUrl(baseUrl);
         }
       }
     };

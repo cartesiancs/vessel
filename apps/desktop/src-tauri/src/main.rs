@@ -10,7 +10,7 @@ use std::{
 };
 
 use serde::Serialize;
-use tauri::{AppHandle, Manager, State};
+use tauri::{AppHandle, Emitter, Manager, State};
 use tauri_plugin_prevent_default::{Builder as PreventBuilder, KeyboardShortcut};
 use tauri_plugin_shell::process::CommandChild;
 use tauri_plugin_shell::{process::CommandEvent, ShellExt};
@@ -242,6 +242,7 @@ fn main() {
 
     tauri::Builder::default()
         .manage(SidecarManager::default())
+        .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_shell::init())
         .plugin(
             PreventBuilder::new()
@@ -257,6 +258,17 @@ fn main() {
             // Inject navigation guard script into all existing webviews and re-apply after page loads.
             for window in app.webview_windows().values() {
                 let _ = window.eval(PREVENT_NAV_JS);
+            }
+
+            // Register deep link handler for OAuth callback
+            #[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
+            {
+                use tauri_plugin_deep_link::DeepLinkExt;
+                let app_handle = app.handle().clone();
+                app.deep_link().on_open_url(move |event| {
+                    let urls: Vec<String> = event.urls().iter().map(|u| u.to_string()).collect();
+                    let _ = app_handle.emit("deep-link-opened", urls);
+                });
             }
 
             // Start the server sidecar.

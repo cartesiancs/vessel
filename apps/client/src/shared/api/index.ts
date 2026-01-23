@@ -1,7 +1,7 @@
 import axios from "axios";
-import Cookies from "js-cookie";
 import { isDemoMode } from "../demo";
 import { createMockAdapter } from "../mock/mockAdapter";
+import { storage } from "@/lib/storage";
 
 export const apiClient = axios.create({
   headers: {
@@ -16,8 +16,8 @@ if (isDemoMode) {
 apiClient.interceptors.request.use(
   (config) => {
     if (!isDemoMode) {
-      const token = Cookies.get("token");
-      const serverUrl = Cookies.get("server_url");
+      const token = storage.getToken();
+      const serverUrl = storage.getServerUrl();
 
       if (serverUrl) {
         config.baseURL = `${serverUrl}/api`;

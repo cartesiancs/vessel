@@ -27,6 +27,7 @@ chrono = { version = "0.4.41", features = ["serde"] }
 async-trait = "0.1.88"
 dotenvy = "0.15.7"
 diesel = { version = "2.2.0", features = ["sqlite", "chrono", "r2d2", "returning_clauses_for_sqlite_3_35"] }
+libsqlite3-sys = { version = "*", features = ["bundled"] }
 diesel_migrations = "2.2.0"
 bcrypt = "0.17.0"
 r2d2 = "0.8"
@@ -57,6 +58,7 @@ config = { version =  "0.15.15", features = ["toml"] }
 tokio-tungstenite = { version = "0.27", features = ["rustls-tls-native-roots"] }
 tungstenite = { version = "0.27", features = ["rustls-tls-native-roots"] }
 httparse = "1.9"
+http = "1"
 
 
 [[bin]]

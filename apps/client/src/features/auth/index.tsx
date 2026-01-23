@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import Cookies from "js-cookie";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -11,8 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { DEMO_SERVER_URL, DEMO_TOKEN, isDemoMode } from "@/shared/demo";
 import { DefaultAdminPasswordDialog } from "./DefaultAdminPasswordDialog";
 import { authenticateWithPassword } from "./api";
+import { storage } from "@/lib/storage";
 
-const RECENT_URLS_COOKIE = "recent_server_urls";
 const MAX_RECENT_URLS = 5;
 
 export function LoginForm({
@@ -31,8 +30,8 @@ export function LoginForm({
 
   const connectToServer = async (targetUrl: string) => {
     if (isDemoMode) {
-      Cookies.set("server_url", DEMO_SERVER_URL, { expires: 1 });
-      Cookies.set("token", DEMO_TOKEN, { expires: 1 });
+      storage.setServerUrl(DEMO_SERVER_URL);
+      storage.setToken(DEMO_TOKEN);
       toast.success("Demo mode enabled. Loading demo dashboard...");
       navigate("/dashboard");
       return;
@@ -72,10 +71,8 @@ export function LoginForm({
         ].slice(0, MAX_RECENT_URLS);
 
         setRecentUrls(updatedUrls);
-        Cookies.set(RECENT_URLS_COOKIE, JSON.stringify(updatedUrls), {
-          expires: 365,
-        });
-        Cookies.set("server_url", processedUrl, { expires: 1 });
+        storage.setRecentUrls(updatedUrls);
+        storage.setServerUrl(processedUrl);
 
         setServerUrlForDialog(processedUrl);
         setShowAuthFields(true);
@@ -109,8 +106,8 @@ export function LoginForm({
         password,
       });
 
-      Cookies.set("token", token, { expires: 1 / 24 });
-      Cookies.set("server_url", processedUrl, { expires: 1 / 24 });
+      storage.setToken(token);
+      storage.setServerUrl(processedUrl);
 
       setServerUrlForDialog(processedUrl);
 
@@ -134,15 +131,15 @@ export function LoginForm({
   };
 
   useEffect(() => {
-    const token = Cookies.get("token");
+    const token = storage.getToken();
     if (token) {
       navigate("/dashboard");
       return;
     }
 
     if (isDemoMode) {
-      Cookies.set("server_url", DEMO_SERVER_URL, { expires: 1 });
-      Cookies.set("token", DEMO_TOKEN, { expires: 1 });
+      storage.setServerUrl(DEMO_SERVER_URL);
+      storage.setToken(DEMO_TOKEN);
       toast.message("Demo mode active", {
         description: "Using mock data without a backend.",
       });
@@ -150,17 +147,9 @@ export function LoginForm({
       return;
     }
 
-    const storedUrls = Cookies.get(RECENT_URLS_COOKIE);
-    if (storedUrls) {
-      try {
-        const parsedUrls = JSON.parse(storedUrls);
-        if (Array.isArray(parsedUrls)) {
-          setRecentUrls(parsedUrls);
-        }
-      } catch (error) {
-        console.error("Failed to parse recent URLs from cookies.", error);
-        Cookies.remove(RECENT_URLS_COOKIE);
-      }
+    const storedUrls = storage.getRecentUrls();
+    if (storedUrls.length > 0) {
+      setRecentUrls(storedUrls);
     }
   }, [navigate]);
 
@@ -268,11 +257,9 @@ export function LoginForm({
         open={isPasswordDialogOpen}
         serverUrl={serverUrlForDialog}
         onSuccess={(refreshedToken) => {
-          Cookies.set("token", refreshedToken, { expires: 1 / 24 });
+          storage.setToken(refreshedToken);
           if (serverUrlForDialog) {
-            Cookies.set("server_url", serverUrlForDialog, {
-              expires: 1 / 24,
-            });
+            storage.setServerUrl(serverUrlForDialog);
           }
           setIsPasswordDialogOpen(false);
           toast.success("Password updated. Logging you in with the new password.");

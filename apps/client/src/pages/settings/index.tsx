@@ -27,9 +27,11 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useTunnelStore } from "@/entities/tunnel/store";
+import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
 
 export function SettingsPage() {
   const { status, isLoading, error, refresh, start, stop } = useTunnelStore();
+  const { session, isLoading: authLoading, signInWithGoogle, signOut } = useSupabaseAuth();
   const [server, setServer] = useState("");
   const [target, setTarget] = useState("http://127.0.0.1:8080");
   const [localError, setLocalError] = useState<string | null>(null);
@@ -64,7 +66,7 @@ export function SettingsPage() {
         return;
       }
       try {
-        await start(server, target);
+        await start(server, target, session?.access_token);
       } catch (err) {
         setLocalError(
           err instanceof Error ? err.message : "Failed to start tunnel.",
@@ -114,6 +116,30 @@ export function SettingsPage() {
           <div className='flex flex-col'>
             <h1 className='font-semibold text-lg md:text-2xl'>Settings</h1>
           </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Vessel Cloud</CardTitle>
+              <CardDescription>Sign in to connect with Vessel Cloud tunnel servers</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {session ? (
+                <div className='flex items-center justify-between'>
+                  <div className='flex items-center gap-2'>
+                    <span className='text-sm text-muted-foreground'>Signed in as</span>
+                    <span className='font-medium'>{session.user?.email}</span>
+                  </div>
+                  <Button variant='outline' onClick={signOut} disabled={authLoading}>
+                    Sign Out
+                  </Button>
+                </div>
+              ) : (
+                <Button onClick={signInWithGoogle} disabled={authLoading}>
+                  Sign in with Google
+                </Button>
+              )}
+            </CardContent>
+          </Card>
 
           <Card>
             <CardHeader>

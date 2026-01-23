@@ -24,9 +24,9 @@ import {
 } from "@/components/ui/sidebar";
 import { useLogout } from "../auth/hook";
 import { useEffect, useState } from "react";
-import Cookies from "js-cookie";
 import { parseJwt } from "@/lib/jwt";
 import { isDemoMode } from "@/shared/demo";
+import { storage } from "@/lib/storage";
 
 export function NavFooter({
   user,
@@ -43,8 +43,9 @@ export function NavFooter({
 
   useEffect(() => {
     if (isDemoMode) return;
-    if (Cookies.get("token")) {
-      const parse = parseJwt(Cookies.get("token") || "");
+    const token = storage.getToken();
+    if (token) {
+      const parse = parseJwt(token);
       if (parse?.sub && typeof parse.sub === "string") {
         setUserId(parse.sub);
       }

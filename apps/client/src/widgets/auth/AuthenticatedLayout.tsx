@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { Outlet, useNavigate } from "react-router";
-import Cookies from "js-cookie";
 import { WebSocketProvider } from "@/features/ws/WebSocketProvider";
 import { TopBarWrapper } from "./TopBarWrapper";
 import { isDemoMode } from "@/shared/demo";
+import { storage } from "@/lib/storage";
 
 export function AuthenticatedLayout() {
   const [wsUrl, setWsUrl] = useState<string | null>(null);
@@ -15,8 +15,8 @@ export function AuthenticatedLayout() {
       return;
     }
 
-    const token = Cookies.get("token");
-    const serverUrlString = Cookies.get("server_url");
+    const token = storage.getToken();
+    const serverUrlString = storage.getServerUrl();
 
     if (!token || !serverUrlString) {
       navigate("/auth", { replace: true });
@@ -30,7 +30,7 @@ export function AuthenticatedLayout() {
 
       setWsUrl(`${wsProto}://${host}/signal?token=${token}`);
     } catch {
-      console.error("Invalid server_url in cookies:", serverUrlString);
+      console.error("Invalid server_url in storage:", serverUrlString);
       navigate("/auth", { replace: true });
     }
   }, [navigate]);
