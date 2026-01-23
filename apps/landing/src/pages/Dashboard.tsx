@@ -1,14 +1,16 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { useAuth } from "@/contexts/AuthContext";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Loader2 } from "lucide-react";
 
 export default function DashboardPage() {
   const navigate = useNavigate();
   const { user, loading, signOut } = useAuth();
+  const [signingOut, setSigningOut] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -17,6 +19,7 @@ export default function DashboardPage() {
   }, [user, loading, navigate]);
 
   const handleSignOut = async () => {
+    setSigningOut(true);
     await signOut();
     navigate("/");
   };
@@ -40,8 +43,15 @@ export default function DashboardPage() {
         <div className="max-w-4xl mx-auto">
           <div className="flex items-center justify-between mb-8">
             <h1 className="text-3xl font-bold">Dashboard</h1>
-            <Button variant="outline" onClick={handleSignOut}>
-              Sign Out
+            <Button variant="outline" onClick={handleSignOut} disabled={signingOut}>
+              {signingOut ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Signing out...
+                </>
+              ) : (
+                "Sign Out"
+              )}
             </Button>
           </div>
 

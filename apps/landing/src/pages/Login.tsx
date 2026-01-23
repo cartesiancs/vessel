@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -10,16 +10,23 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { FcGoogle } from "react-icons/fc";
+import { Loader2 } from "lucide-react";
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const { user, loading, signInWithGoogle } = useAuth();
+  const [signingIn, setSigningIn] = useState(false);
 
   useEffect(() => {
     if (!loading && user) {
       navigate("/dashboard");
     }
   }, [user, loading, navigate]);
+
+  const handleSignIn = async () => {
+    setSigningIn(true);
+    await signInWithGoogle();
+  };
 
   if (loading) {
     return (
@@ -44,10 +51,20 @@ export default function LoginPage() {
             variant='outline'
             className='w-full'
             size='lg'
-            onClick={signInWithGoogle}
+            onClick={handleSignIn}
+            disabled={signingIn}
           >
-            <FcGoogle className='mr-2 h-5 w-5' />
-            Continue with Google
+            {signingIn ? (
+              <>
+                <Loader2 className='mr-2 h-5 w-5 animate-spin' />
+                Signing in...
+              </>
+            ) : (
+              <>
+                <FcGoogle className='mr-2 h-5 w-5' />
+                Continue with Google
+              </>
+            )}
           </Button>
           <p className='text-center text-sm text-muted-foreground mt-6'>
             By signing in, you agree to our{" "}
