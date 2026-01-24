@@ -7,6 +7,10 @@ const footerNav = {
   ],
   contents: [
     { name: "Privacy Policy", href: "/privacy-policy" },
+    {
+      name: "Change Log",
+      href: "https://github.com/cartesiancs/vessel/releases",
+    },
     { name: "GitHub", href: "https://github.com/cartesiancs/vessel" },
   ],
   company: [
