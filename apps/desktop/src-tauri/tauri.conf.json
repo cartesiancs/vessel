@@ -30,7 +30,7 @@
   "bundle": {
     "active": true,
     "targets": ["dmg"],
-    "icon": [],
+    "icon": ["icons/icon.icns", "icons/icon.png"],
     "externalBin": ["../../../target/release/server"]
   },
   "plugins": {

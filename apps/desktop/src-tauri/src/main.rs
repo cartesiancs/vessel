@@ -283,6 +283,13 @@ fn main() {
             start_sidecar,
             stop_sidecar
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|app, event| {
+            if let tauri::RunEvent::Exit = event {
+                if let Some(child) = app.state::<SidecarManager>().child.lock().unwrap().take() {
+                    let _ = child.kill();
+                }
+            }
+        });
 }
