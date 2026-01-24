@@ -55,7 +55,10 @@ export default function CheckoutSuccessPage() {
       pollCountRef.current += 1;
 
       if (pollCountRef.current < MAX_POLLS) {
-        timeoutRef.current = window.setTimeout(checkSubscription, POLL_INTERVAL);
+        timeoutRef.current = window.setTimeout(
+          checkSubscription,
+          POLL_INTERVAL,
+        );
       } else {
         setStatus("pending");
       }
@@ -94,8 +97,8 @@ export default function CheckoutSuccessPage() {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      <div className='min-h-screen flex items-center justify-center bg-background'>
+        <Loader2 className='h-8 w-8 animate-spin text-muted-foreground' />
       </div>
     );
   }
@@ -103,16 +106,16 @@ export default function CheckoutSuccessPage() {
   return (
     <>
       <Navbar />
-      <main className="min-h-screen bg-background pt-20 px-4">
-        <div className="max-w-lg mx-auto mt-16">
-          <Card>
-            <CardHeader className="text-center">
+      <main className='min-h-screen pt-20 px-4'>
+        <div className='max-w-lg mx-auto mt-16'>
+          <Card className='bg-black'>
+            <CardHeader className='text-center'>
               {status === "loading" && (
                 <>
-                  <div className="flex justify-center mb-4">
-                    <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                  <div className='flex justify-center mb-4'>
+                    <Loader2 className='h-12 w-12 animate-spin text-primary' />
                   </div>
-                  <CardTitle className="text-2xl">
+                  <CardTitle className='text-2xl'>
                     Processing your subscription
                   </CardTitle>
                   <CardDescription>
@@ -123,10 +126,10 @@ export default function CheckoutSuccessPage() {
 
               {status === "active" && (
                 <>
-                  <div className="flex justify-center mb-4">
-                    <CheckCircle2 className="h-12 w-12 text-green-500" />
+                  <div className='flex justify-center mb-4'>
+                    <CheckCircle2 className='h-12 w-12 text-green-500' />
                   </div>
-                  <CardTitle className="text-2xl">
+                  <CardTitle className='text-2xl'>
                     Subscription activated!
                   </CardTitle>
                   <CardDescription>
@@ -137,10 +140,10 @@ export default function CheckoutSuccessPage() {
 
               {status === "pending" && (
                 <>
-                  <div className="flex justify-center mb-4">
-                    <Loader2 className="h-12 w-12 text-yellow-500" />
+                  <div className='flex justify-center mb-4'>
+                    <Loader2 className='h-12 w-12 text-yellow-500' />
                   </div>
-                  <CardTitle className="text-2xl">
+                  <CardTitle className='text-2xl'>
                     Payment is being processed
                   </CardTitle>
                   <CardDescription>
@@ -152,10 +155,10 @@ export default function CheckoutSuccessPage() {
 
               {status === "error" && (
                 <>
-                  <div className="flex justify-center mb-4">
-                    <XCircle className="h-12 w-12 text-red-500" />
+                  <div className='flex justify-center mb-4'>
+                    <XCircle className='h-12 w-12 text-red-500' />
                   </div>
-                  <CardTitle className="text-2xl">
+                  <CardTitle className='text-2xl'>
                     Something went wrong
                   </CardTitle>
                   <CardDescription>
@@ -165,22 +168,25 @@ export default function CheckoutSuccessPage() {
                 </>
               )}
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className='space-y-4'>
               {checkoutId && (
-                <p className="text-xs text-center text-muted-foreground">
+                <p className='text-xs text-center text-muted-foreground'>
                   Checkout ID: {checkoutId}
                 </p>
               )}
 
-              <div className="flex flex-col gap-3">
-                <Button onClick={() => navigate("/dashboard")} className="w-full">
+              <div className='flex flex-col gap-3'>
+                <Button
+                  onClick={() => navigate("/dashboard")}
+                  className='w-full'
+                >
                   Go to Dashboard
                 </Button>
                 {(status === "pending" || status === "error") && (
                   <Button
-                    variant="outline"
+                    variant='outline'
                     onClick={handleRetry}
-                    className="w-full"
+                    className='w-full'
                   >
                     Check again
                   </Button>

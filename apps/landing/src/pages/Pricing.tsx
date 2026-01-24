@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
@@ -43,6 +43,31 @@ function PricingPage() {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [isSubscribed, setIsSubscribed] = useState(false);
+
+  useEffect(() => {
+    const checkSubscription = async () => {
+      if (!user) return;
+
+      try {
+        const { data } = await supabase
+          .from("billing_subscriptions")
+          .select("status")
+          .eq("user_id", user.id)
+          .eq("status", "active")
+          .limit(1)
+          .maybeSingle();
+
+        setIsSubscribed(!!data);
+      } catch (err) {
+        console.error("Error checking subscription:", err);
+      }
+    };
+
+    if (!authLoading) {
+      checkSubscription();
+    }
+  }, [user, authLoading]);
 
   const handleProCheckout = async () => {
     if (authLoading) return;
@@ -171,13 +196,15 @@ function PricingPage() {
                 <Button
                   className="h-11 w-full text-base"
                   onClick={handleProCheckout}
-                  disabled={checkoutLoading || authLoading}
+                  disabled={checkoutLoading || authLoading || isSubscribed}
                 >
                   {checkoutLoading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Redirecting...
                     </>
+                  ) : isSubscribed ? (
+                    "Already subscribed"
                   ) : (
                     "Continue with Pro"
                   )}
