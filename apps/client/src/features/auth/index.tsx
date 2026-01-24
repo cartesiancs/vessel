@@ -11,6 +11,7 @@ import { DEMO_SERVER_URL, DEMO_TOKEN, isDemoMode } from "@/shared/demo";
 import { DefaultAdminPasswordDialog } from "./DefaultAdminPasswordDialog";
 import { authenticateWithPassword } from "./api";
 import { storage } from "@/lib/storage";
+import { parseJwt } from "@/lib/jwt";
 
 const MAX_RECENT_URLS = 5;
 
@@ -131,12 +132,6 @@ export function LoginForm({
   };
 
   useEffect(() => {
-    const token = storage.getToken();
-    if (token) {
-      navigate("/dashboard");
-      return;
-    }
-
     if (isDemoMode) {
       storage.setServerUrl(DEMO_SERVER_URL);
       storage.setToken(DEMO_TOKEN);
@@ -145,6 +140,25 @@ export function LoginForm({
       });
       navigate("/dashboard");
       return;
+    }
+
+    const token = storage.getToken();
+    const serverUrl = storage.getServerUrl();
+
+    if (token && serverUrl) {
+      const parsed = parseJwt(token);
+      if (!parsed?.exp) {
+        storage.removeToken();
+      } else {
+        const now = new Date();
+        const exp = new Date(parsed.exp * 1000);
+        if (now.getTime() >= exp.getTime()) {
+          storage.removeToken();
+        } else {
+          navigate("/dashboard");
+          return;
+        }
+      }
     }
 
     const storedUrls = storage.getRecentUrls();
@@ -236,8 +250,8 @@ export function LoginForm({
               {isLoading
                 ? "Processing..."
                 : showAuthFields
-                ? "Connect (Auth)"
-                : "Connect"}
+                  ? "Connect (Auth)"
+                  : "Connect"}
             </Button>
           </div>
         </div>
@@ -262,7 +276,9 @@ export function LoginForm({
             storage.setServerUrl(serverUrlForDialog);
           }
           setIsPasswordDialogOpen(false);
-          toast.success("Password updated. Logging you in with the new password.");
+          toast.success(
+            "Password updated. Logging you in with the new password.",
+          );
           navigate("/dashboard");
         }}
       />

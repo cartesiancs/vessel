@@ -38,7 +38,7 @@ export function FeaturesSection() {
       >
         <div className='mb-12 text-left'>
           <h2 className='mt-3 text-3xl font-bold tracking-tight md:text-4xl'>
-            C2 Platform,{" "}
+            Physical AI Platform,{" "}
             <span className='text-neutral-500'>Local-First by Design</span>
           </h2>
         </div>
