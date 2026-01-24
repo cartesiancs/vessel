@@ -11,8 +11,21 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Loader2, CheckCircle2, Crown, User } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Loader2, CheckCircle2, User } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { cancelSubscription } from "@/lib/billing";
+import { toast } from "sonner";
 
 export default function DashboardPage() {
   const navigate = useNavigate();
@@ -21,6 +34,9 @@ export default function DashboardPage() {
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [subscriptionLoading, setSubscriptionLoading] = useState(true);
   const [avatarError, setAvatarError] = useState(false);
+  const [cancelLoading, setCancelLoading] = useState(false);
+  const [cancelAtPeriodEnd, setCancelAtPeriodEnd] = useState(false);
+  const [currentPeriodEnd, setCurrentPeriodEnd] = useState<string | null>(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -38,13 +54,17 @@ export default function DashboardPage() {
       try {
         const { data } = await supabase
           .from("billing_subscriptions")
-          .select("status")
+          .select("status, cancel_at_period_end, current_period_end")
           .eq("user_id", user.id)
           .eq("status", "active")
           .limit(1)
           .maybeSingle();
 
         setIsSubscribed(!!data);
+        if (data) {
+          setCancelAtPeriodEnd(data.cancel_at_period_end ?? false);
+          setCurrentPeriodEnd(data.current_period_end ?? null);
+        }
       } catch (err) {
         console.error("Error checking subscription:", err);
       } finally {
@@ -61,6 +81,29 @@ export default function DashboardPage() {
     setSigningOut(true);
     await signOut();
     navigate("/");
+  };
+
+  const handleCancelSubscription = async () => {
+    setCancelLoading(true);
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        toast.error("Please sign in again to cancel your subscription");
+        return;
+      }
+
+      await cancelSubscription(session.access_token);
+      toast.success("Subscription cancelled successfully");
+      setIsSubscribed(false);
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Failed to cancel subscription",
+      );
+    } finally {
+      setCancelLoading(false);
+    }
   };
 
   if (loading) {
@@ -148,16 +191,73 @@ export default function DashboardPage() {
                     <span>Checking subscription...</span>
                   </div>
                 ) : isSubscribed ? (
-                  <div className='flex items-center gap-3'>
-                    <div>
-                      <p className='font-semibold flex items-center gap-2'>
-                        Pro Plan
-                        <CheckCircle2 className='h-4 w-4 text-green-500' />
-                      </p>
-                      <p className='text-sm text-muted-foreground'>
-                        Active subscription
-                      </p>
+                  <div className='space-y-4'>
+                    <div className='flex items-center gap-3'>
+                      <div>
+                        <p className='font-semibold flex items-center gap-2'>
+                          Pro Plan
+                          {cancelAtPeriodEnd ? (
+                            <span className='text-xs font-normal text-amber-500'>
+                              Cancelling
+                            </span>
+                          ) : (
+                            <CheckCircle2 className='h-4 w-4 text-green-500' />
+                          )}
+                        </p>
+                        <p className='text-sm text-muted-foreground'>
+                          {cancelAtPeriodEnd && currentPeriodEnd
+                            ? `Ends on ${new Date(currentPeriodEnd).toLocaleDateString()}`
+                            : "Active subscription"}
+                        </p>
+                      </div>
                     </div>
+                    {cancelAtPeriodEnd ? (
+                      <p className='text-sm text-amber-500'>
+                        Your subscription will be cancelled at the end of the current billing period.
+                      </p>
+                    ) : (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant='outline'
+                            className='w-full text-destructive hover:text-destructive'
+                            disabled={cancelLoading}
+                          >
+                            {cancelLoading ? (
+                              <>
+                                <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+                                Cancelling...
+                              </>
+                            ) : (
+                              "Cancel Subscription"
+                            )}
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>
+                              Cancel Subscription
+                            </AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Are you sure you want to cancel your subscription?
+                              You will lose access to Pro features at the end of
+                              the current billing period.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>
+                              Keep Subscription
+                            </AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={handleCancelSubscription}
+                            className='bg-red-500 text-white hover:bg-destructive/90'
+                          >
+                            Yes, Cancel
+                          </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    )}
                   </div>
                 ) : (
                   <div className='space-y-3'>
