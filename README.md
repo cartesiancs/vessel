@@ -1,5 +1,5 @@
 <p align='center'>
-<img src='.github/icon.png' width='210' />
+<img src='.github/icon.png' width='140' />
 <h1 align='center'>Vessel</h1>
 <p align='center'>The open source alternative to Anduril for self-defence</p>
 </p>
