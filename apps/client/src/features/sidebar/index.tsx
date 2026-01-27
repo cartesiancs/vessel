@@ -31,6 +31,7 @@ import {
   Blocks,
   CircleDashed,
   Code,
+  Network,
   RadioTower,
   ChevronDown,
   ChevronRight,
@@ -128,6 +129,11 @@ const data = {
           title: "Logs",
           url: "/log",
           icon: <ScrollText />,
+        },
+        {
+          title: "Networks",
+          url: "/networks",
+          icon: <Network />,
         },
         {
           title: "Settings",

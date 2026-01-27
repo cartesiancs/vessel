@@ -21,6 +21,7 @@ import { useDesktopSidecar } from "./hooks/useDesktopSidecar";
 import { usePreventBackNavigation } from "./hooks/usePreventBackNavigation";
 import { DynamicDashboardPage } from "./pages/dynamic-dashboard";
 import { SettingsPage } from "./pages/settings";
+import { NetworksPage } from "./pages/networks";
 
 const router = createBrowserRouter([
   {
@@ -140,6 +141,14 @@ const router = createBrowserRouter([
         element: (
           <AuthInterceptor>
             <CodePage />
+          </AuthInterceptor>
+        ),
+      },
+      {
+        path: "/networks",
+        element: (
+          <AuthInterceptor>
+            <NetworksPage />
           </AuthInterceptor>
         ),
       },
