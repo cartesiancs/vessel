@@ -276,7 +276,7 @@ export const DEFINITION_NODE = {
     connectors: [{ id: "id", name: "payload", type: "out" }],
     nodeType: "WEBSOCKET_ON",
     data: {
-      url: "ws://localhost:8080",
+      url: "ws://localhost:6174",
     },
     dataType: {
       url: "STRING",
@@ -286,7 +286,7 @@ export const DEFINITION_NODE = {
     connectors: [{ id: "id", name: "payload", type: "in" }],
     nodeType: "WEBSOCKET_SEND",
     data: {
-      url: "ws://localhost:8080",
+      url: "ws://localhost:6174",
     },
     dataType: {
       url: "STRING",

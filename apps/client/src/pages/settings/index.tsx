@@ -33,7 +33,7 @@ export function SettingsPage() {
   const { status, isLoading, error, refresh, start, stop } = useTunnelStore();
   const { session, isLoading: authLoading, signInWithGoogle, signOut } = useSupabaseAuth();
   const [server, setServer] = useState("");
-  const [target, setTarget] = useState("http://127.0.0.1:8080");
+  const [target, setTarget] = useState("http://127.0.0.1:6174");
   const [localError, setLocalError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -175,7 +175,7 @@ export function SettingsPage() {
                   <Label htmlFor='target'>Local target URL</Label>
                   <Input
                     id='target'
-                    placeholder='http://127.0.0.1:8080'
+                    placeholder='http://127.0.0.1:6174'
                     value={target}
                     onChange={(e) => setTarget(e.target.value)}
                     disabled={isLoading || status.active}

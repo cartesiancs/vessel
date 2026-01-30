@@ -3,7 +3,7 @@ const https = require("node:https");
 const { randomBytes } = require("node:crypto");
 
 const config = {
-  serverUrl: "http://127.0.0.1:8080",
+  serverUrl: "http://127.0.0.1:6174",
   entityId: "testbasic-http",
   deviceId: "testbasic",
   deviceToken: "OQ_PrBdAapWVulzXCke4n9EbXEINILPLryIpIe_19lM",

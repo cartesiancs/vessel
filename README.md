@@ -98,7 +98,7 @@ npm run client
 ```bash
 docker build -t server .
 
-docker run -p 0.0.0.0:8080:8080 server:latest
+docker run -p 0.0.0.0:6174:6174 server:latest
 ```
 
 ### Option3. Desktop (Tauri)

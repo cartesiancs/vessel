@@ -44,7 +44,7 @@ pub fn print_logo() {
     print_header();
 
     match get_local_ip_address() {
-        Ok(ip) => print_local_ip_info(&ip, &"8080".to_string()),
+        Ok(ip) => print_local_ip_info(&ip, &"6174".to_string()),
         Err(e) => print_error(&format!("Could not fetch local IP: {}", e)),
     }
 

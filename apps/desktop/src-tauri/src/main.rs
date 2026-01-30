@@ -15,7 +15,7 @@ use tauri_plugin_prevent_default::{Builder as PreventBuilder, KeyboardShortcut};
 use tauri_plugin_shell::process::CommandChild;
 use tauri_plugin_shell::{process::CommandEvent, ShellExt};
 
-const DEFAULT_LISTEN: &str = "0.0.0.0:8080";
+const DEFAULT_LISTEN: &str = "0.0.0.0:6174";
 const CONFIG_FILE: &str = "config.toml";
 
 #[derive(Default)]
@@ -123,27 +123,71 @@ fn start_server_sidecar(
         }
     }
 
-    let extra_paths = [
-        "/opt/homebrew/opt/python@3.12/Frameworks/Python.framework/Versions/3.12/lib",
-        "/opt/homebrew/opt/sqlite/lib",
-        "/opt/homebrew/opt/libiconv/lib",
-    ];
-    let default_fallbacks = ["/usr/local/lib", "/usr/lib"];
-    let fallback = std::env::var("DYLD_FALLBACK_LIBRARY_PATH").unwrap_or_default();
-    let mut merged: Vec<String> = fallback
-        .split(':')
-        .filter(|s| !s.is_empty())
-        .map(|s| s.to_string())
-        .collect();
-    for path in extra_paths.iter().chain(default_fallbacks.iter()) {
-        if !merged.iter().any(|p| p == path) {
-            merged.push(path.to_string());
-        }
+    // Resolve bundled library paths relative to the app bundle
+    let resource_dir = app
+        .path()
+        .resource_dir()
+        .unwrap_or_else(|_| std::env::current_dir().unwrap());
+    let libs_dir = resource_dir.join("libs");
+    let gst_plugins_dir = resource_dir.join("gstreamer-1.0");
+    let gst_helpers_dir = gst_plugins_dir.join("helpers");
+    let python_dir = resource_dir.join("python3.12");
+
+    // Build DYLD_FALLBACK_LIBRARY_PATH: bundled libs first, then system fallbacks
+    let mut dyld_paths: Vec<String> = vec![libs_dir.display().to_string()];
+
+    // In development mode, also add Homebrew paths as fallbacks
+    #[cfg(debug_assertions)]
+    {
+        dyld_paths.extend([
+            "/opt/homebrew/opt/python@3.12/Frameworks/Python.framework/Versions/3.12/lib"
+                .to_string(),
+            "/opt/homebrew/opt/sqlite/lib".to_string(),
+            "/opt/homebrew/opt/libiconv/lib".to_string(),
+            "/opt/homebrew/lib".to_string(),
+            "/usr/local/lib".to_string(),
+        ]);
     }
-    let merged_fallback = merged.join(":");
+
+    dyld_paths.extend(["/usr/local/lib".to_string(), "/usr/lib".to_string()]);
 
     let mut envs = std::collections::HashMap::new();
-    envs.insert("DYLD_FALLBACK_LIBRARY_PATH".to_string(), merged_fallback);
+    envs.insert(
+        "DYLD_FALLBACK_LIBRARY_PATH".to_string(),
+        dyld_paths.join(":"),
+    );
+
+    // GStreamer environment: tell GStreamer where to find plugins and helpers
+    envs.insert(
+        "GST_PLUGIN_PATH".to_string(),
+        gst_plugins_dir.display().to_string(),
+    );
+    envs.insert(
+        "GST_PLUGIN_SYSTEM_PATH".to_string(),
+        gst_plugins_dir.display().to_string(),
+    );
+    envs.insert(
+        "GST_PLUGIN_SCANNER".to_string(),
+        gst_helpers_dir
+            .join("gst-plugin-scanner")
+            .display()
+            .to_string(),
+    );
+    // Write GStreamer registry cache to a writable location
+    envs.insert(
+        "GST_REGISTRY".to_string(),
+        workdir.join("gst-registry.bin").display().to_string(),
+    );
+
+    // Python environment: set PYTHONHOME and PYTHONPATH for embedded Python
+    envs.insert(
+        "PYTHONHOME".to_string(),
+        resource_dir.display().to_string(),
+    );
+    envs.insert(
+        "PYTHONPATH".to_string(),
+        python_dir.display().to_string(),
+    );
 
     let sidecar_log = workdir.join("log/sidecar.log");
     write_log(

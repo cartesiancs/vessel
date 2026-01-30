@@ -72,7 +72,7 @@ impl ExecutableNode for GstDecoderNode {
             .get_by_topic(&self.data.topic)
             .ok_or_else(|| anyhow!("Stream with topic '{}' not found", self.data.topic))?;
 
-        let pipeline_str = "appsrc name=mysource ! rtph264depay ! avdec_h264 ! videoconvert ! video/x-raw,format=RGB ! appsink name=mysink";
+        let pipeline_str = "appsrc name=mysource ! rtph264depay ! vtdec ! videoconvert ! video/x-raw,format=RGB ! appsink name=mysink";
         let pipeline = gst::parse::launch(pipeline_str)?
             .downcast::<gst::Pipeline>()
             .map_err(|_| anyhow!("Failed to downcast GStreamer pipeline"))?;

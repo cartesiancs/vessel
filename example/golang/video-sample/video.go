@@ -22,7 +22,7 @@ func main() {
 	deviceId := "audio"
 	deviceToken := "FnhXd7dNy8iCPbu5N5jS2v_NaOYCiI9AqPO4FQQed7E"
 
-	serverURL := "http://127.0.0.1:8080/api/streams/register"
+	serverURL := "http://127.0.0.1:6174/api/streams/register"
 	topic := "go_video_stream_1"
 	mediaType := "video"
 
