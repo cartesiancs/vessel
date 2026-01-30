@@ -1,7 +1,7 @@
 use crate::db::schema::{
     device_tokens, devices, entities, entities_configurations, events, flow_versions, flows,
-    map_features, map_layers, map_vertices, states, states_meta, streams, system_configurations,
-    users,
+    map_features, map_layers, map_vertices, recordings, states, states_meta, streams,
+    system_configurations, users,
 };
 use chrono::NaiveDateTime;
 use diesel::prelude::*;
@@ -518,4 +518,44 @@ pub struct NewStream<'a> {
     pub topic: &'a str,
     pub device_id: &'a str,
     pub media_type: &'a str,
+}
+
+#[derive(Queryable, Selectable, Identifiable, Serialize, Clone)]
+#[diesel(table_name = recordings)]
+pub struct Recording {
+    pub id: i32,
+    pub stream_ssrc: i32,
+    pub topic: String,
+    pub device_id: String,
+    pub media_type: String,
+    pub filename: String,
+    pub file_path: String,
+    pub file_size: i32,
+    pub duration_ms: i32,
+    pub status: String,
+    pub started_at: NaiveDateTime,
+    pub ended_at: Option<NaiveDateTime>,
+    pub created_by_user_id: Option<i32>,
+}
+
+#[derive(Insertable)]
+#[diesel(table_name = recordings)]
+pub struct NewRecording<'a> {
+    pub stream_ssrc: i32,
+    pub topic: &'a str,
+    pub device_id: &'a str,
+    pub media_type: &'a str,
+    pub filename: &'a str,
+    pub file_path: &'a str,
+    pub status: &'a str,
+    pub created_by_user_id: Option<i32>,
+}
+
+#[derive(AsChangeset, Default)]
+#[diesel(table_name = recordings)]
+pub struct UpdateRecording {
+    pub file_size: Option<i32>,
+    pub duration_ms: Option<i32>,
+    pub status: Option<String>,
+    pub ended_at: Option<NaiveDateTime>,
 }

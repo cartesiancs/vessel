@@ -35,6 +35,7 @@ import {
   RadioTower,
   ChevronDown,
   ChevronRight,
+  Video,
 } from "lucide-react";
 import { NavFooter } from "./footer";
 import { isElectron } from "@/lib/electron";
@@ -87,6 +88,11 @@ const data = {
           title: "Devices",
           url: "/devices",
           icon: <MonitorSmartphone />,
+        },
+        {
+          title: "Recordings",
+          url: "/recordings",
+          icon: <Video />,
         },
         {
           title: "Key Manager",

@@ -10,3 +10,4 @@ database.db
 /storage
 /config.toml
 /.venv
+/recordings

@@ -40,6 +40,7 @@ pub mod flow;
 pub mod lib;
 pub mod logo;
 pub mod media;
+pub mod recording;
 
 pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("./migrations");
 
@@ -102,6 +103,11 @@ async fn main() -> Result<()> {
     let jwt_secret = settings.jwt_secret.clone();
     let configs = db::repository::get_all_system_configs(&pool)?;
 
+    let recording_manager = Arc::new(recording::RecordingManager::new(
+        streams.clone(),
+        pool.clone(),
+    ));
+
     let app_state = Arc::new(AppState {
         streams: streams.clone(),
         mqtt_tx: mqtt_tx.clone(),
@@ -112,6 +118,7 @@ async fn main() -> Result<()> {
         broadcast_tx,
         system_configs: configs.clone(),
         tunnel_manager: tunnel_manager.clone(),
+        recording_manager,
     });
 
     let mut set = JoinSet::new();
@@ -136,7 +143,8 @@ async fn main() -> Result<()> {
                     &rtp_config.value
                 );
                 let rtp_listen_address = rtp_config.value.clone();
-                let rtp_adapter = Arc::new(RtpPushAdapter::new(rtp_listen_address, streams.clone()));
+                let rtp_adapter =
+                    Arc::new(RtpPushAdapter::new(rtp_listen_address, streams.clone()));
                 let shutdown_rx_clone = shutdown_rx.clone();
                 let rtp_task = rtp_adapter.clone();
                 set.spawn(async move { rtp_task.start(shutdown_rx_clone).await });

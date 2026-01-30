@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/card";
 import { formatSimpleDateTime } from "@/lib/time";
 import { StreamReceiver } from "../rtc/StreamReceiver";
+import { RecordingButton } from "../recording/RecordingButton";
 
 type StreamState = {
   topic: string;
@@ -52,18 +53,21 @@ export function EntityCard({
             )}
           </CardTitle>
         </CardHeader>
-        <CardFooter className='flex-col items-start gap-1 px-4 text-sm'>
-          <div className='font-medium'>{item.platform}</div>
-          <div className='text-muted-foreground'>
-            {isEnabledStream(
-              item.configuration.state_topic as string,
-              streamsState,
-            ) ? (
-              <Online />
-            ) : (
-              <Offline />
-            )}
+        <CardFooter className='flex-row items-center justify-between px-4 text-sm'>
+          <div className='flex flex-col gap-1'>
+            <div className='font-medium'>{item.platform}</div>
+            <div className='text-muted-foreground'>
+              {isEnabledStream(
+                item.configuration.state_topic as string,
+                streamsState,
+              ) ? (
+                <Online />
+              ) : (
+                <Offline />
+              )}
+            </div>
           </div>
+          <RecordingButton topic={item.configuration.state_topic as string} />
         </CardFooter>
       </Card>
     );
@@ -87,18 +91,21 @@ export function EntityCard({
             )}
           </CardTitle>
         </CardHeader>
-        <CardFooter className='flex-col items-start gap-1 px-4 text-sm'>
-          <div className='font-medium'>{item.platform}</div>
-          <div className='text-muted-foreground'>
-            {isEnabledStream(
-              item.configuration.rtsp_url as string,
-              streamsState,
-            ) ? (
-              <Online />
-            ) : (
-              <Offline />
-            )}
+        <CardFooter className='flex-row items-center justify-between px-4 text-sm'>
+          <div className='flex flex-col gap-1'>
+            <div className='font-medium'>{item.platform}</div>
+            <div className='text-muted-foreground'>
+              {isEnabledStream(
+                item.configuration.rtsp_url as string,
+                streamsState,
+              ) ? (
+                <Online />
+              ) : (
+                <Offline />
+              )}
+            </div>
           </div>
+          <RecordingButton topic={item.configuration.rtsp_url as string} />
         </CardFooter>
       </Card>
     );
@@ -122,18 +129,21 @@ export function EntityCard({
             )}
           </CardTitle>
         </CardHeader>
-        <CardFooter className='flex-col items-start gap-1 px-4 text-sm'>
-          <div className='font-medium'>{item.platform}</div>
-          <div className='text-muted-foreground'>
-            {isEnabledStream(
-              item.configuration.state_topic as string,
-              streamsState,
-            ) ? (
-              <Online />
-            ) : (
-              <Offline />
-            )}
+        <CardFooter className='flex-row items-center justify-between px-4 text-sm'>
+          <div className='flex flex-col gap-1'>
+            <div className='font-medium'>{item.platform}</div>
+            <div className='text-muted-foreground'>
+              {isEnabledStream(
+                item.configuration.state_topic as string,
+                streamsState,
+              ) ? (
+                <Online />
+              ) : (
+                <Offline />
+              )}
+            </div>
           </div>
+          <RecordingButton topic={item.configuration.state_topic as string} />
         </CardFooter>
       </Card>
     );
