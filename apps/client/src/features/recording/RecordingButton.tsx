@@ -9,6 +9,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 
 interface RecordingButtonProps {
   topic: string;
@@ -75,5 +76,61 @@ export function RecordingButton({ topic, className }: RecordingButtonProps) {
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
+  );
+}
+
+export function RecordingMenuItem({ topic, className }: RecordingButtonProps) {
+  const {
+    isRecording,
+    getActiveRecordingId,
+    startRecording,
+    stopRecording,
+    fetchActiveRecordings,
+  } = useRecordingStore();
+
+  const [isLoading, setIsLoading] = useState(false);
+  const recording = isRecording(topic);
+  const recordingId = getActiveRecordingId(topic);
+
+  useEffect(() => {
+    fetchActiveRecordings();
+  }, [fetchActiveRecordings]);
+
+  const handleClick = async () => {
+    setIsLoading(true);
+    try {
+      if (recording && recordingId) {
+        await stopRecording(recordingId);
+      } else {
+        await startRecording(topic);
+      }
+    } catch (error) {
+      console.error("Recording action failed:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <DropdownMenuItem
+      onClick={handleClick}
+      disabled={isLoading}
+      className={cn("flex items-center gap-2", className)}
+    >
+      {isLoading ? (
+        <Loader2 className='h-4 w-4 animate-spin' />
+      ) : recording ? (
+        <>
+          <Square className='h-4 w-4' />
+          <span>Stop Recording</span>
+          <span className='ml-auto h-2 w-2 rounded-full bg-red-500 animate-pulse' />
+        </>
+      ) : (
+        <>
+          <Circle className='h-4 w-4 fill-red-500 text-red-500' />
+          <span>Start Recording</span>
+        </>
+      )}
+    </DropdownMenuItem>
   );
 }

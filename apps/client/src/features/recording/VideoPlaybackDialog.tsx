@@ -41,7 +41,7 @@ export function VideoPlaybackDialog({
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <DialogContent className="max-w-4xl">
         <DialogHeader>
-          <DialogTitle>
+          <DialogTitle className="truncate">
             {recording?.topic || "Recording Playback"}
           </DialogTitle>
         </DialogHeader>

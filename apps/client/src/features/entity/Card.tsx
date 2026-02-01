@@ -6,9 +6,16 @@ import {
   CardTitle,
   CardFooter,
 } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+import { MoreVertical } from "lucide-react";
 import { formatSimpleDateTime } from "@/lib/time";
 import { StreamReceiver } from "../rtc/StreamReceiver";
-import { RecordingButton } from "../recording/RecordingButton";
+import { RecordingMenuItem } from "../recording/RecordingButton";
 
 type StreamState = {
   topic: string;
@@ -67,7 +74,16 @@ export function EntityCard({
               )}
             </div>
           </div>
-          <RecordingButton topic={item.configuration.state_topic as string} />
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant='ghost' size='icon' className='h-8 w-8'>
+                <MoreVertical className='h-4 w-4' />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align='end'>
+              <RecordingMenuItem topic={item.configuration.state_topic as string} />
+            </DropdownMenuContent>
+          </DropdownMenu>
         </CardFooter>
       </Card>
     );
@@ -105,7 +121,16 @@ export function EntityCard({
               )}
             </div>
           </div>
-          <RecordingButton topic={item.configuration.rtsp_url as string} />
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant='ghost' size='icon' className='h-8 w-8'>
+                <MoreVertical className='h-4 w-4' />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align='end'>
+              <RecordingMenuItem topic={item.configuration.rtsp_url as string} />
+            </DropdownMenuContent>
+          </DropdownMenu>
         </CardFooter>
       </Card>
     );
@@ -143,7 +168,16 @@ export function EntityCard({
               )}
             </div>
           </div>
-          <RecordingButton topic={item.configuration.state_topic as string} />
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant='ghost' size='icon' className='h-8 w-8'>
+                <MoreVertical className='h-4 w-4' />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align='end'>
+              <RecordingMenuItem topic={item.configuration.state_topic as string} />
+            </DropdownMenuContent>
+          </DropdownMenu>
         </CardFooter>
       </Card>
     );
