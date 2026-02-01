@@ -21,7 +21,6 @@ import { useLocation, useNavigate } from "react-router";
 import {
   Key,
   LayoutDashboard,
-  PanelsTopLeft,
   MonitorSmartphone,
   ScrollText,
   Server,
@@ -43,7 +42,6 @@ import { useDynamicDashboardStore } from "@/entities/dynamic-dashboard/store";
 import { useConfigStore } from "@/entities/configurations/store";
 import { ComponentProps, useEffect, useMemo, useState } from "react";
 
-const DYNAMIC_DASHBOARD_OPEN_KEY = "dynamic-dashboard-menu-open";
 const CONTROLS_OPEN_KEY = "controls-menu-open";
 
 const data = {
@@ -57,11 +55,6 @@ const data = {
           title: "Controls",
           url: "/dashboard",
           icon: <LayoutDashboard />,
-        },
-        {
-          title: "Dynamic Dashboard",
-          url: "/dynamic-dashboard",
-          icon: <PanelsTopLeft />,
         },
         {
           title: "Flow",
@@ -169,16 +162,6 @@ export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
     isLoading: isConfigLoading,
   } = useConfigStore();
 
-  const [dynamicOpen, setDynamicOpen] = useState<boolean>(() => {
-    if (typeof window === "undefined") return true;
-    try {
-      const saved = localStorage.getItem(DYNAMIC_DASHBOARD_OPEN_KEY);
-      return saved === null ? true : saved === "true";
-    } catch {
-      return true;
-    }
-  });
-
   const [controlsOpen, setControlsOpen] = useState<boolean>(() => {
     if (typeof window === "undefined") return true;
     try {
@@ -208,17 +191,6 @@ export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
       isRos2Connected && { id: "ros2", name: "ROS2" },
     ].filter(Boolean) as { id: string; name: string }[];
   }, [configurations]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(
-        DYNAMIC_DASHBOARD_OPEN_KEY,
-        dynamicOpen ? "true" : "false",
-      );
-    } catch {
-      // ignore storage write errors
-    }
-  }, [dynamicOpen]);
 
   useEffect(() => {
     try {
@@ -261,21 +233,18 @@ export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
             <SidebarGroupContent>
               <SidebarMenu>
                 {group.items.map((item) => {
-                  const isDynamic = item.url === "/dynamic-dashboard";
                   const isControls = item.url === "/dashboard";
                   const isActive =
                     currentPath === item.url ||
-                    (isDynamic && currentPath.startsWith("/dynamic-dashboard"));
+                    (isControls &&
+                      currentPath.startsWith("/dynamic-dashboard"));
                   return (
                     <SidebarMenuItem key={item.title}>
                       <SidebarMenuButton
                         asChild
                         isActive={isActive}
                         onClick={() => {
-                          if (isDynamic) {
-                            setDynamicOpen((prev) => !prev);
-                            navigate(item.url);
-                          } else if (isControls) {
+                          if (isControls) {
                             setControlsOpen((prev) => !prev);
                             navigate(item.url);
                           } else {
@@ -285,15 +254,6 @@ export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
                       >
                         <span>
                           {item.icon} {item.title}
-                          {isDynamic && (
-                            <span className='ml-auto flex items-center'>
-                              {dynamicOpen ? (
-                                <ChevronDown className='h-4 w-4 text-muted-foreground' />
-                              ) : (
-                                <ChevronRight className='h-4 w-4 text-muted-foreground' />
-                              )}
-                            </span>
-                          )}
                           {isControls && (
                             <span className='ml-auto flex items-center'>
                               {controlsOpen ? (
@@ -306,42 +266,29 @@ export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
                         </span>
                       </SidebarMenuButton>
 
-                      {isControls &&
-                        controlViews.length > 0 &&
-                        controlsOpen && (
-                          <SidebarMenuSub>
-                            {controlViews.map((view) => {
-                              const subActive =
-                                isActive &&
-                                (dashboardView === view.id ||
-                                  currentPath ===
-                                    `/dashboard?view=${encodeURIComponent(
-                                      view.id,
-                                    )}`);
-                              return (
-                                <SidebarMenuSubItem key={view.id}>
-                                  <SidebarMenuSubButton
-                                    isActive={subActive}
-                                    onClick={() => {
-                                      navigate(`/dashboard?view=${view.id}`);
-                                    }}
-                                  >
-                                    <span className='truncate'>
-                                      {view.name}
-                                    </span>
-                                  </SidebarMenuSubButton>
-                                </SidebarMenuSubItem>
-                              );
-                            })}
-                          </SidebarMenuSub>
-                        )}
-
-                      {isDynamic && dashboards.length > 0 && dynamicOpen && (
+                      {isControls && controlsOpen && (
                         <SidebarMenuSub>
+                          {controlViews.map((view) => {
+                            const subActive =
+                              currentPath === "/dashboard" &&
+                              dashboardView === view.id;
+                            return (
+                              <SidebarMenuSubItem key={view.id}>
+                                <SidebarMenuSubButton
+                                  isActive={subActive}
+                                  onClick={() => {
+                                    navigate(`/dashboard?view=${view.id}`);
+                                  }}
+                                >
+                                  <span className='truncate'>{view.name}</span>
+                                </SidebarMenuSubButton>
+                              </SidebarMenuSubItem>
+                            );
+                          })}
                           {dashboards.map((db) => {
                             const subActive =
-                              isActive &&
-                              (currentPath === `/dynamic-dashboard/${db.id}` ||
+                              currentPath === `/dynamic-dashboard/${db.id}` ||
+                              (currentPath.startsWith("/dynamic-dashboard") &&
                                 activeDashboardId === db.id);
                             return (
                               <SidebarMenuSubItem key={db.id}>
