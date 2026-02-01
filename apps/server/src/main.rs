@@ -18,7 +18,7 @@ use crate::{
         create_initial_admin, create_initial_configurations, seed_initial_permissions,
     },
     init::streams::create_hydrate_streams,
-    lib::{entity_map::remap_topics, stream_checker::stream_status_checker},
+    utils::{entity_map::remap_topics, stream_checker::stream_status_checker},
     logo::print_logo,
     media::{MediaAdapter, RtpPushAdapter, RtspPullAdapter},
     routes::web_server,
@@ -37,7 +37,7 @@ mod tunnel_control;
 pub mod db;
 pub mod error;
 pub mod flow;
-pub mod lib;
+pub mod utils;
 pub mod logo;
 pub mod media;
 pub mod recording;

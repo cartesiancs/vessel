@@ -23,7 +23,7 @@ use crate::{
         engine::{ExecutionContext, TriggerCommand},
         types::ExecutionResult,
     },
-    lib::system_configs::replace_config_placeholders,
+    utils::system_configs::replace_config_placeholders,
 };
 
 #[derive(Deserialize, Debug, Clone)]

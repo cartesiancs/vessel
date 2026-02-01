@@ -2,7 +2,7 @@ use crate::{
     db::{self},
     error::AppError,
     handler::auth::AuthUser,
-    lib::entity_map::remap_topics,
+    utils::entity_map::remap_topics,
     state::AppState,
 };
 use axum::{extract::State, Json};

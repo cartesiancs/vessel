@@ -5,7 +5,7 @@ use tracing::info;
 
 use crate::db::models::{NewPermission, Permission, User};
 use crate::db::models::{NewSystemConfiguration, NewUser, SystemConfiguration};
-use crate::lib::hash::hash_password;
+use crate::utils::hash::hash_password;
 use crate::state::DbPool;
 
 pub fn create_initial_admin(conn: &mut SqliteConnection) {

@@ -1,4 +1,4 @@
-use crate::{db, error::AppError, handler::auth::AuthUser, lib::hash, state::AppState};
+use crate::{db, error::AppError, handler::auth::AuthUser, utils::hash, state::AppState};
 use axum::{
     extract::{Path, State},
     Json,

@@ -23,7 +23,7 @@ use crate::{
         repository::get_user_by_name,
     },
     error::AppError,
-    lib::hash::verify_password,
+    utils::hash::verify_password,
     AppState,
 };
 
