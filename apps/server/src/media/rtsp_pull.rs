@@ -1,5 +1,6 @@
 use anyhow::{anyhow, Error, Result};
 use async_trait::async_trait;
+use dashmap::DashMap;
 use futures_util::StreamExt;
 use gstreamer::prelude::*;
 use gstreamer_app::{AppSink, AppSinkCallbacks};
@@ -8,7 +9,6 @@ use std::sync::{
     Arc,
 };
 use tokio::sync::{broadcast, watch, RwLock};
-use tokio::task::JoinSet;
 use tokio::time::Instant;
 use tracing::{error, info, warn};
 use webrtc::rtp::packet::Packet;
@@ -20,11 +20,20 @@ use crate::state::{MediaType, Protocol, StreamDescriptor, StreamManager, TopicMa
 pub struct RtspPullAdapter {
     streams: StreamManager,
     topic_map: Arc<RwLock<Vec<TopicMapping>>>,
+    topic_map_notify: watch::Receiver<()>,
 }
 
 impl RtspPullAdapter {
-    pub fn new(streams: StreamManager, topic_map: Arc<RwLock<Vec<TopicMapping>>>) -> Self {
-        Self { streams, topic_map }
+    pub fn new(
+        streams: StreamManager,
+        topic_map: Arc<RwLock<Vec<TopicMapping>>>,
+        topic_map_notify: watch::Receiver<()>,
+    ) -> Self {
+        Self {
+            streams,
+            topic_map,
+            topic_map_notify,
+        }
     }
 
     async fn start_pipelines(&self, mut shutdown_rx: watch::Receiver<()>) -> Result<()> {
@@ -33,6 +42,43 @@ impl RtspPullAdapter {
             return Ok(());
         }
 
+        // Track running pipelines: topic -> (shutdown_tx, JoinHandle)
+        let running_pipelines: Arc<DashMap<String, watch::Sender<()>>> = Arc::new(DashMap::new());
+        let mut topic_map_notify = self.topic_map_notify.clone();
+
+        // Initial pipeline spawn
+        self.spawn_new_pipelines(&running_pipelines, shutdown_rx.clone())
+            .await;
+
+        // Supervision loop: watch for topic_map changes and spawn new pipelines
+        loop {
+            tokio::select! {
+                _ = shutdown_rx.changed() => {
+                    info!("Shutdown signal received, stopping all RTSP pipelines");
+                    // Send shutdown signal to all running pipelines
+                    for entry in running_pipelines.iter() {
+                        let _ = entry.value().send(());
+                    }
+                    break;
+                }
+                _ = topic_map_notify.changed() => {
+                    info!("Topic map changed, checking for new RTSP streams");
+                    self.spawn_new_pipelines(&running_pipelines, shutdown_rx.clone()).await;
+                }
+            }
+        }
+
+        // Wait for all pipelines to finish
+        tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+        info!("All RTSP pipelines have shut down.");
+        Ok(())
+    }
+
+    async fn spawn_new_pipelines(
+        &self,
+        running_pipelines: &Arc<DashMap<String, watch::Sender<()>>>,
+        shutdown_rx: watch::Receiver<()>,
+    ) {
         let topic_map = self.topic_map.read().await;
         let rtsp_mappings: Vec<_> = topic_map
             .iter()
@@ -41,26 +87,36 @@ impl RtspPullAdapter {
             .collect();
         drop(topic_map);
 
-        if rtsp_mappings.is_empty() {
-            info!("No RTSP streams found in topic map.");
-            return Ok(());
-        }
-
-        info!("Found {} RTSP streams to launch.", rtsp_mappings.len());
-        let mut join_set = JoinSet::new();
-
         for mapping in rtsp_mappings {
             let topic = mapping.topic.clone();
+
+            // Skip if already running
+            if running_pipelines.contains_key(&topic) {
+                continue;
+            }
+
+            info!("Spawning new RTSP pipeline for: {}", topic);
+
             let user_id = mapping.entity_id.clone();
             let streams = self.streams.clone();
-            let mut shutdown_rx = shutdown_rx.clone();
+            let (pipeline_shutdown_tx, pipeline_shutdown_rx) = watch::channel(());
             let (packet_tx, _) = broadcast::channel(1024);
 
-            join_set.spawn(async move {
+            // Store shutdown sender for this pipeline
+            running_pipelines.insert(topic.clone(), pipeline_shutdown_tx);
+
+            // Clone for the spawned task
+            let running_pipelines_clone = running_pipelines.clone();
+            let topic_clone = topic.clone();
+            let mut main_shutdown_rx = shutdown_rx.clone();
+
+            tokio::spawn(async move {
+                let mut pipeline_shutdown_rx = pipeline_shutdown_rx;
+
                 loop {
-                    let mut shutdown_rx_clone = shutdown_rx.clone();
+                    let mut shutdown_rx_clone = pipeline_shutdown_rx.clone();
                     let pipeline_future = run_pipeline(
-                        &topic,
+                        &topic_clone,
                         &user_id,
                         packet_tx.clone(),
                         streams.clone(),
@@ -68,35 +124,34 @@ impl RtspPullAdapter {
                     );
 
                     tokio::select! {
-                        _ = shutdown_rx.changed() => {
-                            info!("Shutdown signal received, stopping pipeline loop for {}", topic);
+                        _ = main_shutdown_rx.changed() => {
+                            info!("Main shutdown signal received, stopping pipeline for {}", topic_clone);
+                            break;
+                        }
+                        _ = pipeline_shutdown_rx.changed() => {
+                            info!("Pipeline shutdown signal received for {}", topic_clone);
                             break;
                         }
                         pipeline_result = pipeline_future => {
                             match pipeline_result {
                                 Ok(_) => {
-                                    info!("Pipeline for {} finished gracefully.", topic);
+                                    info!("Pipeline for {} finished gracefully.", topic_clone);
                                     break;
                                 }
                                 Err(e) => {
-                                    error!("Error in pipeline for {}. Restarting...: {}", topic, e);
+                                    error!("Error in pipeline for {}. Restarting in 5s: {}", topic_clone, e);
                                     tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
                                 }
                             }
                         }
                     }
                 }
+
+                // Remove from running pipelines when done
+                running_pipelines_clone.remove(&topic_clone);
+                info!("Pipeline for {} removed from running list", topic_clone);
             });
         }
-
-        while let Some(res) = join_set.join_next().await {
-            if let Err(e) = res {
-                error!("A pipeline task failed: {}", e);
-            }
-        }
-
-        info!("All RTSP pipelines have shut down.");
-        Ok(())
     }
 }
 

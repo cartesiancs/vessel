@@ -57,6 +57,15 @@ pub async fn remap_topics(State(state): State<Arc<AppState>>) -> Result<usize, A
 
     let mut map = state.topic_map.write().await;
     *map = new_mappings;
+    drop(map);
+
+    // Notify subscribers that topic_map has changed
+    if let Err(e) = state.topic_map_notify.send(()) {
+        // This only fails if all receivers are dropped, which is expected during shutdown
+        tracing::debug!("Failed to send topic_map_notify signal: {}", e);
+    } else {
+        info!("Topic map updated, notified subscribers");
+    }
 
     Ok(num_mappings)
 }

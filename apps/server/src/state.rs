@@ -1,7 +1,7 @@
 use bytes::Bytes;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-use tokio::sync::{broadcast, mpsc, RwLock};
+use tokio::sync::{broadcast, mpsc, watch, RwLock};
 use tokio::time::Instant;
 use webrtc::rtp::packet::Packet;
 
@@ -150,6 +150,8 @@ pub struct AppState {
     pub jwt_secret: String,
     pub pool: DbPool,
     pub topic_map: Arc<RwLock<Vec<TopicMapping>>>,
+    /// Notifies subscribers when topic_map has been updated
+    pub topic_map_notify: watch::Sender<()>,
     pub flow_manager_tx: mpsc::Sender<FlowManagerCommand>,
     pub broadcast_tx: broadcast::Sender<String>,
     pub system_configs: Vec<SystemConfiguration>,

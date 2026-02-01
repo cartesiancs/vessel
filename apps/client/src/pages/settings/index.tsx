@@ -31,7 +31,12 @@ import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
 
 export function SettingsPage() {
   const { status, isLoading, error, refresh, start, stop } = useTunnelStore();
-  const { session, isLoading: authLoading, signInWithGoogle, signOut } = useSupabaseAuth();
+  const {
+    session,
+    isLoading: authLoading,
+    signInWithGoogle,
+    signOut,
+  } = useSupabaseAuth();
   const [server, setServer] = useState("");
   const [target, setTarget] = useState("http://127.0.0.1:6174");
   const [localError, setLocalError] = useState<string | null>(null);
@@ -92,14 +97,14 @@ export function SettingsPage() {
   return (
     <SidebarProvider>
       <AppSidebar />
-      <SidebarInset className='flex-1 min-w-0 h-full flex flex-col'>
-        <header className='flex h-12 shrink-0 items-center gap-2 border-b bg-background px-4'>
+      <SidebarInset>
+        <header className='flex h-12 shrink-0 items-center gap-2 border-b px-4'>
           <SidebarTrigger className='-ml-1' />
           <Separator
             orientation='vertical'
             className='mr-2 data-[orientation=vertical]:h-4'
           />
-          <Breadcrumb className='hidden md:flex'>
+          <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem>
                 <BreadcrumbLink href='/dashboard'>/</BreadcrumbLink>
@@ -120,16 +125,24 @@ export function SettingsPage() {
           <Card>
             <CardHeader>
               <CardTitle>Vessel Cloud</CardTitle>
-              <CardDescription>Sign in to connect with Vessel Cloud tunnel servers</CardDescription>
+              <CardDescription>
+                Sign in to connect with Vessel Cloud tunnel servers
+              </CardDescription>
             </CardHeader>
             <CardContent>
               {session ? (
                 <div className='flex items-center justify-between'>
                   <div className='flex items-center gap-2'>
-                    <span className='text-sm text-muted-foreground'>Signed in as</span>
+                    <span className='text-sm text-muted-foreground'>
+                      Signed in as
+                    </span>
                     <span className='font-medium'>{session.user?.email}</span>
                   </div>
-                  <Button variant='outline' onClick={signOut} disabled={authLoading}>
+                  <Button
+                    variant='outline'
+                    onClick={signOut}
+                    disabled={authLoading}
+                  >
                     Sign Out
                   </Button>
                 </div>

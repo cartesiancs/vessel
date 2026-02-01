@@ -98,6 +98,7 @@ async fn main() -> Result<()> {
     let (flow_manager_tx, flow_manager_rx) = mpsc::channel(100);
     let (broadcast_tx, _) = broadcast::channel(1024);
     let (shutdown_tx, shutdown_rx) = watch::channel(());
+    let (topic_map_notify_tx, topic_map_notify_rx) = watch::channel(());
     let tunnel_manager = Arc::new(TunnelManager::new());
 
     let jwt_secret = settings.jwt_secret.clone();
@@ -114,6 +115,7 @@ async fn main() -> Result<()> {
         jwt_secret: jwt_secret,
         pool: pool,
         topic_map: Arc::new(RwLock::new(Vec::new())),
+        topic_map_notify: topic_map_notify_tx,
         flow_manager_tx,
         broadcast_tx,
         system_configs: configs.clone(),
@@ -202,6 +204,7 @@ async fn main() -> Result<()> {
         let rtsp_adapter = Arc::new(RtspPullAdapter::new(
             streams.clone(),
             app_state.topic_map.clone(),
+            topic_map_notify_rx,
         ));
         let shutdown_rx_clone = shutdown_rx.clone();
         let rtsp_task = rtsp_adapter.clone();

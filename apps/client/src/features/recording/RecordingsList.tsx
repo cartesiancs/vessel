@@ -43,7 +43,7 @@ export function RecordingsList() {
   } = useRecordingStore();
 
   const [selectedRecording, setSelectedRecording] = useState<number | null>(
-    null
+    null,
   );
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
@@ -71,30 +71,30 @@ export function RecordingsList() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "completed":
-        return <Badge variant="default">Completed</Badge>;
+        return <Badge variant='default'>Completed</Badge>;
       case "recording":
         return (
-          <Badge variant="destructive" className="animate-pulse">
+          <Badge variant='destructive' className='animate-pulse'>
             Recording
           </Badge>
         );
       case "failed":
-        return <Badge variant="secondary">Failed</Badge>;
+        return <Badge variant='secondary'>Failed</Badge>;
       default:
-        return <Badge variant="outline">{status}</Badge>;
+        return <Badge variant='outline'>{status}</Badge>;
     }
   };
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
+      <CardHeader className='flex flex-row items-center justify-between'>
         <div>
           <CardTitle>Recording History</CardTitle>
-          <CardDescription>View and manage your stream recordings</CardDescription>
+          <CardDescription></CardDescription>
         </div>
         <Button
-          variant="outline"
-          size="icon"
+          variant='outline'
+          size='icon'
           onClick={() => fetchRecordings()}
           disabled={isLoading}
         >
@@ -103,11 +103,11 @@ export function RecordingsList() {
       </CardHeader>
       <CardContent>
         {isLoading && recordings.length === 0 ? (
-          <div className="flex justify-center py-8">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          <div className='flex justify-center py-8'>
+            <Loader2 className='h-8 w-8 animate-spin text-muted-foreground' />
           </div>
         ) : recordings.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
+          <div className='text-center py-8 text-muted-foreground'>
             No recordings yet
           </div>
         ) : (
@@ -120,7 +120,7 @@ export function RecordingsList() {
                 <TableHead>Size</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Recorded At</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead className='text-right'>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -168,43 +168,43 @@ function RecordingRow({
 }: RecordingRowProps) {
   return (
     <TableRow>
-      <TableCell className="font-medium max-w-[200px] truncate">
+      <TableCell className='font-medium max-w-[200px] truncate'>
         {recording.topic}
       </TableCell>
       <TableCell>
-        <Badge variant="outline">{recording.media_type}</Badge>
+        <Badge variant='outline'>{recording.media_type}</Badge>
       </TableCell>
       <TableCell>{formatDuration(recording.duration_ms)}</TableCell>
       <TableCell>{formatFileSize(recording.file_size)}</TableCell>
       <TableCell>{getStatusBadge(recording.status)}</TableCell>
       <TableCell>{formatSimpleDateTime(recording.started_at)}</TableCell>
-      <TableCell className="text-right">
-        <div className="flex gap-2 justify-end">
+      <TableCell className='text-right'>
+        <div className='flex gap-2 justify-end'>
           {recording.status === "recording" ? (
-            <Button variant="destructive" size="icon" onClick={onStop}>
-              <Square className="h-4 w-4" />
+            <Button variant='destructive' size='icon' onClick={onStop}>
+              <Square className='h-4 w-4' />
             </Button>
           ) : (
             <Button
-              variant="ghost"
-              size="icon"
+              variant='ghost'
+              size='icon'
               onClick={onPlay}
               disabled={recording.status !== "completed"}
             >
-              <Play className="h-4 w-4" />
+              <Play className='h-4 w-4' />
             </Button>
           )}
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button
-                variant="ghost"
-                size="icon"
+                variant='ghost'
+                size='icon'
                 disabled={isDeleting || recording.status === "recording"}
               >
                 {isDeleting ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Loader2 className='h-4 w-4 animate-spin' />
                 ) : (
-                  <Trash2 className="h-4 w-4" />
+                  <Trash2 className='h-4 w-4' />
                 )}
               </Button>
             </AlertDialogTrigger>

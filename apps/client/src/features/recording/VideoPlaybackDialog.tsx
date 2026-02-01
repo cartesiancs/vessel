@@ -39,29 +39,29 @@ export function VideoPlaybackDialog({
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-      <DialogContent className="max-w-4xl">
+      <DialogContent className='max-w-4xl'>
         <DialogHeader>
-          <DialogTitle className="truncate">
+          <DialogTitle className='truncate max-w-sm'>
             {recording?.topic || "Recording Playback"}
           </DialogTitle>
         </DialogHeader>
-        <div className="aspect-video bg-black rounded-lg overflow-hidden">
+        <div className='aspect-video bg-black rounded-lg overflow-hidden'>
           {streamUrl ? (
             <video
               ref={videoRef}
               src={streamUrl}
-              className="w-full h-full"
+              className='w-full h-full'
               controls
               autoPlay
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+            <div className='w-full h-full flex items-center justify-center text-muted-foreground'>
               No recording selected
             </div>
           )}
         </div>
         {recording && (
-          <div className="text-sm text-muted-foreground space-y-1">
+          <div className='text-sm text-muted-foreground space-y-1'>
             <p>Duration: {formatDuration(recording.duration_ms)}</p>
             <p>Size: {formatFileSize(recording.file_size)}</p>
             <p>Type: {recording.media_type}</p>
