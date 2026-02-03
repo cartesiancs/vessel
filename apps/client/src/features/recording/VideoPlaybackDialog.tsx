@@ -8,6 +8,8 @@ import {
 import { useRecordingStore } from "@/entities/recording/store";
 import { getRecordingStreamUrl } from "@/entities/recording/api";
 import { storage } from "@/lib/storage";
+import { AudioWaveformPlayer } from "./components/AudioWaveformPlayer";
+import { VideoControlBar } from "./components/VideoControlBar";
 
 interface VideoPlaybackDialogProps {
   recordingId: number | null;
@@ -31,11 +33,13 @@ export function VideoPlaybackDialog({
     ? getRecordingStreamUrl(recordingId, serverUrl, token)
     : null;
 
+  const isAudioOnly = recording?.media_type === "audio";
+
   useEffect(() => {
-    if (open && videoRef.current && streamUrl) {
+    if (open && videoRef.current && streamUrl && !isAudioOnly) {
       videoRef.current.load();
     }
-  }, [open, streamUrl]);
+  }, [open, streamUrl, isAudioOnly]);
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
@@ -45,21 +49,38 @@ export function VideoPlaybackDialog({
             {recording?.topic || "Recording Playback"}
           </DialogTitle>
         </DialogHeader>
-        <div className='aspect-video bg-black rounded-lg overflow-hidden'>
-          {streamUrl ? (
-            <video
-              ref={videoRef}
+
+        {streamUrl ? (
+          isAudioOnly ? (
+            <AudioWaveformPlayer
               src={streamUrl}
-              className='w-full h-full'
-              controls
-              autoPlay
+              durationMs={recording?.duration_ms || 0}
+              className='py-2'
             />
           ) : (
+            <div className='space-y-2'>
+              <div className='aspect-video bg-black rounded-lg overflow-hidden'>
+                <video
+                  ref={videoRef}
+                  src={streamUrl}
+                  className='w-full h-full'
+                />
+              </div>
+              <VideoControlBar
+                videoRef={videoRef}
+                durationMs={recording?.duration_ms || 0}
+                src={streamUrl}
+              />
+            </div>
+          )
+        ) : (
+          <div className='aspect-video bg-black rounded-lg overflow-hidden'>
             <div className='w-full h-full flex items-center justify-center text-muted-foreground'>
               No recording selected
             </div>
-          )}
-        </div>
+          </div>
+        )}
+
         {recording && (
           <div className='text-sm text-muted-foreground space-y-1'>
             <p>Duration: {formatDuration(recording.duration_ms)}</p>
