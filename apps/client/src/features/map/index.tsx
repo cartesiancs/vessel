@@ -7,6 +7,7 @@ import icon from "leaflet/dist/images/marker-icon.png";
 import iconShadow from "leaflet/dist/images/marker-shadow.png";
 import "./style.css";
 import { useMapDataStore, useMapInteractionStore } from "@/entities/map/store";
+import { TILE_MAPS } from "@/entities/map/types";
 
 import { MapEntityRender } from "../map-entity/render";
 import { FeatureDetailsPanel } from "../map-draw/FeatureDetailsPanel";
@@ -55,7 +56,8 @@ export function MapView({
   const [position, setPosition] = useState<[number, number] | null>(null);
   const [initialZoom, setInitialZoom] = useState(13);
   const { layer, fetchAllLayers } = useMapDataStore();
-  const { selectedFeature } = useMapInteractionStore();
+  const { selectedFeature, tileMapType } = useMapInteractionStore();
+  const currentTileMap = TILE_MAPS[tileMapType];
   const { selectedEntity } = useMapEntityStore();
 
   const [isFeaturePanelCollapsed, setFeaturePanelCollapsed] = useState(false);
@@ -110,9 +112,10 @@ export function MapView({
           className='h-full w-full'
         >
           <TileLayer
-            attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
-            url='https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-            maxNativeZoom={20}
+            key={tileMapType}
+            attribution={currentTileMap.attribution}
+            url={currentTileMap.url}
+            maxNativeZoom={currentTileMap.maxNativeZoom}
             maxZoom={23}
           />
           {layer?.features.map((feature) => (

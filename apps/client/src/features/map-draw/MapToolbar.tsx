@@ -1,11 +1,17 @@
 import { Button } from "@/components/ui/button";
 import { useMapDataStore, useMapInteractionStore } from "@/entities/map/store";
-import { MapPin, Milestone, Squircle, Check, X } from "lucide-react";
+import { MapPin, Milestone, Squircle, Check, X, Map, Satellite } from "lucide-react";
 
 export function MapToolbar() {
   const { addFeature } = useMapDataStore();
-  const { drawingMode, setDrawingMode, currentVertices, clearDrawing } =
-    useMapInteractionStore();
+  const {
+    drawingMode,
+    setDrawingMode,
+    currentVertices,
+    clearDrawing,
+    tileMapType,
+    setTileMapType,
+  } = useMapInteractionStore();
   const activeLayerId = useMapDataStore((state) => state.layer?.id);
 
   const handleFinishDrawing = () => {
@@ -49,6 +55,23 @@ export function MapToolbar() {
       >
         <Squircle className='h-4 w-4' />
       </Button>
+
+      <div className='border-t pt-2 mt-2 flex flex-col gap-2'>
+        <Button
+          onClick={() => setTileMapType("dark")}
+          size='icon'
+          variant={tileMapType === "dark" ? "secondary" : "outline"}
+        >
+          <Map className='h-4 w-4' />
+        </Button>
+        <Button
+          onClick={() => setTileMapType("satellite")}
+          size='icon'
+          variant={tileMapType === "satellite" ? "secondary" : "outline"}
+        >
+          <Satellite className='h-4 w-4' />
+        </Button>
+      </div>
 
       {currentVertices.length > 0 &&
         (drawingMode === "LINE" || drawingMode === "POLYGON") && (

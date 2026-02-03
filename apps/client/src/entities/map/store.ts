@@ -1,6 +1,11 @@
 import { create } from "zustand";
 import * as mapApi from "./api";
-import { MapDataState, MapInteractionState, FeaturePayload } from "./types";
+import {
+  MapDataState,
+  MapInteractionState,
+  FeaturePayload,
+  TileMapType,
+} from "./types";
 
 export const useMapDataStore = create<MapDataState>((set, get) => ({
   layer: null,
@@ -135,6 +140,11 @@ export const useMapDataStore = create<MapDataState>((set, get) => ({
   },
 }));
 
+const getStoredTileMapType = (): TileMapType => {
+  const stored = localStorage.getItem("mapTileType");
+  return stored === "satellite" || stored === "dark" ? stored : "dark";
+};
+
 export const useMapInteractionStore = create<MapInteractionState>(
   (set, get) => ({
     selectedFeature: null,
@@ -153,6 +163,12 @@ export const useMapInteractionStore = create<MapInteractionState>(
     },
     clearDrawing: () => {
       set({ currentVertices: [], drawingMode: null });
+    },
+
+    tileMapType: getStoredTileMapType(),
+    setTileMapType: (type) => {
+      localStorage.setItem("mapTileType", type);
+      set({ tileMapType: type });
     },
   }),
 );
