@@ -4,6 +4,8 @@ import { WebSocketProvider } from "@/features/ws/WebSocketProvider";
 import { TopBarWrapper } from "./TopBarWrapper";
 import { isDemoMode } from "@/shared/demo";
 import { storage } from "@/lib/storage";
+import { ChatPanelContainer, useChatStore, PANEL_WIDTH } from "@/features/llm-chat";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export function AuthenticatedLayout() {
   const [wsUrl, setWsUrl] = useState<string | null>(null);
@@ -35,15 +37,31 @@ export function AuthenticatedLayout() {
     }
   }, [navigate]);
 
+  const isOpen = useChatStore((s) => s.isOpen);
+  const isMobile = useIsMobile();
+
   if (!wsUrl) {
     return <div>Loading...</div>;
   }
 
+  // Disable content push on mobile
+  const chatPanelWidth = isOpen && !isMobile ? PANEL_WIDTH : 0;
+
   return (
     <WebSocketProvider url={wsUrl}>
-      <TopBarWrapper>
-        <Outlet />
-      </TopBarWrapper>
+      <div
+        style={
+          {
+            "--chat-panel-width": `${chatPanelWidth}px`,
+          } as React.CSSProperties
+        }
+        className="transition-[padding] duration-300 pr-[var(--chat-panel-width)]"
+      >
+        <TopBarWrapper>
+          <Outlet />
+        </TopBarWrapper>
+      </div>
+      <ChatPanelContainer />
     </WebSocketProvider>
   );
 }
