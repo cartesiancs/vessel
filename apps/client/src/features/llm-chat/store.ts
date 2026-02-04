@@ -134,14 +134,24 @@ export const useChatStore = create<ChatPanelState>((set, get) => ({
         }
       );
     } catch (error) {
-      set({
-        error:
-          error instanceof Error ? error.message : "Failed to analyze image",
+      const errorMessage = error instanceof Error ? error.message : "Failed to analyze image";
+
+      // Check for size limit error
+      let userFriendlyError = errorMessage;
+      if (errorMessage.includes("length limit exceeded")) {
+        userFriendlyError = "Image is too large. Please use an image under 20MB.";
+      }
+
+      // Show error in assistant message
+      set((state) => ({
+        error: userFriendlyError,
         isLoading: false,
-        messages: get().messages.map((m) =>
-          m.id === assistantMessage.id ? { ...m, isStreaming: false } : m
+        messages: state.messages.map((m) =>
+          m.id === assistantMessage.id
+            ? { ...m, content: `⚠️ ${userFriendlyError}`, isStreaming: false }
+            : m
         ),
-      });
+      }));
     }
   },
 
