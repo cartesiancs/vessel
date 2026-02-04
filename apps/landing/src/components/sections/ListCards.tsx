@@ -11,25 +11,25 @@ type Slide = {
 
 const slides: Slide[] = [
   {
-    image: "/images/ha.webp",
+    image: "/images/s1.webp",
     alt: "Smart home dashboard",
     title: "Edge orchestration",
     caption: "Connect every device and keep control at the edge.",
   },
   {
-    image: "/images/robotarm.webp",
+    image: "/images/s2.webp",
     alt: "Industrial robot arm",
     title: "Low-latency control",
     caption: "Drive ROS 2 robots with dependable, real-time flows.",
   },
   {
-    image: "/images/factory.webp",
+    image: "/images/s3.webp",
     alt: "Factory overview",
     title: "Mission control",
     caption: "See every stream and respond instantly from one place.",
   },
   {
-    image: "/images/watch.webp",
+    image: "/images/s4.webp",
     alt: "Wearable alerting",
     title: "Always-on insight",
     caption: "Surface critical signals wherever your teams are.",
