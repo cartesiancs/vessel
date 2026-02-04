@@ -2,5 +2,6 @@
 members = [
     "apps/server",
     "apps/desktop/src-tauri",
+    "apps/enclave",
 ]
 resolver = "2"

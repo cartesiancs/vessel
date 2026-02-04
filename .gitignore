@@ -11,3 +11,7 @@ database.db
 /config.toml
 /.venv
 /recordings
+/packages/*/node_modules
+/packages/*/dist
+/packages/*/**/node_modules
+/apps/*/**/node_modules
