@@ -22,7 +22,8 @@
     "docs:preview": "vitepress preview docs"
   },
   "workspaces": [
-    "apps/*"
+    "apps/*",
+    "packages/*"
   ],
   "dependencies": {
     "@tailwindcss/vite": "^4.1.8",

@@ -15,8 +15,11 @@ export function ChatPanelMobile() {
     isOpen,
     messages,
     isLoading,
+    pendingImage,
     closePanel,
     sendMessage,
+    sendMessageWithImage,
+    setPendingImage,
     clearMessages,
   } = useChatStore();
 
@@ -41,7 +44,13 @@ export function ChatPanelMobile() {
 
         <ChatMessages messages={messages} isLoading={isLoading} />
 
-        <ChatInput onSend={sendMessage} disabled={isLoading} />
+        <ChatInput
+          onSend={sendMessage}
+          onSendWithImage={sendMessageWithImage}
+          pendingImage={pendingImage}
+          onImageSelect={setPendingImage}
+          disabled={isLoading}
+        />
       </SheetContent>
     </Sheet>
   );

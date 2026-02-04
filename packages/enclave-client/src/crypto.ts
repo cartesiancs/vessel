@@ -11,10 +11,19 @@ const HKDF_SALT = new TextEncoder().encode('vessel-enclave-v1-salt');
 const HKDF_INFO = new TextEncoder().encode('vessel-enclave-v1-key');
 
 /**
- * Base64 인코딩
+ * Base64 encoding (handles large arrays)
  */
 function bytesToBase64(bytes: Uint8Array): string {
-  return btoa(String.fromCharCode(...bytes));
+  // Use chunked approach to avoid stack overflow for large images
+  const CHUNK_SIZE = 0x8000; // 32KB chunks
+  const chunks: string[] = [];
+
+  for (let i = 0; i < bytes.length; i += CHUNK_SIZE) {
+    const chunk = bytes.subarray(i, i + CHUNK_SIZE);
+    chunks.push(String.fromCharCode.apply(null, chunk as unknown as number[]));
+  }
+
+  return btoa(chunks.join(''));
 }
 
 /**

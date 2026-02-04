@@ -14,8 +14,11 @@ export function ChatPanel() {
     isOpen,
     messages,
     isLoading,
+    pendingImage,
     closePanel,
     sendMessage,
+    sendMessageWithImage,
+    setPendingImage,
     clearMessages,
   } = useChatStore();
 
@@ -63,7 +66,13 @@ export function ChatPanel() {
       <ChatMessages messages={messages} isLoading={isLoading} />
 
       {/* Input */}
-      <ChatInput onSend={sendMessage} disabled={isLoading} />
+      <ChatInput
+        onSend={sendMessage}
+        onSendWithImage={sendMessageWithImage}
+        pendingImage={pendingImage}
+        onImageSelect={setPendingImage}
+        disabled={isLoading}
+      />
     </div>
   );
 }
