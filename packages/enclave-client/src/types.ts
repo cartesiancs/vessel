@@ -44,6 +44,24 @@ export interface EnclaveClientOptions {
   baseUrl: string;
   /** 요청 타임아웃 (ms) */
   timeout?: number;
+  /**
+   * Access token provider
+   *
+   * Supabase 세션 토큰을 제공하는 함수
+   * 인증이 필요한 API 호출 시 자동으로 Authorization 헤더에 추가됨
+   *
+   * @example
+   * ```typescript
+   * const client = new EnclaveClient({
+   *   baseUrl: 'https://enclave.example.com',
+   *   getAccessToken: async () => {
+   *     const { data: { session } } = await supabase.auth.getSession();
+   *     return session?.access_token ?? null;
+   *   },
+   * });
+   * ```
+   */
+  getAccessToken?: () => Promise<string | null>;
 }
 
 /**

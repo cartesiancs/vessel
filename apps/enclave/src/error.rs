@@ -6,7 +6,7 @@ use axum::{
 use serde_json::json;
 use thiserror::Error;
 
-/// Enclave 에러 타입
+/// Enclave error types
 #[derive(Error, Debug)]
 pub enum EnclaveError {
     #[error("Invalid public key format")]
@@ -32,6 +32,12 @@ pub enum EnclaveError {
 
     #[error("Internal error: {0}")]
     Internal(String),
+
+    #[error("Rate limit exceeded: {0}")]
+    RateLimited(String),
+
+    #[error("Subscription required")]
+    SubscriptionRequired,
 }
 
 impl IntoResponse for EnclaveError {
@@ -46,7 +52,7 @@ impl IntoResponse for EnclaveError {
             }
 
             EnclaveError::CipherInitFailed | EnclaveError::Internal(_) => {
-                // 내부 에러는 상세 내용을 노출하지 않음
+                // Internal errors don't expose details
                 tracing::error!("Internal error: {}", self);
                 (
                     StatusCode::INTERNAL_SERVER_ERROR,
@@ -64,6 +70,17 @@ impl IntoResponse for EnclaveError {
                 (
                     StatusCode::INTERNAL_SERVER_ERROR,
                     "Configuration error".to_string(),
+                )
+            }
+
+            EnclaveError::RateLimited(reason) => {
+                (StatusCode::TOO_MANY_REQUESTS, reason.clone())
+            }
+
+            EnclaveError::SubscriptionRequired => {
+                (
+                    StatusCode::FORBIDDEN,
+                    "Pro subscription required".to_string(),
                 )
             }
         };

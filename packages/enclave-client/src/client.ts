@@ -9,6 +9,42 @@ import type {
 } from './types';
 
 /**
+ * Authentication error
+ *
+ * 인증 토큰이 없거나 만료된 경우 발생
+ */
+export class EnclaveAuthError extends Error {
+  constructor(message: string = 'Authentication required') {
+    super(message);
+    this.name = 'EnclaveAuthError';
+  }
+}
+
+/**
+ * Rate limit error
+ *
+ * 일일 사용량 제한을 초과한 경우 발생
+ */
+export class EnclaveRateLimitError extends Error {
+  constructor(message: string = 'Rate limit exceeded') {
+    super(message);
+    this.name = 'EnclaveRateLimitError';
+  }
+}
+
+/**
+ * Subscription required error
+ *
+ * Pro 구독이 필요한 기능을 비구독자가 사용하려 할 때 발생
+ */
+export class EnclaveSubscriptionError extends Error {
+  constructor(message: string = 'Pro subscription required') {
+    super(message);
+    this.name = 'EnclaveSubscriptionError';
+  }
+}
+
+/**
  * Enclave 클라이언트
  *
  * 보안 이미지 분석을 위한 클라이언트 SDK
@@ -32,10 +68,12 @@ export class EnclaveClient {
   private baseUrl: string;
   private timeout: number;
   private serverPublicKey: string | null = null;
+  private getAccessToken?: () => Promise<string | null>;
 
   constructor(options: EnclaveClientOptions) {
     this.baseUrl = options.baseUrl.replace(/\/$/, ''); // trailing slash 제거
     this.timeout = options.timeout ?? 60000;
+    this.getAccessToken = options.getAccessToken;
   }
 
   /**
@@ -165,14 +203,39 @@ export class EnclaveClient {
     const timeoutId = setTimeout(() => controller.abort(), this.timeout);
 
     try {
+      // Build headers
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        ...(init.headers as Record<string, string>),
+      };
+
+      // Add Authorization header if token provider is configured
+      if (this.getAccessToken) {
+        const token = await this.getAccessToken();
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+      }
+
       const response = await fetch(`${this.baseUrl}${path}`, {
         ...init,
-        headers: {
-          'Content-Type': 'application/json',
-          ...init.headers,
-        },
+        headers,
         signal: controller.signal,
       });
+
+      // Handle auth-related errors
+      if (response.status === 401) {
+        throw new EnclaveAuthError('Authentication required. Please sign in.');
+      }
+      if (response.status === 403) {
+        throw new EnclaveSubscriptionError(
+          'Pro subscription required. Please upgrade at vessel.land/pricing'
+        );
+      }
+      if (response.status === 429) {
+        const errorText = await response.text();
+        throw new EnclaveRateLimitError(errorText || 'Rate limit exceeded. Try again later.');
+      }
 
       if (!response.ok) {
         const error = await response.text();
@@ -197,14 +260,39 @@ export class EnclaveClient {
     const timeoutId = setTimeout(() => controller.abort(), this.timeout);
 
     try {
+      // Build headers
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+
+      // Add Authorization header if token provider is configured
+      if (this.getAccessToken) {
+        const token = await this.getAccessToken();
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+      }
+
       const response = await fetch(`${this.baseUrl}${path}`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify(request),
         signal: controller.signal,
       });
+
+      // Handle auth-related errors
+      if (response.status === 401) {
+        throw new EnclaveAuthError('Authentication required. Please sign in.');
+      }
+      if (response.status === 403) {
+        throw new EnclaveSubscriptionError(
+          'Pro subscription required. Please upgrade at vessel.land/pricing'
+        );
+      }
+      if (response.status === 429) {
+        const errorText = await response.text();
+        throw new EnclaveRateLimitError(errorText || 'Rate limit exceeded. Try again later.');
+      }
 
       if (!response.ok) {
         const error = await response.text();

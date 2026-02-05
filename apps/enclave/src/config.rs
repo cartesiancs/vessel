@@ -2,47 +2,60 @@ use zeroize::Zeroizing;
 
 use crate::error::EnclaveError;
 
-/// 애플리케이션 설정
+/// Application configuration
 pub struct Config {
-    /// 서버 포트
+    /// Server port
     pub port: u16,
-    /// OpenAI API 키 (Zeroizing으로 메모리 보호)
+    /// OpenAI API key (protected with Zeroizing)
     pub openai_api_key: Zeroizing<String>,
-    /// OpenAI 모델 (기본값: gpt-4o)
+    /// OpenAI model (default: gpt-4o)
     pub openai_model: String,
-    /// 허용된 CORS Origin 목록
+    /// Allowed CORS origins
     pub allowed_origins: Vec<String>,
+    /// Supabase project URL
+    pub supabase_url: String,
+    /// Supabase service role key (protected with Zeroizing)
+    pub supabase_service_key: Zeroizing<String>,
 }
 
 impl Config {
-    /// 환경 변수에서 설정 로드
+    /// Load configuration from environment variables
     ///
-    /// # 보안
-    /// - API 키는 `Zeroizing<String>`으로 보호됨
-    /// - 로드 후 환경 변수에서 민감 정보 제거
+    /// # Security
+    /// - API keys are protected with `Zeroizing<String>`
+    /// - Sensitive environment variables are removed after loading
     pub fn from_env() -> Result<Self, EnclaveError> {
         dotenvy::dotenv().ok();
 
-        // OpenAI API 키 로드
+        // Load OpenAI API key
         let openai_api_key = std::env::var("OPENAI_API_KEY").map_err(|_| {
             EnclaveError::ConfigError("OPENAI_API_KEY environment variable is required".to_string())
         })?;
 
-        // 보안: 환경 변수에서 API 키 제거
+        // Load Supabase configuration
+        let supabase_url = std::env::var("SUPABASE_URL").map_err(|_| {
+            EnclaveError::ConfigError("SUPABASE_URL environment variable is required".to_string())
+        })?;
+
+        let supabase_service_key = std::env::var("SUPABASE_SERVICE_KEY").map_err(|_| {
+            EnclaveError::ConfigError(
+                "SUPABASE_SERVICE_KEY environment variable is required".to_string(),
+            )
+        })?;
+
+        // Security: Remove sensitive environment variables
         std::env::remove_var("OPENAI_API_KEY");
-        tracing::debug!("Removed OPENAI_API_KEY from environment");
+        std::env::remove_var("SUPABASE_SERVICE_KEY");
+        tracing::debug!("Removed sensitive environment variables");
 
         let port = std::env::var("PORT")
             .unwrap_or_else(|_| "3000".to_string())
             .parse()
             .unwrap_or(3000);
 
-        let openai_model =
-            std::env::var("OPENAI_MODEL").unwrap_or_else(|_| "gpt-4o".to_string());
+        let openai_model = std::env::var("OPENAI_MODEL").unwrap_or_else(|_| "gpt-4o".to_string());
 
-        // CORS 허용 Origin (쉼표로 구분)
-        // 예: ALLOWED_ORIGINS=https://example.com,https://app.example.com
-        // "*"는 모든 Origin 허용 (개발용)
+        // CORS allowed origins (comma-separated)
         let allowed_origins = std::env::var("ALLOWED_ORIGINS")
             .unwrap_or_else(|_| "*".to_string())
             .split(',')
@@ -55,6 +68,8 @@ impl Config {
             openai_api_key: Zeroizing::new(openai_api_key),
             openai_model,
             allowed_origins,
+            supabase_url,
+            supabase_service_key: Zeroizing::new(supabase_service_key),
         })
     }
 }

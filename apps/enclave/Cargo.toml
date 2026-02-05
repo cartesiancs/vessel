@@ -32,6 +32,12 @@ async-stream = "0.3"
 futures-util = "0.3"
 tokio-stream = "0.1"
 
+# JWT & Auth
+jsonwebtoken = "9"
+async-trait = "0.1"
+chrono = { version = "0.4", features = ["serde"] }
+axum-extra = { version = "0.9", features = ["typed-header"] }
+
 # Utilities
 anyhow = "1"
 thiserror = "1"

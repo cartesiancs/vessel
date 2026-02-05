@@ -38,7 +38,7 @@ impl OpenAIService {
     }
 
     /// 텍스트 전용 채팅
-    pub async fn chat(&self, message: &str) -> Result<String, anyhow::Error> {
+    pub async fn chat(&self, message: &str) -> Result<ChatResult, anyhow::Error> {
         let request_body = ChatRequest {
             model: self.model.clone(),
             messages: vec![Message {
@@ -47,6 +47,7 @@ impl OpenAIService {
             }],
             max_tokens: Some(4096),
             stream: false,
+            stream_options: None,
         };
 
         let response = self
@@ -65,11 +66,14 @@ impl OpenAIService {
 
         let response_body: ChatResponse = response.json().await?;
 
-        Ok(response_body
-            .choices
-            .first()
-            .map(|c| c.message.content.clone())
-            .unwrap_or_default())
+        Ok(ChatResult {
+            content: response_body
+                .choices
+                .first()
+                .map(|c| c.message.content.clone())
+                .unwrap_or_default(),
+            usage: response_body.usage.into(),
+        })
     }
 
     /// 이미지 분석 요청
@@ -82,7 +86,7 @@ impl OpenAIService {
         &self,
         message: &str,
         decrypted_image: DecryptedImage, // 소유권 이전 → 함수 종료 시 자동 drop
-    ) -> Result<String, anyhow::Error> {
+    ) -> Result<ChatResult, anyhow::Error> {
         // base64 인코딩 (임시 변수)
         let mut image_base64 = decrypted_image.to_base64();
 
@@ -107,6 +111,7 @@ impl OpenAIService {
             }],
             max_tokens: Some(4096),
             stream: false,
+            stream_options: None,
         };
 
         let response = self
@@ -130,18 +135,24 @@ impl OpenAIService {
 
         let response_body: ChatResponse = response.json().await?;
 
-        Ok(response_body
-            .choices
-            .first()
-            .map(|c| c.message.content.clone())
-            .unwrap_or_default())
+        Ok(ChatResult {
+            content: response_body
+                .choices
+                .first()
+                .map(|c| c.message.content.clone())
+                .unwrap_or_default(),
+            usage: response_body.usage.into(),
+        })
     }
 
     /// 텍스트 전용 스트리밍 채팅
+    ///
+    /// Returns a stream of SSE events and a shared usage tracker.
+    /// The usage will be populated when the stream completes.
     pub async fn chat_stream(
         &self,
         message: &str,
-    ) -> Result<Pin<Box<dyn Stream<Item = Result<Event, EnclaveError>> + Send>>, anyhow::Error>
+    ) -> Result<(Pin<Box<dyn Stream<Item = Result<Event, EnclaveError>> + Send>>, std::sync::Arc<std::sync::Mutex<TokenUsage>>), anyhow::Error>
     {
         let request_body = ChatRequest {
             model: self.model.clone(),
@@ -151,6 +162,7 @@ impl OpenAIService {
             }],
             max_tokens: Some(4096),
             stream: true,
+            stream_options: Some(StreamOptions { include_usage: true }),
         };
 
         let response = self
@@ -167,15 +179,20 @@ impl OpenAIService {
             return Err(anyhow::anyhow!("OpenAI API error: {}", error_text));
         }
 
-        Ok(Box::pin(Self::process_stream(response)))
+        let usage = std::sync::Arc::new(std::sync::Mutex::new(TokenUsage::default()));
+        let stream = Box::pin(Self::process_stream_with_usage(response, usage.clone()));
+        Ok((stream, usage))
     }
 
     /// 이미지 분석 스트리밍 요청
+    ///
+    /// Returns a stream of SSE events and a shared usage tracker.
+    /// The usage will be populated when the stream completes.
     pub async fn analyze_image_stream(
         &self,
         message: &str,
         decrypted_image: DecryptedImage,
-    ) -> Result<Pin<Box<dyn Stream<Item = Result<Event, EnclaveError>> + Send>>, anyhow::Error>
+    ) -> Result<(Pin<Box<dyn Stream<Item = Result<Event, EnclaveError>> + Send>>, std::sync::Arc<std::sync::Mutex<TokenUsage>>), anyhow::Error>
     {
         let mut image_base64 = decrypted_image.to_base64();
         drop(decrypted_image);
@@ -197,6 +214,7 @@ impl OpenAIService {
             }],
             max_tokens: Some(4096),
             stream: true,
+            stream_options: Some(StreamOptions { include_usage: true }),
         };
 
         let response = self
@@ -218,12 +236,15 @@ impl OpenAIService {
             return Err(anyhow::anyhow!("OpenAI API error: {}", error_text));
         }
 
-        Ok(Box::pin(Self::process_stream(response)))
+        let usage = std::sync::Arc::new(std::sync::Mutex::new(TokenUsage::default()));
+        let stream = Box::pin(Self::process_stream_with_usage(response, usage.clone()));
+        Ok((stream, usage))
     }
 
-    /// SSE 스트림 처리
-    fn process_stream(
+    /// SSE 스트림 처리 (with usage tracking)
+    fn process_stream_with_usage(
         response: reqwest::Response,
+        usage: std::sync::Arc<std::sync::Mutex<TokenUsage>>,
     ) -> impl Stream<Item = Result<Event, EnclaveError>> {
         async_stream::stream! {
             let mut stream = response.bytes_stream();
@@ -243,6 +264,15 @@ impl OpenAIService {
                                 }
 
                                 if let Ok(chunk) = serde_json::from_str::<StreamChunk>(data) {
+                                    // Capture usage from the final chunk (when include_usage is true)
+                                    if let Some(u) = chunk.usage {
+                                        if let Ok(mut usage_guard) = usage.lock() {
+                                            usage_guard.prompt_tokens = u.prompt_tokens;
+                                            usage_guard.completion_tokens = u.completion_tokens;
+                                            usage_guard.total_tokens = u.total_tokens;
+                                        }
+                                    }
+
                                     if let Some(choice) = chunk.choices.first() {
                                         if let Some(content) = &choice.delta.content {
                                             yield Ok(Event::default().data(content.clone()));
@@ -271,6 +301,13 @@ struct ChatRequest {
     #[serde(skip_serializing_if = "Option::is_none")]
     max_tokens: Option<u32>,
     stream: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    stream_options: Option<StreamOptions>,
+}
+
+#[derive(Serialize)]
+struct StreamOptions {
+    include_usage: bool,
 }
 
 #[derive(Serialize)]
@@ -300,9 +337,45 @@ struct ImageUrl {
     url: String,
 }
 
+/// Token usage information from OpenAI API
+#[derive(Debug, Clone, Default, Deserialize)]
+pub struct TokenUsage {
+    pub prompt_tokens: i32,
+    pub completion_tokens: i32,
+    pub total_tokens: i32,
+}
+
+/// Result of a chat request including content and token usage
+#[derive(Debug, Clone)]
+pub struct ChatResult {
+    pub content: String,
+    pub usage: TokenUsage,
+}
+
 #[derive(Deserialize)]
 struct ChatResponse {
     choices: Vec<Choice>,
+    usage: Option<Usage>,
+}
+
+#[derive(Deserialize)]
+struct Usage {
+    prompt_tokens: i32,
+    completion_tokens: i32,
+    total_tokens: i32,
+}
+
+impl From<Option<Usage>> for TokenUsage {
+    fn from(usage: Option<Usage>) -> Self {
+        match usage {
+            Some(u) => TokenUsage {
+                prompt_tokens: u.prompt_tokens,
+                completion_tokens: u.completion_tokens,
+                total_tokens: u.total_tokens,
+            },
+            None => TokenUsage::default(),
+        }
+    }
 }
 
 #[derive(Deserialize)]
@@ -318,6 +391,7 @@ struct ResponseMessage {
 #[derive(Deserialize)]
 struct StreamChunk {
     choices: Vec<StreamChoice>,
+    usage: Option<Usage>,
 }
 
 #[derive(Deserialize)]

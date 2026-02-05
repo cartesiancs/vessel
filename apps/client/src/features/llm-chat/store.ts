@@ -1,5 +1,11 @@
 import { create } from "zustand";
-import { EnclaveClient } from "@vessel/enclave-client";
+import {
+  EnclaveClient,
+  EnclaveAuthError,
+  EnclaveSubscriptionError,
+  EnclaveRateLimitError,
+} from "@vessel/enclave-client";
+import { supabase } from "@/lib/supabase";
 import type { ChatMessage, ChatPanelState } from "./types";
 
 function generateId(): string {
@@ -8,10 +14,16 @@ function generateId(): string {
 
 const ENCLAVE_URL = import.meta.env.VITE_ENCLAVE_URL || "http://localhost:3000";
 
-// EnclaveClient singleton
+// EnclaveClient singleton with Supabase token provider
 const enclaveClient = new EnclaveClient({
   baseUrl: ENCLAVE_URL,
   timeout: 120000, // Image analysis may take a long time
+  getAccessToken: async () => {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    return session?.access_token ?? null;
+  },
 });
 
 export const useChatStore = create<ChatPanelState>((set, get) => ({
@@ -53,7 +65,7 @@ export const useChatStore = create<ChatPanelState>((set, get) => ({
         if (done) {
           set((state) => ({
             messages: state.messages.map((m) =>
-              m.id === assistantMessage.id ? { ...m, isStreaming: false } : m
+              m.id === assistantMessage.id ? { ...m, isStreaming: false } : m,
             ),
             isLoading: false,
           }));
@@ -62,18 +74,40 @@ export const useChatStore = create<ChatPanelState>((set, get) => ({
             messages: state.messages.map((m) =>
               m.id === assistantMessage.id
                 ? { ...m, content: m.content + chunk }
-                : m
+                : m,
             ),
           }));
         }
       });
     } catch (error) {
+      let errorMessage = "Failed to send message";
+      let showInChat = false;
+
+      if (error instanceof EnclaveAuthError) {
+        errorMessage = "Please sign in to continue.";
+        showInChat = true;
+      } else if (error instanceof EnclaveSubscriptionError) {
+        errorMessage =
+          "Pro subscription required. Upgrade at [vessel.cartesiancs.com/pricing](https://vessel.cartesiancs.com/pricing)";
+        showInChat = true;
+      } else if (error instanceof EnclaveRateLimitError) {
+        errorMessage = "Daily usage limit reached. Please try again tomorrow.";
+        showInChat = true;
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+
       set({
-        error:
-          error instanceof Error ? error.message : "Failed to send message",
+        error: showInChat ? null : errorMessage,
         isLoading: false,
         messages: get().messages.map((m) =>
-          m.id === assistantMessage.id ? { ...m, isStreaming: false } : m
+          m.id === assistantMessage.id
+            ? {
+                ...m,
+                content: showInChat ? `⚠️ ${errorMessage}` : m.content,
+                isStreaming: false,
+              }
+            : m,
         ),
       });
     }
@@ -118,7 +152,7 @@ export const useChatStore = create<ChatPanelState>((set, get) => ({
           if (done) {
             set((state) => ({
               messages: state.messages.map((m) =>
-                m.id === assistantMessage.id ? { ...m, isStreaming: false } : m
+                m.id === assistantMessage.id ? { ...m, isStreaming: false } : m,
               ),
               isLoading: false,
             }));
@@ -127,29 +161,43 @@ export const useChatStore = create<ChatPanelState>((set, get) => ({
               messages: state.messages.map((m) =>
                 m.id === assistantMessage.id
                   ? { ...m, content: m.content + chunk }
-                  : m
+                  : m,
               ),
             }));
           }
-        }
+        },
       );
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Failed to analyze image";
+      let errorMessage = "Failed to analyze image";
+      let showInChat = false;
 
-      // Check for size limit error
-      let userFriendlyError = errorMessage;
-      if (errorMessage.includes("length limit exceeded")) {
-        userFriendlyError = "Image is too large. Please use an image under 20MB.";
+      if (error instanceof EnclaveAuthError) {
+        errorMessage = "Please sign in to continue.";
+        showInChat = true;
+      } else if (error instanceof EnclaveSubscriptionError) {
+        errorMessage =
+          "Pro subscription required. Upgrade at [vessel.cartesiancs.com/pricing](https://vessel.cartesiancs.com/pricing)";
+        showInChat = true;
+      } else if (error instanceof EnclaveRateLimitError) {
+        errorMessage = "Daily usage limit reached. Please try again tomorrow.";
+        showInChat = true;
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+        // Check for size limit error
+        if (errorMessage.includes("length limit exceeded")) {
+          errorMessage = "Image is too large. Please use an image under 20MB.";
+        }
+        showInChat = true;
       }
 
       // Show error in assistant message
       set((state) => ({
-        error: userFriendlyError,
+        error: showInChat ? null : errorMessage,
         isLoading: false,
         messages: state.messages.map((m) =>
           m.id === assistantMessage.id
-            ? { ...m, content: `⚠️ ${userFriendlyError}`, isStreaming: false }
-            : m
+            ? { ...m, content: `⚠️ ${errorMessage}`, isStreaming: false }
+            : m,
         ),
       }));
     }

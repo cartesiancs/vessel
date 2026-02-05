@@ -33,7 +33,12 @@
  * @packageDocumentation
  */
 
-export { EnclaveClient } from './client';
+export {
+  EnclaveClient,
+  EnclaveAuthError,
+  EnclaveRateLimitError,
+  EnclaveSubscriptionError,
+} from './client';
 export { encryptImage, fileToBytes } from './crypto';
 export type {
   EncryptedImage,
