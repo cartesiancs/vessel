@@ -11,15 +11,16 @@ import { StreamState } from "@/features/entity/useEntitiesData";
 import { EntityCard } from "@/features/entity/Card";
 import { StreamReceiver } from "@/features/rtc/StreamReceiver";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Trash2 } from "lucide-react";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Trash2, Plus } from "lucide-react";
 import { useSidebar } from "@/components/ui/sidebar";
 import { useFlowStore } from "@/entities/flow/store";
 import { useMapDataStore } from "@/entities/map/store";
@@ -81,16 +82,6 @@ export function GroupCanvas({
 
   const [dragging, setDragging] = useState<DragState | null>(null);
   const [resizing, setResizing] = useState<ResizeState | null>(null);
-  const [newButtonLabel, setNewButtonLabel] = useState("Action");
-  const [selectedEntityId, setSelectedEntityId] = useState<string | undefined>(
-    undefined,
-  );
-  const [selectedLayerId, setSelectedLayerId] = useState<number | undefined>(
-    undefined,
-  );
-  const [selectedFlowId, setSelectedFlowId] = useState<number | undefined>(
-    undefined,
-  );
   const [scale, setScale] = useState(1);
   const containerRef = useRef<HTMLDivElement | null>(null);
   // const videoEntities = useMemo(
@@ -125,17 +116,6 @@ export function GroupCanvas({
     }
   }, [fetchAllLayers, fetchFlows, flows.length, layers.length]);
 
-  useEffect(() => {
-    if (!selectedLayerId && layers.length > 0) {
-      setSelectedLayerId(layers[0].id);
-    }
-  }, [layers, selectedLayerId]);
-
-  useEffect(() => {
-    if (!selectedFlowId && flows.length > 0) {
-      setSelectedFlowId(flows[0].id);
-    }
-  }, [flows, selectedFlowId]);
 
   const parseSizeToPx = (value: string) => {
     const trimmed = value.trim();
@@ -292,26 +272,24 @@ export function GroupCanvas({
   const handleAddButton = () => {
     addItem(dashboardId, group.id, {
       type: "button",
-      label: newButtonLabel || "Action",
+      label: "Action",
       data: {},
     });
   };
 
-  const handleAddMapPanel = () => {
-    if (!selectedLayerId) return;
+  const handleAddMapPanel = (layerId: number) => {
     addItem(dashboardId, group.id, {
       type: "map",
       label: "Map",
-      data: { layerId: selectedLayerId },
+      data: { layerId },
     });
   };
 
-  const handleAddFlowPanel = () => {
-    if (!selectedFlowId) return;
+  const handleAddFlowPanel = (flowId: number) => {
     addItem(dashboardId, group.id, {
       type: "flow",
       label: "Flow",
-      data: { flowId: selectedFlowId },
+      data: { flowId },
     });
   };
 
@@ -365,7 +343,8 @@ export function GroupCanvas({
       return (
         <div className='flex h-full w-full items-center justify-center'>
           <Button
-            className='w-full'
+            className='w-full h-full'
+            variant={"outline"}
             onClick={() => {
               // Placeholder client-side action until server hooks exist
               console.log("Button clicked", item.label);
@@ -416,57 +395,62 @@ export function GroupCanvas({
           </Badge>
         </div>
         <div className='flex flex-wrap items-center gap-2 px-4'>
-          <Select onValueChange={setSelectedEntityId} value={selectedEntityId}>
-            <SelectTrigger className='w-[200px]'>
-              <SelectValue placeholder='Select entity' />
-            </SelectTrigger>
-            <SelectContent>
-              {entities.map((entity) => (
-                <SelectItem key={entity.id} value={entity.entity_id}>
-                  {entity.friendly_name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Button
-            variant='outline'
-            size='sm'
-            onClick={() => handleAddEntityCard(selectedEntityId)}
-            disabled={!selectedEntityId}
-          >
-            Add Entity
-          </Button>
-          <div className='flex items-center gap-1'>
-            <Input
-              value={newButtonLabel}
-              onChange={(e) => setNewButtonLabel(e.target.value)}
-              className='h-8 w-[140px]'
-              placeholder='Button label'
-            />
-            <Button variant='outline' size='sm' onClick={handleAddButton}>
-              Add Button
-            </Button>
-          </div>
-          <div className='flex items-center gap-1'>
-            <Button
-              variant='outline'
-              size='sm'
-              onClick={handleAddMapPanel}
-              disabled={!selectedLayerId}
-            >
-              Add Map
-            </Button>
-          </div>
-          <div className='flex items-center gap-1'>
-            <Button
-              variant='outline'
-              size='sm'
-              onClick={handleAddFlowPanel}
-              disabled={!selectedFlowId}
-            >
-              Add Flow
-            </Button>
-          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant='outline' size='sm'>
+                <Plus className='h-4 w-4 mr-1' />
+                Add Item
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align='end'>
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>Add Entity</DropdownMenuSubTrigger>
+                <DropdownMenuSubContent>
+                  {entities.map((entity) => (
+                    <DropdownMenuItem
+                      key={entity.id}
+                      onClick={() => handleAddEntityCard(entity.entity_id)}
+                    >
+                      {entity.friendly_name}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+              <DropdownMenuItem onClick={handleAddButton}>
+                Add Button
+              </DropdownMenuItem>
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger disabled={layers.length === 0}>
+                  Add Map
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent>
+                  {layers.map((layer) => (
+                    <DropdownMenuItem
+                      key={layer.id}
+                      onClick={() => handleAddMapPanel(layer.id)}
+                    >
+                      {layer.name}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger disabled={flows.length === 0}>
+                  Add Flow
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent>
+                  {flows.map((flow) => (
+                    <DropdownMenuItem
+                      key={flow.id}
+                      onClick={() => handleAddFlowPanel(flow.id)}
+                    >
+                      {flow.name}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+            </DropdownMenuContent>
+          </DropdownMenu>
           {onDeleteGroup && (
             <Button
               variant='ghost'
