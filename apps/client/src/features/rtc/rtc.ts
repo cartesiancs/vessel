@@ -1,5 +1,9 @@
 import { WebSocketChannel, WebSocketMessage } from "../ws/ws";
 
+export interface WebRTCConfig {
+  iceServers: RTCIceServer[];
+}
+
 export class WebRTCManager {
   private pc: RTCPeerConnection;
   private signaling: WebSocketChannel;
@@ -18,26 +22,44 @@ export class WebRTCManager {
     onStreamsChanged: (
       streams: Map<string, { stream: MediaStream; type: "audio" | "video" }>,
     ) => void,
+    config?: WebRTCConfig,
   ) {
     this.signaling = signaling;
     this.streams = new Map();
     this.pendingTopics = [];
     this.onStreamsChanged = onStreamsChanged;
-    this.pc = new RTCPeerConnection({
-      iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
-    });
+    const iceServers = config?.iceServers ?? [
+      { urls: "stun:stun.l.google.com:19302" },
+    ];
+    this.pc = new RTCPeerConnection({ iceServers });
     this.setupEvents();
   }
 
   private setupEvents(): void {
     this.signaling.addMessageListener(this.handleSignalingMessage);
 
+    this.pc.oniceconnectionstatechange = () => {
+      console.log("[WebRTC] ICE connection state:", this.pc.iceConnectionState);
+    };
+
+    this.pc.onconnectionstatechange = () => {
+      console.log("[WebRTC] Connection state:", this.pc.connectionState);
+    };
+
+    this.pc.onicegatheringstatechange = () => {
+      console.log("[WebRTC] ICE gathering state:", this.pc.iceGatheringState);
+    };
+
     this.pc.onicecandidate = (event) => {
       if (event.candidate) {
+        const type = event.candidate.type ?? "unknown";
+        console.log(`[WebRTC] Local candidate [${type}]:`, event.candidate.candidate);
         this.signaling.send({
           type: "candidate",
           payload: event.candidate.toJSON(),
         });
+      } else {
+        console.log("[WebRTC] ICE gathering complete");
       }
     };
 

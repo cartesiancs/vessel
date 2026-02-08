@@ -28,6 +28,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useTunnelStore } from "@/entities/tunnel/store";
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
+import {
+  fetchTurnCredentials,
+  clearTurnCache,
+  saveTurnConfigToServer,
+  getCredentialInfo,
+  notifyListeners,
+  type TurnCredentialsResponse,
+} from "@/features/rtc/turnService";
 
 export function SettingsPage() {
   const { status, isLoading, error, refresh, start, stop } = useTunnelStore();
@@ -40,6 +48,38 @@ export function SettingsPage() {
   const [server, setServer] = useState("");
   const [target, setTarget] = useState("http://127.0.0.1:6174");
   const [localError, setLocalError] = useState<string | null>(null);
+
+  const [turnLoading, setTurnLoading] = useState(false);
+  const [turnResult, setTurnResult] = useState<TurnCredentialsResponse | null>(null);
+  const [turnError, setTurnError] = useState<string | null>(null);
+
+  const existingCred = getCredentialInfo();
+  const isIssued = turnResult
+    ? !new Date(turnResult.expiresAt).getTime() || new Date(turnResult.expiresAt).getTime() > Date.now()
+    : existingCred !== null && !existingCred.isExpired;
+  const isExpired = turnResult
+    ? false
+    : existingCred !== null && existingCred.isExpired;
+
+  const handleIssueTurn = async () => {
+    setTurnLoading(true);
+    setTurnError(null);
+    setTurnResult(null);
+    try {
+      clearTurnCache();
+      const result = await fetchTurnCredentials();
+      await saveTurnConfigToServer({
+        iceServers: result.iceServers,
+        expiresAt: result.expiresAt,
+      });
+      setTurnResult(result);
+      notifyListeners(result.iceServers);
+    } catch (err) {
+      setTurnError(err instanceof Error ? err.message : "Failed to issue TURN credentials");
+    } finally {
+      setTurnLoading(false);
+    }
+  };
 
   useEffect(() => {
     refresh();
@@ -153,6 +193,58 @@ export function SettingsPage() {
               )}
             </CardContent>
           </Card>
+
+          {session && (
+            <Card>
+              <CardHeader>
+                <CardTitle>TURN Server</CardTitle>
+                <CardDescription>
+                  Issue Cloudflare TURN credentials for WebRTC relay
+                </CardDescription>
+              </CardHeader>
+              <CardContent className='space-y-3'>
+                <div className='flex items-center gap-3'>
+                  {isExpired ? (
+                    <Button
+                      variant='destructive'
+                      onClick={handleIssueTurn}
+                      disabled={turnLoading}
+                    >
+                      {turnLoading ? "Re-issuing..." : "Re-issue TURN Credentials"}
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={handleIssueTurn}
+                      disabled={turnLoading || isIssued}
+                    >
+                      {turnLoading ? "Issuing..." : "Issue TURN Credentials"}
+                    </Button>
+                  )}
+                  {isIssued && (
+                    <Badge variant='outline' className='text-green-600'>
+                      Issued — expires{" "}
+                      {new Date(
+                        turnResult?.expiresAt ?? existingCred!.expiresAt,
+                      ).toLocaleTimeString()}
+                    </Badge>
+                  )}
+                  {isExpired && (
+                    <Badge variant='outline' className='text-red-500'>
+                      Expired
+                    </Badge>
+                  )}
+                  {turnError && (
+                    <span className='text-sm text-red-500'>{turnError}</span>
+                  )}
+                </div>
+                {isIssued && (
+                  <p className='text-xs text-muted-foreground'>
+                    {(turnResult?.iceServers ?? existingCred?.iceServers)?.length ?? 0} ICE server(s) cached. Credentials will be applied automatically.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           <Card>
             <CardHeader>

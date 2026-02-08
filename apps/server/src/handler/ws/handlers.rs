@@ -2,30 +2,25 @@ use anyhow::{anyhow, Result};
 use axum::extract::ws::{Message, WebSocket};
 use futures_util::{future::join_all, stream::SplitSink, FutureExt, SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
-use serde_json::json;
 use std::{collections::HashMap, sync::Arc};
 use sysinfo::System;
 use tokio::sync::{mpsc, oneshot, Mutex};
 use tracing::{error, info, warn};
 use webrtc::{
-    api::{
-        media_engine::{MediaEngine, MIME_TYPE_H264, MIME_TYPE_OPUS},
-        setting_engine::SettingEngine,
-        APIBuilder,
-    },
-    ice::network_type::NetworkType,
+    api::media_engine::{MIME_TYPE_H264, MIME_TYPE_OPUS},
     ice_transport::{
-        ice_candidate::{RTCIceCandidate, RTCIceCandidateInit},
-        ice_server::RTCIceServer,
+        ice_candidate::RTCIceCandidateInit,
+        ice_connection_state::RTCIceConnectionState,
     },
     peer_connection::{
-        configuration::RTCConfiguration, sdp::session_description::RTCSessionDescription,
+        offer_answer_options::RTCOfferOptions,
+        sdp::session_description::RTCSessionDescription,
         RTCPeerConnection,
     },
-    rtp_transceiver::rtp_codec::{RTCRtpCodecCapability, RTCRtpCodecParameters, RTPCodecType},
+    rtp_transceiver::rtp_codec::RTCRtpCodecCapability,
     track::track_local::{
         track_local_static_rtp::TrackLocalStaticRTP,
-        track_local_static_sample::TrackLocalStaticSample, TrackLocal, TrackLocalWriter,
+        TrackLocal, TrackLocalWriter,
     },
 };
 
@@ -140,6 +135,7 @@ impl WSActor {
                     }
                 }
                 ActorCommand::AddIceCandidate { candidate } => {
+                    info!("Adding ICE candidate to PC: {}", candidate.candidate);
                     if let Err(e) = self.pc.add_ice_candidate(candidate).await {
                         error!("Actor failed to add ICE candidate: {}", e);
                     }
@@ -178,7 +174,7 @@ impl WSActor {
                     }
                     self.active_tracks.clear();
 
-                    match create_peer_connection(Arc::clone(&self.ws_sender)).await {
+                    match create_peer_connection(Arc::clone(&self.ws_sender), &self.state.pool).await {
                         Ok(new_pc) => {
                             self.pc = new_pc;
                             info!("PeerConnection has been successfully reset.");
@@ -275,9 +271,13 @@ impl WSActor {
         pc: Arc<RTCPeerConnection>,
         offer: RTCSessionDescription,
     ) -> Result<RTCSessionDescription> {
+        info!("[handle_offer] Setting remote description...");
         pc.set_remote_description(offer).await?;
+        info!("[handle_offer] Creating answer...");
         let answer = pc.create_answer(None).await?;
+        info!("[handle_offer] Setting local description (triggers ICE gathering)...");
         pc.set_local_description(answer).await?;
+        info!("[handle_offer] Local description set successfully.");
         pc.local_description()
             .await
             .ok_or_else(|| anyhow!("Failed to get local description"))
@@ -568,8 +568,21 @@ impl WSActor {
         }
 
         if subscribed {
+            let ice_state = self.pc.ice_connection_state();
+            let offer_options = if matches!(
+                ice_state,
+                RTCIceConnectionState::Failed | RTCIceConnectionState::Disconnected
+            ) {
+                info!("ICE is {:?}, triggering ICE restart in renegotiation offer", ice_state);
+                Some(RTCOfferOptions {
+                    ice_restart: true,
+                    ..Default::default()
+                })
+            } else {
+                None
+            };
             info!("Track added. Starting renegotiation...");
-            match self.pc.create_offer(None).await {
+            match self.pc.create_offer(offer_options).await {
                 Ok(offer) => {
                     if self.pc.set_local_description(offer).await.is_ok() {
                         if let Some(local_desc) = self.pc.local_description().await {
@@ -649,7 +662,7 @@ pub async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
 
     let (cmd_tx, cmd_rx) = mpsc::channel(10);
 
-    let initial_pc = match create_peer_connection(Arc::clone(&ws_sender)).await {
+    let initial_pc = match create_peer_connection(Arc::clone(&ws_sender), &state.pool).await {
         Ok(pc) => pc,
         Err(e) => {
             error!("Failed to create initial peer connection: {}", e);
@@ -694,23 +707,24 @@ pub async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                         if cmd_tx.send(cmd).await.is_err() {
                             break;
                         }
-                        if let Ok(Ok(answer)) = responder_rx.await {
-                            let ws_answer = WsMessageOut {
-                                msg_type: "answer",
-                                payload: &answer,
-                            };
-                            if let Ok(payload_str) = serde_json::to_string(&ws_answer) {
-                                if ws_sender
-                                    .lock()
-                                    .await
-                                    .send(Message::Text(payload_str))
-                                    .await
-                                    .is_err()
-                                {
-                                    break;
+                        // Spawn response handling so the WS loop can immediately
+                        // continue reading messages (critical for ICE candidates).
+                        let ws_sender_clone = Arc::clone(&ws_sender);
+                        tokio::spawn(async move {
+                            if let Ok(Ok(answer)) = responder_rx.await {
+                                let ws_answer = WsMessageOut {
+                                    msg_type: "answer",
+                                    payload: &answer,
+                                };
+                                if let Ok(payload_str) = serde_json::to_string(&ws_answer) {
+                                    let _ = ws_sender_clone
+                                        .lock()
+                                        .await
+                                        .send(Message::Text(payload_str))
+                                        .await;
                                 }
                             }
-                        }
+                        });
                     }
                 }
                 "answer" => {
@@ -722,10 +736,16 @@ pub async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                     }
                 }
                 "candidate" => {
-                    if let Ok(candidate) = serde_json::from_value(ws_msg.payload) {
-                        let cmd = ActorCommand::AddIceCandidate { candidate };
-                        if cmd_tx.send(cmd).await.is_err() {
-                            break;
+                    match serde_json::from_value::<RTCIceCandidateInit>(ws_msg.payload.clone()) {
+                        Ok(candidate) => {
+                            info!("Received ICE candidate from client: {}", candidate.candidate);
+                            let cmd = ActorCommand::AddIceCandidate { candidate };
+                            if cmd_tx.send(cmd).await.is_err() {
+                                break;
+                            }
+                        }
+                        Err(e) => {
+                            error!("Failed to deserialize ICE candidate: {}. Payload: {}", e, ws_msg.payload);
                         }
                     }
                 }
@@ -771,23 +791,22 @@ pub async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                     if cmd_tx.send(cmd).await.is_err() {
                         break;
                     }
-                    if let Ok(Ok(flows)) = responder_rx.await {
-                        let ws_response = WsMessageOut {
-                            msg_type: "get_all_flows_response",
-                            payload: &flows,
-                        };
-                        if let Ok(payload_str) = serde_json::to_string(&ws_response) {
-                            if ws_sender
-                                .lock()
-                                .await
-                                .send(Message::Text(payload_str))
-                                .await
-                                .is_err()
-                            {
-                                break;
+                    let ws_sender_clone = Arc::clone(&ws_sender);
+                    tokio::spawn(async move {
+                        if let Ok(Ok(flows)) = responder_rx.await {
+                            let ws_response = WsMessageOut {
+                                msg_type: "get_all_flows_response",
+                                payload: &flows,
+                            };
+                            if let Ok(payload_str) = serde_json::to_string(&ws_response) {
+                                let _ = ws_sender_clone
+                                    .lock()
+                                    .await
+                                    .send(Message::Text(payload_str))
+                                    .await;
                             }
                         }
-                    }
+                    });
                 }
                 "ping" => {
                     let cmd = ActorCommand::Ping {
@@ -818,23 +837,22 @@ pub async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                     if cmd_tx.send(cmd).await.is_err() {
                         break;
                     }
-                    if let Ok(Ok(stats)) = responder_rx.await {
-                        let ws_response = WsMessageOut {
-                            msg_type: "get_server",
-                            payload: &stats,
-                        };
-                        if let Ok(payload_str) = serde_json::to_string(&ws_response) {
-                            if ws_sender
-                                .lock()
-                                .await
-                                .send(Message::Text(payload_str))
-                                .await
-                                .is_err()
-                            {
-                                break;
+                    let ws_sender_clone = Arc::clone(&ws_sender);
+                    tokio::spawn(async move {
+                        if let Ok(Ok(stats)) = responder_rx.await {
+                            let ws_response = WsMessageOut {
+                                msg_type: "get_server",
+                                payload: &stats,
+                            };
+                            if let Ok(payload_str) = serde_json::to_string(&ws_response) {
+                                let _ = ws_sender_clone
+                                    .lock()
+                                    .await
+                                    .send(Message::Text(payload_str))
+                                    .await;
                             }
                         }
-                    }
+                    });
                 }
                 "hangup" => {
                     info!("Received hangup message from client.");
@@ -842,9 +860,6 @@ pub async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                     if cmd_tx.send(cmd).await.is_err() {
                         break;
                     }
-                }
-                _ => {
-                    error!("Unknown message type: {}", ws_msg.msg_type);
                 }
                 _ => {
                     error!("Unknown message type: {}", ws_msg.msg_type);

@@ -10,6 +10,12 @@ import { useWebSocket } from "../ws/WebSocketProvider";
 import { WebRTCManager } from "./rtc";
 import { isDemoMode } from "@/shared/demo";
 import { WebSocketChannel } from "../ws/ws";
+import {
+  ensureIceServers,
+  onCredentialChange,
+  stopAutoRenewal,
+  DEFAULT_ICE_SERVERS,
+} from "./turnService";
 
 type StreamInfo = {
   stream: MediaStream;
@@ -42,7 +48,33 @@ export function WebRTCProvider({ children }: WebRTCProviderProps) {
   const [rtcManager, setRtcManager] = useState<WebRTCManager | null>(null);
   const [streams, setStreams] = useState<Map<string, StreamInfo>>(new Map());
   const [demoMode] = useState(isDemoMode);
+  const [iceServers, setIceServers] = useState<RTCIceServer[] | null>(null);
 
+  // Load ICE servers: try localStorage → server DB → Supabase → STUN fallback
+  useEffect(() => {
+    if (demoMode) {
+      setIceServers(DEFAULT_ICE_SERVERS);
+      return;
+    }
+
+    let cancelled = false;
+
+    ensureIceServers().then((servers) => {
+      if (!cancelled) setIceServers(servers);
+    });
+
+    const unsubscribe = onCredentialChange((servers) => {
+      if (!cancelled) setIceServers(servers);
+    });
+
+    return () => {
+      cancelled = true;
+      unsubscribe();
+      stopAutoRenewal();
+    };
+  }, [demoMode, isConnected]);
+
+  // Create WebRTCManager when connected and ICE servers are ready
   useEffect(() => {
     if (demoMode) {
       setRtcManager(null);
@@ -50,20 +82,30 @@ export function WebRTCProvider({ children }: WebRTCProviderProps) {
       return;
     }
 
-    if (isConnected && wsManager) {
+    if (isConnected && wsManager && iceServers) {
       if (!(wsManager instanceof WebSocketChannel)) {
         setRtcManager(null);
         setStreams(new Map());
         return;
       }
 
-      console.log("WebSocket connected, initializing WebRTCManager.");
+      console.log(
+        "WebSocket connected, initializing WebRTCManager with",
+        iceServers.length,
+        "ICE servers:",
+        iceServers.map((s) => ({
+          urls: s.urls,
+          hasCredentials: !!s.username,
+        })),
+      );
 
       const onStreamsChanged = (newStreams: Map<string, StreamInfo>) => {
         setStreams(newStreams);
       };
 
-      const manager = new WebRTCManager(wsManager, onStreamsChanged);
+      const manager = new WebRTCManager(wsManager, onStreamsChanged, {
+        iceServers,
+      });
       manager.connect();
       setRtcManager(manager);
 
@@ -72,7 +114,7 @@ export function WebRTCProvider({ children }: WebRTCProviderProps) {
         setRtcManager(null);
       };
     }
-  }, [demoMode, isConnected, wsManager]);
+  }, [demoMode, isConnected, wsManager, iceServers]);
 
   const { audioStreamCount, videoStreamCount } = useMemo(() => {
     const counts = { audioStreamCount: 0, videoStreamCount: 0 };
