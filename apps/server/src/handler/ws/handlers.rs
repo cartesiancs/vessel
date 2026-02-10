@@ -469,19 +469,36 @@ impl WSActor {
                     negotiated_pt, negotiated_ssrc
                 );
 
-                while let Ok(mut pkt) = rx.recv().await {
-                    pkt.header.payload_type = negotiated_pt;
-                    pkt.header.ssrc = negotiated_ssrc;
+                let mut lag_count: u64 = 0;
+                loop {
+                    match rx.recv().await {
+                        Ok(mut pkt) => {
+                            pkt.header.payload_type = negotiated_pt;
+                            pkt.header.ssrc = negotiated_ssrc;
 
-                    if new_audio_track.write_rtp(&pkt).await.is_err() {
-                        warn!(
-                            "[Audio] RTP packet write failed for SSRC {}, stopping.",
-                            ssrc
-                        );
-                        break;
+                            if let Err(e) = new_audio_track.write_rtp(&pkt).await {
+                                warn!(
+                                    "[Audio] write_rtp failed for SSRC {}: {}. Stopping.",
+                                    ssrc, e
+                                );
+                                break;
+                            }
+                        }
+                        Err(tokio::sync::broadcast::error::RecvError::Lagged(n)) => {
+                            lag_count += n;
+                            warn!(
+                                "[Audio] Broadcast receiver lagged {} packets (total: {}) for SSRC {}",
+                                n, lag_count, ssrc
+                            );
+                            continue;
+                        }
+                        Err(tokio::sync::broadcast::error::RecvError::Closed) => {
+                            info!("[Audio] Broadcast channel closed for SSRC {}", ssrc);
+                            break;
+                        }
                     }
                 }
-                info!("[Audio] RTP packet forwarding stopped for SSRC: {}", ssrc);
+                info!("[Audio] RTP packet forwarding stopped for SSRC: {} (total lagged: {})", ssrc, lag_count);
             });
         }
 
@@ -548,21 +565,38 @@ impl WSActor {
                     negotiated_pt, negotiated_ssrc
                 );
 
-                while let Ok(mut pkt) = rx.recv().await {
-                    pkt.header.payload_type = negotiated_pt;
-                    pkt.header.ssrc = negotiated_ssrc;
+                let mut lag_count: u64 = 0;
+                loop {
+                    match rx.recv().await {
+                        Ok(mut pkt) => {
+                            pkt.header.payload_type = negotiated_pt;
+                            pkt.header.ssrc = negotiated_ssrc;
 
-                    if new_udp_video_track.write_rtp(&pkt).await.is_err() {
-                        warn!(
-                            "[Video-UDP] RTP packet write failed for SSRC {}, stopping.",
-                            ssrc
-                        );
-                        break;
+                            if let Err(e) = new_udp_video_track.write_rtp(&pkt).await {
+                                warn!(
+                                    "[Video-UDP] write_rtp failed for SSRC {}: {}. Stopping.",
+                                    ssrc, e
+                                );
+                                break;
+                            }
+                        }
+                        Err(tokio::sync::broadcast::error::RecvError::Lagged(n)) => {
+                            lag_count += n;
+                            warn!(
+                                "[Video-UDP] Broadcast receiver lagged {} packets (total: {}) for SSRC {}",
+                                n, lag_count, ssrc
+                            );
+                            continue;
+                        }
+                        Err(tokio::sync::broadcast::error::RecvError::Closed) => {
+                            info!("[Video-UDP] Broadcast channel closed for SSRC {}", ssrc);
+                            break;
+                        }
                     }
                 }
                 info!(
-                    "[Video-UDP] RTP packet forwarding stopped for SSRC: {}",
-                    ssrc
+                    "[Video-UDP] RTP packet forwarding stopped for SSRC: {} (total lagged: {})",
+                    ssrc, lag_count
                 );
             });
         }

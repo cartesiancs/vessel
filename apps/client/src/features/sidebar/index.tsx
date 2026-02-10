@@ -40,9 +40,17 @@ import { NavFooter } from "./footer";
 import { isElectron } from "@/lib/electron";
 import { useDynamicDashboardStore } from "@/entities/dynamic-dashboard/store";
 import { useConfigStore } from "@/entities/configurations/store";
-import { ComponentProps, useEffect, useMemo, useState } from "react";
+import {
+  ComponentProps,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 const CONTROLS_OPEN_KEY = "controls-menu-open";
+const SIDEBAR_SCROLL_KEY = "sidebar-scroll-top";
 
 const data = {
   versions: ["main"],
@@ -162,6 +170,8 @@ export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
     isLoading: isConfigLoading,
   } = useConfigStore();
 
+  const scrollRef = useRef<HTMLDivElement>(null);
+
   const [controlsOpen, setControlsOpen] = useState<boolean>(() => {
     if (typeof window === "undefined") return true;
     try {
@@ -191,6 +201,24 @@ export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
       isRos2Connected && { id: "ros2", name: "ROS2" },
     ].filter(Boolean) as { id: string; name: string }[];
   }, [configurations]);
+
+  const handleScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (el) {
+      sessionStorage.setItem(SIDEBAR_SCROLL_KEY, String(el.scrollTop));
+    }
+  }, []);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const saved = sessionStorage.getItem(SIDEBAR_SCROLL_KEY);
+    if (saved !== null) {
+      requestAnimationFrame(() => {
+        el.scrollTop = Number(saved);
+      });
+    }
+  }, [currentPath]);
 
   useEffect(() => {
     try {
@@ -226,7 +254,7 @@ export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
           defaultVersion={data.versions[0]}
         />
       </SidebarHeader>
-      <SidebarContent>
+      <SidebarContent ref={scrollRef} onScroll={handleScroll}>
         {data.navMain.map((group) => (
           <SidebarGroup key={group.title}>
             <SidebarGroupLabel>{group.title}</SidebarGroupLabel>
