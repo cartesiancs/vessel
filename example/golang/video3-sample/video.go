@@ -23,7 +23,7 @@ func main() {
 	deviceToken := "FnhXd7dNy8iCPbu5N5jS2v_NaOYCiI9AqPO4FQQed7E"
 
 	serverURL := "http://127.0.0.1:6174/api/streams/register"
-	topic := "go_video_stream_2"
+	topic := "go_video_stream_3"
 	mediaType := "video"
 
 	if deviceId == "" || deviceToken == "" {
@@ -73,23 +73,24 @@ func main() {
 	fmt.Printf("Successfully registered stream. Topic: %s, SSRC: %d\n", topic, regResponse.Ssrc)
 
 	rtpURL := fmt.Sprintf("rtp://127.0.0.1:%d", regResponse.RtpPort)
-	fmt.Printf("Starting ffmpeg stream to: %s\n", rtpURL)
+	fmt.Printf("Starting ffmpeg stream to: %s (low bitrate for TURN testing)\n", rtpURL)
 
 	cmd := exec.Command(
 		"ffmpeg",
 		"-re",
-		"-i", "./sample.mp4",
+		"-stream_loop", "-1",
+		"-i", "../video-sample/sample.mp4",
 		"-an",
 		"-map", "0:v:0",
-		"-vf", "scale=640:480",
+		"-vf", "scale=320:240",
 		"-c:v", "libx264",
 		"-profile:v", "baseline",
 		"-pix_fmt", "yuv420p",
 		"-preset", "ultrafast",
 		"-tune", "zerolatency",
-		"-b:v", "300k",
-		"-maxrate", "350k",
-		"-bufsize", "600k",
+		"-b:v", "200k",
+		"-maxrate", "250k",
+		"-bufsize", "400k",
 		"-g", "30",
 		"-payload_type", "102",
 		"-ssrc", fmt.Sprintf("%d", regResponse.Ssrc),
