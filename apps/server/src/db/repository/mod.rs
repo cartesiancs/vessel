@@ -431,6 +431,9 @@ pub fn create_system_config(
     let mut conn = pool.get()?;
     let config = diesel::insert_into(system_configurations)
         .values(&new_config)
+        .on_conflict(key)
+        .do_update()
+        .set(&new_config)
         .get_result(&mut conn)?;
     Ok(config)
 }

@@ -378,6 +378,37 @@ impl WSActor {
         }
     }
 
+    fn extract_ice_credentials(sdp: &str) -> Option<(String, String)> {
+        let mut ufrag = None;
+        let mut pwd = None;
+        for line in sdp.lines() {
+            if line.starts_with("a=ice-ufrag:") {
+                ufrag = Some(line["a=ice-ufrag:".len()..].to_string());
+            } else if line.starts_with("a=ice-pwd:") {
+                pwd = Some(line["a=ice-pwd:".len()..].to_string());
+            }
+            if ufrag.is_some() && pwd.is_some() {
+                break;
+            }
+        }
+        ufrag.zip(pwd)
+    }
+
+    fn patch_ice_credentials(sdp: &str, ufrag: &str, pwd: &str) -> String {
+        let mut result = String::with_capacity(sdp.len());
+        for line in sdp.lines() {
+            if line.starts_with("a=ice-ufrag:") {
+                result.push_str(&format!("a=ice-ufrag:{}", ufrag));
+            } else if line.starts_with("a=ice-pwd:") {
+                result.push_str(&format!("a=ice-pwd:{}", pwd));
+            } else {
+                result.push_str(line);
+            }
+            result.push_str("\r\n");
+        }
+        result
+    }
+
     async fn handle_subscribe(&mut self, topic: String) {
         let mut subscribed = false;
 
@@ -615,10 +646,21 @@ impl WSActor {
             } else {
                 None
             };
+            let current_creds = self.pc.local_description().await
+                .and_then(|desc| Self::extract_ice_credentials(&desc.sdp));
+
             info!("Track added. Starting renegotiation...");
             match self.pc.create_offer(offer_options).await {
                 Ok(offer) => {
-                    if self.pc.set_local_description(offer).await.is_ok() {
+                    let final_offer = if let Some((ref ufrag, ref pwd)) = current_creds {
+                        let patched_sdp = Self::patch_ice_credentials(&offer.sdp, ufrag, pwd);
+                        info!("Patched renegotiation offer ICE credentials (ufrag={})", ufrag);
+                        RTCSessionDescription::offer(patched_sdp).unwrap()
+                    } else {
+                        offer
+                    };
+
+                    if self.pc.set_local_description(final_offer).await.is_ok() {
                         if let Some(local_desc) = self.pc.local_description().await {
                             let msg = WsMessageOut {
                                 msg_type: "offer",

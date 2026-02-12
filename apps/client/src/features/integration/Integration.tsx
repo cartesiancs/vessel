@@ -95,27 +95,18 @@ const IntegrationWizardModal: React.FC<IntegrationWizardModalProps> = ({
   };
 
   const handleNext = async () => {
-    if (currentStep === totalSteps - 1) {
+    const stepInfo = config.steps[currentStep];
+    const value = stepInfo.configKey ? formData[stepInfo.configKey] : undefined;
+
+    if (stepInfo.configKey && value) {
       setIsSaving(true);
       try {
-        const createPromises = config.steps
-          .map((step) => {
-            const value = formData[step.configKey!];
-            if (step.configKey && value) {
-              return createConfig({
-                key: step.configKey,
-                value: value,
-                enabled: 1,
-                description: `${config.name} configuration setting`,
-              });
-            }
-            return null;
-          })
-          .filter(Boolean);
-
-        if (createPromises.length > 0) {
-          await Promise.all(createPromises);
-        }
+        await createConfig({
+          key: stepInfo.configKey,
+          value: value,
+          enabled: 1,
+          description: `${config.name} configuration setting`,
+        });
         setCurrentStep((prev) => prev + 1);
       } catch (error) {
         console.error("Failed to save configuration:", error);
