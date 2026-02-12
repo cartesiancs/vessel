@@ -5,8 +5,10 @@ use futures_util::{stream::SplitSink, SinkExt};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tracing::{info, warn};
+use interceptor::registry::Registry;
 use webrtc::{
     api::{
+        interceptor_registry::register_default_interceptors,
         media_engine::{MediaEngine, MIME_TYPE_H264, MIME_TYPE_OPUS},
         APIBuilder,
     },
@@ -176,8 +178,12 @@ pub async fn create_peer_connection(
         RTPCodecType::Video,
     )?;
 
+    let mut registry = Registry::new();
+    registry = register_default_interceptors(registry, &mut m)?;
+
     let api = APIBuilder::new()
         .with_media_engine(m)
+        .with_interceptor_registry(registry)
         .build();
 
     let config = RTCConfiguration {

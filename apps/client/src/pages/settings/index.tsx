@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -45,17 +46,22 @@ export function SettingsPage() {
     signInWithGoogle,
     signOut,
   } = useSupabaseAuth();
-  const [server, setServer] = useState("");
+  const [server, setServer] = useState(
+    "wss://agent.tunnel.cartesiancs.com/agent",
+  );
   const [target, setTarget] = useState("http://127.0.0.1:6174");
   const [localError, setLocalError] = useState<string | null>(null);
 
   const [turnLoading, setTurnLoading] = useState(false);
-  const [turnResult, setTurnResult] = useState<TurnCredentialsResponse | null>(null);
+  const [turnResult, setTurnResult] = useState<TurnCredentialsResponse | null>(
+    null,
+  );
   const [turnError, setTurnError] = useState<string | null>(null);
 
   const existingCred = getCredentialInfo();
   const isIssued = turnResult
-    ? !new Date(turnResult.expiresAt).getTime() || new Date(turnResult.expiresAt).getTime() > Date.now()
+    ? !new Date(turnResult.expiresAt).getTime() ||
+      new Date(turnResult.expiresAt).getTime() > Date.now()
     : existingCred !== null && !existingCred.isExpired;
   const isExpired = turnResult
     ? false
@@ -75,7 +81,9 @@ export function SettingsPage() {
       setTurnResult(result);
       notifyListeners(result.iceServers);
     } catch (err) {
-      setTurnError(err instanceof Error ? err.message : "Failed to issue TURN credentials");
+      setTurnError(
+        err instanceof Error ? err.message : "Failed to issue TURN credentials",
+      );
     } finally {
       setTurnLoading(false);
     }
@@ -130,7 +138,11 @@ export function SettingsPage() {
 
   const copySession = async () => {
     if (status.session_id) {
-      await navigator.clipboard.writeText(status.session_id);
+      const url = `https://${status.session_id}.tunnel.cartesiancs.com/auth`;
+      await navigator.clipboard.writeText(url);
+      toast.success("Tunnel URL copied", {
+        description: url,
+      });
     }
   };
 
@@ -210,7 +222,9 @@ export function SettingsPage() {
                       onClick={handleIssueTurn}
                       disabled={turnLoading}
                     >
-                      {turnLoading ? "Re-issuing..." : "Re-issue TURN Credentials"}
+                      {turnLoading
+                        ? "Re-issuing..."
+                        : "Re-issue TURN Credentials"}
                     </Button>
                   ) : (
                     <Button
@@ -239,7 +253,10 @@ export function SettingsPage() {
                 </div>
                 {isIssued && (
                   <p className='text-xs text-muted-foreground'>
-                    {(turnResult?.iceServers ?? existingCred?.iceServers)?.length ?? 0} ICE server(s) cached. Credentials will be applied automatically.
+                    {(turnResult?.iceServers ?? existingCred?.iceServers)
+                      ?.length ?? 0}{" "}
+                    ICE server(s) cached. Credentials will be applied
+                    automatically.
                   </p>
                 )}
               </CardContent>
@@ -302,7 +319,7 @@ export function SettingsPage() {
                 {status.session_id && (
                   <div className='flex items-center gap-2'>
                     <Button size='sm' variant='outline' onClick={copySession}>
-                      Copy session ID
+                      Copy tunnel URL
                     </Button>
                   </div>
                 )}

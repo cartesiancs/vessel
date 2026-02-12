@@ -10,7 +10,7 @@ pub fn create_hydrate_streams(pool: &DbPool, streams: &StreamManager) {
     match repository::streams::get_all_streams(&pool) {
         Ok(db_streams) => {
             for stream in db_streams {
-                let (packet_tx, _) = broadcast::channel::<Packet>(1024);
+                let (packet_tx, _) = broadcast::channel::<Packet>(8192);
                 let media_type = match stream.media_type.as_str() {
                     "audio" => MediaType::Audio,
                     "video" => MediaType::Video,

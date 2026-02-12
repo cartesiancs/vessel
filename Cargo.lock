@@ -6609,6 +6609,7 @@ dependencies = [
  "http 1.4.0",
  "httparse",
  "image",
+ "interceptor",
  "jsonwebtoken",
  "lazy_static",
  "libsqlite3-sys",

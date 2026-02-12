@@ -409,6 +409,47 @@ impl WSActor {
         result
     }
 
+    /// H.264 RTP 패킷이 키프레임(IDR)을 포함하는지 감지.
+    /// NAL 유닛 타입을 검사: Single NAL(5=IDR, 7=SPS), STAP-A(24), FU-A(28).
+    fn is_h264_keyframe(pkt: &webrtc::rtp::packet::Packet) -> bool {
+        if pkt.payload.is_empty() {
+            return false;
+        }
+        let nal_type = pkt.payload[0] & 0x1F;
+        match nal_type {
+            5 | 7 => true, // IDR slice or SPS
+            24 => {
+                // STAP-A: 내부 NAL 중 IDR(5) 또는 SPS(7) 포함 여부
+                let mut offset = 1;
+                while offset + 2 < pkt.payload.len() {
+                    let nalu_size =
+                        ((pkt.payload[offset] as usize) << 8) | (pkt.payload[offset + 1] as usize);
+                    offset += 2;
+                    if offset < pkt.payload.len() {
+                        let inner_nal_type = pkt.payload[offset] & 0x1F;
+                        if inner_nal_type == 5 || inner_nal_type == 7 {
+                            return true;
+                        }
+                    }
+                    offset += nalu_size;
+                }
+                false
+            }
+            28 => {
+                // FU-A: fragmented NAL — start bit + IDR type
+                if pkt.payload.len() > 1 {
+                    let fu_header = pkt.payload[1];
+                    let start_bit = fu_header & 0x80 != 0;
+                    let fu_nal_type = fu_header & 0x1F;
+                    start_bit && (fu_nal_type == 5 || fu_nal_type == 7)
+                } else {
+                    false
+                }
+            }
+            _ => false,
+        }
+    }
+
     async fn handle_subscribe(&mut self, topic: String) {
         let mut subscribed = false;
 
@@ -470,36 +511,35 @@ impl WSActor {
             });
 
             let mut rx = info.packet_tx.subscribe();
-            let pc_clone = Arc::clone(&self.pc);
+
+            let audio_sender = self.pc
+                .get_senders()
+                .await
+                .into_iter()
+                .find(|s| {
+                    if let Some(track) = s.track().now_or_never().and_then(|t| t) {
+                        track.id() == new_audio_track.id()
+                    } else {
+                        false
+                    }
+                })
+                .expect("Audio sender not found for the specific track");
+
+            let parameters = audio_sender.get_parameters().await;
+            let negotiated_pt = parameters
+                .rtp_parameters
+                .codecs
+                .get(0)
+                .unwrap()
+                .payload_type;
+            let negotiated_ssrc = parameters.encodings.get(0).unwrap().ssrc;
+
+            info!(
+                "[Audio] RTP forwarding ready. Negotiated PT: {}, SSRC: {}",
+                negotiated_pt, negotiated_ssrc
+            );
 
             tokio::spawn(async move {
-                let audio_sender = pc_clone
-                    .get_senders()
-                    .await
-                    .into_iter()
-                    .find(|s| {
-                        if let Some(track) = s.track().now_or_never().and_then(|t| t) {
-                            track.id() == new_audio_track.id()
-                        } else {
-                            false
-                        }
-                    })
-                    .expect("Audio sender not found for the specific track");
-
-                let parameters = audio_sender.get_parameters().await;
-                let negotiated_pt = parameters
-                    .rtp_parameters
-                    .codecs
-                    .get(0)
-                    .unwrap()
-                    .payload_type;
-                let negotiated_ssrc = parameters.encodings.get(0).unwrap().ssrc;
-
-                info!(
-                    "[Audio] RTP packet forwarding started. Negotiated PT: {}, SSRC: {}",
-                    negotiated_pt, negotiated_ssrc
-                );
-
                 let mut lag_count: u64 = 0;
                 loop {
                     match rx.recv().await {
@@ -566,40 +606,51 @@ impl WSActor {
             });
 
             let mut rx = info.packet_tx.subscribe();
-            let pc_clone = Arc::clone(&self.pc);
+
+            let video_sender = self.pc
+                .get_senders()
+                .await
+                .into_iter()
+                .find(|s| {
+                    if let Some(track) = s.track().now_or_never().and_then(|t| t) {
+                        track.id() == new_udp_video_track.id()
+                    } else {
+                        false
+                    }
+                })
+                .expect("Video sender not found for the specific UDP track");
+
+            let parameters = video_sender.get_parameters().await;
+            let negotiated_pt = parameters
+                .rtp_parameters
+                .codecs
+                .get(0)
+                .unwrap()
+                .payload_type;
+            let negotiated_ssrc = parameters.encodings.get(0).unwrap().ssrc;
+
+            info!(
+                "[Video-UDP] RTP forwarding ready. Negotiated PT: {}, SSRC: {}",
+                negotiated_pt, negotiated_ssrc
+            );
 
             tokio::spawn(async move {
-                let video_sender = pc_clone
-                    .get_senders()
-                    .await
-                    .into_iter()
-                    .find(|s| {
-                        if let Some(track) = s.track().now_or_never().and_then(|t| t) {
-                            track.id() == new_udp_video_track.id()
-                        } else {
-                            false
-                        }
-                    })
-                    .expect("Video sender not found for the specific UDP track");
-
-                let parameters = video_sender.get_parameters().await;
-                let negotiated_pt = parameters
-                    .rtp_parameters
-                    .codecs
-                    .get(0)
-                    .unwrap()
-                    .payload_type;
-                let negotiated_ssrc = parameters.encodings.get(0).unwrap().ssrc;
-
-                info!(
-                    "[Video-UDP] RTP packet forwarding started. Negotiated PT: {}, SSRC: {}",
-                    negotiated_pt, negotiated_ssrc
-                );
-
                 let mut lag_count: u64 = 0;
+                // 새 구독자는 키프레임(IDR)을 받을 때까지 대기
+                let mut waiting_for_keyframe = true;
+                info!("[Video-UDP] Waiting for keyframe before forwarding SSRC {}", ssrc);
                 loop {
                     match rx.recv().await {
                         Ok(mut pkt) => {
+                            if waiting_for_keyframe {
+                                if WSActor::is_h264_keyframe(&pkt) {
+                                    waiting_for_keyframe = false;
+                                    info!("[Video-UDP] Keyframe detected, starting forwarding for SSRC {}", ssrc);
+                                } else {
+                                    continue; // 키프레임이 아니면 스킵
+                                }
+                            }
+
                             pkt.header.payload_type = negotiated_pt;
                             pkt.header.ssrc = negotiated_ssrc;
 
@@ -613,8 +664,9 @@ impl WSActor {
                         }
                         Err(tokio::sync::broadcast::error::RecvError::Lagged(n)) => {
                             lag_count += n;
+                            waiting_for_keyframe = true; // 패킷 드롭 후 키프레임 대기
                             warn!(
-                                "[Video-UDP] Broadcast receiver lagged {} packets (total: {}) for SSRC {}",
+                                "[Video-UDP] Broadcast receiver lagged {} packets (total: {}) for SSRC {}, waiting for keyframe",
                                 n, lag_count, ssrc
                             );
                             continue;
@@ -634,10 +686,11 @@ impl WSActor {
 
         if subscribed {
             let ice_state = self.pc.ice_connection_state();
-            let offer_options = if matches!(
+            let ice_restart = matches!(
                 ice_state,
                 RTCIceConnectionState::Failed | RTCIceConnectionState::Disconnected
-            ) {
+            );
+            let offer_options = if ice_restart {
                 info!("ICE is {:?}, triggering ICE restart in renegotiation offer", ice_state);
                 Some(RTCOfferOptions {
                     ice_restart: true,
@@ -646,15 +699,23 @@ impl WSActor {
             } else {
                 None
             };
-            let current_creds = self.pc.local_description().await
-                .and_then(|desc| Self::extract_ice_credentials(&desc.sdp));
 
-            info!("Track added. Starting renegotiation...");
+            // webrtc-rs 버그 워크어라운드: set_local_description()이 ICE agent의 local credentials를
+            // 업데이트하지 않으므로, ICE restart가 아닌 renegotiation에서는 기존 credentials를 보존해야 함.
+            // ICE restart 시에는 ICE agent가 새 credentials로 restart되므로 패칭하지 않음.
+            let current_creds = if !ice_restart {
+                self.pc.local_description().await
+                    .and_then(|desc| Self::extract_ice_credentials(&desc.sdp))
+            } else {
+                None
+            };
+
+            info!("Track added. Starting renegotiation (ice_restart={})...", ice_restart);
             match self.pc.create_offer(offer_options).await {
                 Ok(offer) => {
                     let final_offer = if let Some((ref ufrag, ref pwd)) = current_creds {
                         let patched_sdp = Self::patch_ice_credentials(&offer.sdp, ufrag, pwd);
-                        info!("Patched renegotiation offer ICE credentials (ufrag={})", ufrag);
+                        info!("Patched renegotiation offer with existing ICE credentials (ufrag={})", ufrag);
                         RTCSessionDescription::offer(patched_sdp).unwrap()
                     } else {
                         offer
@@ -662,9 +723,15 @@ impl WSActor {
 
                     if self.pc.set_local_description(final_offer).await.is_ok() {
                         if let Some(local_desc) = self.pc.local_description().await {
+                            let send_desc = if let Some((ref ufrag, ref pwd)) = current_creds {
+                                let patched_sdp = Self::patch_ice_credentials(&local_desc.sdp, ufrag, pwd);
+                                RTCSessionDescription::offer(patched_sdp).unwrap()
+                            } else {
+                                local_desc
+                            };
                             let msg = WsMessageOut {
                                 msg_type: "offer",
-                                payload: local_desc,
+                                payload: send_desc,
                             };
                             if let Ok(payload_str) = serde_json::to_string(&msg) {
                                 if self

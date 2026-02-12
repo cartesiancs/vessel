@@ -19,7 +19,7 @@ impl RtpPushAdapter {
 
     async fn run(&self, mut shutdown_rx: watch::Receiver<()>) -> Result<()> {
         let sock = UdpSocket::bind(&self.addr).await?;
-        let mut buf = vec![0u8; 4096];
+        let mut buf = vec![0u8; 65535];
 
         loop {
             tokio::select! {

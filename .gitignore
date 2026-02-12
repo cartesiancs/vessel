@@ -4,6 +4,7 @@ docs/.vitepress/cache
 /target
 .env
 database.db
+database.db-*
 .DS_Store
 *.log.*
 *.log

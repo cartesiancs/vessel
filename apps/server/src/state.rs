@@ -60,7 +60,7 @@ impl StreamRegistry {
     }
 
     pub fn register(&self, descriptor: StreamDescriptor) -> StreamHandle {
-        let (packet_tx, _) = broadcast::channel::<Packet>(1024);
+        let (packet_tx, _) = broadcast::channel::<Packet>(8192);
         self.insert_with_sender(descriptor, packet_tx)
     }
 

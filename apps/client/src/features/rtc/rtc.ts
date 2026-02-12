@@ -108,13 +108,11 @@ export class WebRTCManager {
 
         case "candidate":
           if (msg.payload) {
-            const candidate = new RTCIceCandidate(
-              msg.payload as RTCIceCandidateInit,
-            );
+            const candidateInit = msg.payload as RTCIceCandidateInit;
             if (this.pc.remoteDescription) {
-              await this.pc.addIceCandidate(candidate);
+              await this.pc.addIceCandidate(new RTCIceCandidate(candidateInit));
             } else {
-              this.candidateQueue.push(candidate);
+              this.candidateQueue.push(candidateInit);
             }
           }
           break;
