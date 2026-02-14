@@ -16,6 +16,7 @@ import { MoreVertical } from "lucide-react";
 import { formatSimpleDateTime } from "@/lib/time";
 import { StreamReceiver } from "../rtc/StreamReceiver";
 import { RecordingMenuItem } from "../recording/RecordingButton";
+import { AnalyzeMenuItem } from "./AnalyzeMenuItem";
 
 type StreamState = {
   topic: string;
@@ -129,6 +130,7 @@ export function EntityCard({
             </DropdownMenuTrigger>
             <DropdownMenuContent align='end'>
               <RecordingMenuItem topic={item.configuration.rtsp_url as string} />
+              <AnalyzeMenuItem topic={item.configuration.rtsp_url as string} />
             </DropdownMenuContent>
           </DropdownMenu>
         </CardFooter>
@@ -176,6 +178,7 @@ export function EntityCard({
             </DropdownMenuTrigger>
             <DropdownMenuContent align='end'>
               <RecordingMenuItem topic={item.configuration.state_topic as string} />
+              <AnalyzeMenuItem topic={item.configuration.state_topic as string} />
             </DropdownMenuContent>
           </DropdownMenu>
         </CardFooter>
