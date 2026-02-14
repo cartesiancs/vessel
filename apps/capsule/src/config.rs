@@ -16,6 +16,10 @@ pub struct Config {
     pub supabase_url: String,
     /// Supabase service role key (protected with Zeroizing)
     pub supabase_service_key: Zeroizing<String>,
+    /// Key rotation interval in seconds (default: 86400 = 24 hours)
+    pub key_rotation_interval_secs: u64,
+    /// Grace period for previous key in seconds (default: 300 = 5 minutes)
+    pub key_grace_period_secs: u64,
 }
 
 impl Config {
@@ -63,6 +67,16 @@ impl Config {
             .filter(|s| !s.is_empty())
             .collect();
 
+        let key_rotation_interval_secs = std::env::var("KEY_ROTATION_INTERVAL_SECS")
+            .unwrap_or_else(|_| "86400".to_string())
+            .parse()
+            .unwrap_or(86400);
+
+        let key_grace_period_secs = std::env::var("KEY_GRACE_PERIOD_SECS")
+            .unwrap_or_else(|_| "300".to_string())
+            .parse()
+            .unwrap_or(300);
+
         Ok(Self {
             port,
             openai_api_key: Zeroizing::new(openai_api_key),
@@ -70,6 +84,8 @@ impl Config {
             allowed_origins,
             supabase_url,
             supabase_service_key: Zeroizing::new(supabase_service_key),
+            key_rotation_interval_secs,
+            key_grace_period_secs,
         })
     }
 }

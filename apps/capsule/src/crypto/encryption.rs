@@ -5,8 +5,6 @@ use chacha20poly1305::{
 };
 use hkdf::Hkdf;
 use sha2::Sha256;
-use std::sync::Arc;
-use tokio::sync::RwLock;
 use x25519_dalek::{PublicKey, StaticSecret};
 use zeroize::Zeroize;
 
@@ -17,7 +15,7 @@ use crate::types::{DecryptedImage, EncryptedImage};
 const HKDF_SALT: &[u8] = b"vessel-capsule-v1-salt";
 const HKDF_INFO: &[u8] = b"vessel-capsule-v1-key";
 
-/// 암호화된 이미지 복호화
+/// 특정 비밀키로 암호화된 이미지 복호화
 ///
 /// # 보안
 /// - Shared secret은 함수 종료 시 zeroize됨
@@ -27,8 +25,8 @@ const HKDF_INFO: &[u8] = b"vessel-capsule-v1-key";
 /// 1. X25519 ECDH로 shared secret 계산
 /// 2. HKDF-SHA256으로 대칭키 유도
 /// 3. XChaCha20-Poly1305로 복호화 (AEAD)
-pub async fn decrypt(
-    server_secret: &Arc<RwLock<StaticSecret>>,
+pub(crate) fn decrypt_with_secret(
+    server_secret: &StaticSecret,
     encrypted: &EncryptedImage,
 ) -> Result<DecryptedImage, CapsuleError> {
     // 1. Base64 디코딩
@@ -51,10 +49,7 @@ pub async fn decrypt(
     let client_public = PublicKey::from(ephemeral_pk);
 
     // 3. Shared Secret 계산 (X25519 ECDH)
-    let mut shared_secret = {
-        let secret = server_secret.read().await;
-        secret.diffie_hellman(&client_public)
-    };
+    let mut shared_secret = server_secret.diffie_hellman(&client_public);
 
     // 4. HKDF로 대칭키 유도 (32 bytes for XChaCha20)
     let mut symmetric_key = [0u8; 32];
@@ -90,33 +85,33 @@ pub async fn decrypt(
 mod tests {
     use super::*;
 
-    #[tokio::test]
-    async fn test_decrypt_invalid_public_key() {
+    #[test]
+    fn test_decrypt_invalid_public_key() {
         let secret = StaticSecret::random_from_rng(rand::thread_rng());
-        let secret = Arc::new(RwLock::new(secret));
 
         let encrypted = EncryptedImage {
             ephemeral_public_key: "invalid".to_string(),
             nonce: STANDARD.encode([0u8; 24]),
             ciphertext: STANDARD.encode(vec![0u8; 32]),
+            key_id: None,
         };
 
-        let result = decrypt(&secret, &encrypted).await;
+        let result = decrypt_with_secret(&secret, &encrypted);
         assert!(matches!(result, Err(CapsuleError::InvalidPublicKey)));
     }
 
-    #[tokio::test]
-    async fn test_decrypt_invalid_nonce() {
+    #[test]
+    fn test_decrypt_invalid_nonce() {
         let secret = StaticSecret::random_from_rng(rand::thread_rng());
-        let secret = Arc::new(RwLock::new(secret));
 
         let encrypted = EncryptedImage {
             ephemeral_public_key: STANDARD.encode([0u8; 32]),
             nonce: "invalid".to_string(),
             ciphertext: STANDARD.encode(vec![0u8; 32]),
+            key_id: None,
         };
 
-        let result = decrypt(&secret, &encrypted).await;
+        let result = decrypt_with_secret(&secret, &encrypted);
         assert!(matches!(result, Err(CapsuleError::InvalidNonce)));
     }
 }

@@ -10,6 +10,9 @@ pub struct EncryptedImage {
     pub nonce: String,
     /// 암호화된 이미지 데이터 (base64)
     pub ciphertext: String,
+    /// 암호화에 사용된 서버 키 ID (하위 호환을 위해 선택사항)
+    #[serde(default)]
+    pub key_id: Option<String>,
 }
 
 /// 채팅 요청
@@ -34,6 +37,10 @@ pub struct ChatResponse {
 pub struct PublicKeyResponse {
     /// 서버 공개키 (base64)
     pub public_key: String,
+    /// 키 고유 식별자
+    pub key_id: String,
+    /// 키 만료 예상 시각 (RFC 3339) - 클라이언트 캐시 갱신 힌트
+    pub expires_at: String,
 }
 
 /// 스트리밍 청크

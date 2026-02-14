@@ -6,6 +6,7 @@ mod services;
 mod types;
 
 use std::sync::Arc;
+use std::time::Duration;
 
 use config::Config;
 use crypto::KeyManager;
@@ -14,13 +15,14 @@ use services::{JwtValidator, OpenAIService, UsageTracker};
 /// Application state
 ///
 /// # Security
-/// - `KeyManager` holds private key internally
-/// - Private key is never exposed externally
+/// - `KeyManager` holds private keys internally with rotation support
+/// - Private keys are never exposed externally
+/// - Keys are rotated periodically to limit blast radius
 /// - JWT validator uses Zeroizing for secret storage
 /// - Usage tracker uses service key for Supabase API calls
 pub struct AppState {
-    /// Key manager (encryption/decryption)
-    pub key_manager: KeyManager,
+    /// Key manager (encryption/decryption with rotation)
+    pub key_manager: Arc<KeyManager>,
     /// OpenAI service
     pub openai: OpenAIService,
     /// JWT validator for Supabase tokens
@@ -61,20 +63,23 @@ async fn main() -> anyhow::Result<()> {
         config.supabase_service_key,
     );
 
+    // Create KeyManager with rotation configuration
+    let key_manager = Arc::new(KeyManager::new(
+        Duration::from_secs(config.key_rotation_interval_secs),
+        Duration::from_secs(config.key_grace_period_secs),
+    ));
+
+    // Start background key rotation task
+    let _rotation_handle = key_manager.start_rotation_task();
+
     // Create application state
-    // KeyManager generates a new key pair here (exists only in memory)
     let openai_model = config.openai_model.clone();
     let state = Arc::new(AppState {
-        key_manager: KeyManager::new(),
+        key_manager: Arc::clone(&key_manager),
         openai: OpenAIService::new(config.openai_api_key).with_model(openai_model),
         jwt_validator: jwt_validator.clone(),
         usage_tracker,
     });
-
-    tracing::info!(
-        "Key pair generated (public key: {}...)",
-        &state.key_manager.public_key_base64()[..20]
-    );
 
     // Create router
     let app = api::create_router(state, &app_config, jwt_validator);
@@ -84,7 +89,9 @@ async fn main() -> anyhow::Result<()> {
     let listener = tokio::net::TcpListener::bind(&addr).await?;
 
     tracing::info!("Capsule server listening on {}", addr);
-    tracing::info!("Security: Private key exists only in memory");
+    tracing::info!("Security: Private keys exist only in memory");
+    tracing::info!("Security: Key rotation enabled (interval: {}s, grace: {}s)",
+        config.key_rotation_interval_secs, config.key_grace_period_secs);
     tracing::info!("Security: Decrypted images are zeroized after use");
     tracing::info!("Security: API keys protected with Zeroizing<String>");
     tracing::info!("Security: JWT authentication required for chat endpoints");

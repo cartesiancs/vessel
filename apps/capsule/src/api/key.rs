@@ -12,13 +12,19 @@ use crate::AppState;
 /// # Response
 /// ```json
 /// {
-///   "public_key": "base64_encoded_public_key"
+///   "public_key": "base64_encoded_public_key",
+///   "key_id": "key_identifier",
+///   "expires_at": "2024-01-01T00:00:00Z"
 /// }
 /// ```
 pub async fn public_key_handler(State(state): State<Arc<AppState>>) -> Json<PublicKeyResponse> {
-    tracing::info!("Public key requested");
+    let (public_key, key_id, expires_at) = state.key_manager.current_public_key().await;
+
+    tracing::info!(key_id = %key_id, "Public key requested");
 
     Json(PublicKeyResponse {
-        public_key: state.key_manager.public_key_base64(),
+        public_key,
+        key_id,
+        expires_at,
     })
 }
