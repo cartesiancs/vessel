@@ -28,6 +28,12 @@ import { parseJwt } from "@/lib/jwt";
 import { isDemoMode } from "@/shared/demo";
 import { storage } from "@/lib/storage";
 
+const openExternal = (url: string) => {
+  import("@tauri-apps/plugin-shell")
+    .then(({ open }) => open(url))
+    .catch(() => window.open(url, "_blank", "noopener,noreferrer"));
+};
+
 export function NavFooter({
   user,
 }: {
@@ -97,7 +103,7 @@ export function NavFooter({
             <DropdownMenuGroup>
               <DropdownMenuItem
                 onClick={() =>
-                  window.open("https://github.com/cartesiancs/vessel")
+                  openExternal("https://github.com/cartesiancs/vessel")
                 }
               >
                 <Computer />
@@ -105,7 +111,7 @@ export function NavFooter({
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() =>
-                  window.open("https://github.com/cartesiancs/vessel/issues")
+                  openExternal("https://github.com/cartesiancs/vessel/issues")
                 }
               >
                 <MessageSquareWarning />
