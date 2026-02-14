@@ -26,6 +26,8 @@ import { Loader2, CheckCircle2, User } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { cancelSubscription } from "@/lib/billing";
 import { toast } from "sonner";
+import { useUsageData } from "@/hooks/useUsageData";
+import { UsageCharts } from "@/components/UsageCharts";
 
 export default function DashboardPage() {
   const navigate = useNavigate();
@@ -37,6 +39,7 @@ export default function DashboardPage() {
   const [cancelLoading, setCancelLoading] = useState(false);
   const [cancelAtPeriodEnd, setCancelAtPeriodEnd] = useState(false);
   const [currentPeriodEnd, setCurrentPeriodEnd] = useState<string | null>(null);
+  const { data: usageData, loading: usageLoading } = useUsageData(user);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -310,6 +313,11 @@ export default function DashboardPage() {
                 </Button>
               </CardContent>
             </Card>
+          </div>
+
+          <div className='mt-8'>
+            <h2 className='text-2xl font-bold mb-6'>Usage</h2>
+            <UsageCharts data={usageData} loading={usageLoading} />
           </div>
         </div>
       </main>
