@@ -4,6 +4,7 @@ const footerNav = {
     { name: "Roadmap", href: "/roadmap" },
     { name: "Usecase", href: "/usecase" },
     { name: "Privacy", href: "/privacy" },
+    { name: "Capsule", href: "/capsule" },
   ],
   contents: [
     { name: "Privacy Policy", href: "/privacy-policy" },

@@ -8,6 +8,7 @@ import PricingPage from "./pages/Pricing";
 import LoginPage from "./pages/Login";
 import DashboardPage from "./pages/Dashboard";
 import CheckoutSuccessPage from "./pages/CheckoutSuccess";
+import CapsulePage from "./pages/Capsule";
 import { Toaster } from "sonner";
 
 const router = createBrowserRouter([
@@ -46,6 +47,10 @@ const router = createBrowserRouter([
   {
     path: "/checkout/success",
     element: <CheckoutSuccessPage />,
+  },
+  {
+    path: "/capsule",
+    element: <CapsulePage />,
   },
 ]);
 
