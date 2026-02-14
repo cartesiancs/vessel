@@ -15,6 +15,7 @@ const footerNav = {
     { name: "GitHub", href: "https://github.com/cartesiancs/vessel" },
   ],
   company: [
+    { name: "Blog", href: "https://blog.cartesiancs.com/" },
     { name: "About", href: "https://cartesiancs.com/about" },
     { name: "LinkedIn", href: "https://www.linkedin.com/company/cartesiancs" },
     { name: "X", href: "https://x.com/cartesiancs" },
@@ -41,7 +42,7 @@ export function Footer() {
             </p>
           </div>
 
-          <div className='mt-12 grid grid-cols-1 gap-16 sm:grid-cols-3 lg:col-start-3 lg:col-span-3 lg:mt-0'>
+          <div className='mt-12 grid grid-cols-3 gap-16 sm:grid-cols-3 lg:col-start-3 lg:col-span-3 lg:mt-0'>
             <div>
               <h3 className='text-sm font-semibold leading-6 text-foreground'>
                 Resources
