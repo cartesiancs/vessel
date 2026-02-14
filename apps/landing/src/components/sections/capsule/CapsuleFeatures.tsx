@@ -69,7 +69,7 @@ export function CapsuleFeatures() {
     >
       <div
         className={cx(
-          "container mx-auto max-w-6xl px-4 py-24",
+          "container mx-auto max-w-6xl px-8 md:px-10 py-24",
           "transition-all duration-700 ease-out",
           isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6",
         )}

@@ -52,7 +52,7 @@ export function CapsuleFaq() {
     <section ref={sectionRef} className='h-full w-full bg-black text-white'>
       <div
         className={cx(
-          "container mx-auto flex h-full max-w-6xl flex-col px-4 py-16",
+          "container mx-auto flex h-full max-w-6xl flex-col px-8 md:px-10 py-16",
           "transition-all duration-700 ease-out",
           isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6",
         )}

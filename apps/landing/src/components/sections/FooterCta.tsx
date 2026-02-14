@@ -12,7 +12,7 @@ export function FooterCtaSection() {
     <section ref={sectionRef} className='w-full bg-black text-white'>
       <div
         className={cx(
-          "container mx-auto max-w-6xl px-4 py-24 md:py-32",
+          "container mx-auto max-w-6xl px-8 md:px-10 py-24 md:py-32",
           "transition-all duration-700 ease-out",
           isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6",
         )}

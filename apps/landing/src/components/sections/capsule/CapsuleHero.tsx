@@ -3,7 +3,7 @@ import { Shield } from "lucide-react";
 
 export function CapsuleHero() {
   return (
-    <section className='flex h-[600px] flex-col items-center justify-center px-4'>
+    <section className='flex h-[600px] flex-col items-center justify-center px-8 md:px-10'>
       <div className='flex flex-col items-center gap-y-6'>
         <h1 className='text-4xl md:text-6xl lg:text-6xl md:leading-17 leading-10 md:font-bold font-semibold tracking-tight text-center'>
           Capsule
