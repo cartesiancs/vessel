@@ -1,4 +1,12 @@
-import { Bar, BarChart, Area, AreaChart, XAxis, YAxis, CartesianGrid } from "recharts";
+import {
+  Bar,
+  BarChart,
+  Area,
+  AreaChart,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+} from "recharts";
 import {
   ChartContainer,
   ChartTooltip,
@@ -65,7 +73,7 @@ const enclaveTokensConfig = {
 
 function EmptyState() {
   return (
-    <div className="flex items-center justify-center h-[200px] text-muted-foreground text-sm">
+    <div className='flex items-center justify-center h-[200px] text-muted-foreground text-sm'>
       No usage data
     </div>
   );
@@ -80,7 +88,9 @@ function hasEnclaveRequestData(data: DailyUsage[]): boolean {
 }
 
 function hasEnclaveTokenData(data: DailyUsage[]): boolean {
-  return data.some((d) => d.enclaveInputTokens > 0 || d.enclaveOutputTokens > 0);
+  return data.some(
+    (d) => d.enclaveInputTokens > 0 || d.enclaveOutputTokens > 0,
+  );
 }
 
 export function UsageCharts({
@@ -92,29 +102,34 @@ export function UsageCharts({
 }) {
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      <div className='flex items-center justify-center py-12'>
+        <Loader2 className='h-6 w-6 animate-spin text-muted-foreground' />
       </div>
     );
   }
 
   return (
-    <div className="grid gap-6">
+    <div className='grid gap-6'>
       {/* Network Usage: Turn + Tunnel */}
       <Card>
         <CardHeader>
           <CardTitle>Network Usage</CardTitle>
-          <CardDescription>Turn & Tunnel bandwidth (last 30 days)</CardDescription>
+          <CardDescription>
+            Turn & Tunnel bandwidth (last 30 days)
+          </CardDescription>
         </CardHeader>
         <CardContent>
           {!hasNetworkData(data) ? (
             <EmptyState />
           ) : (
-            <ChartContainer config={networkChartConfig} className="h-[250px] w-full">
+            <ChartContainer
+              config={networkChartConfig}
+              className='h-[250px] w-full'
+            >
               <BarChart data={data} accessibilityLayer>
                 <CartesianGrid vertical={false} />
                 <XAxis
-                  dataKey="date"
+                  dataKey='date'
                   tickFormatter={formatDate}
                   tickLine={false}
                   axisLine={false}
@@ -136,15 +151,15 @@ export function UsageCharts({
                 />
                 <ChartLegend content={<ChartLegendContent />} />
                 <Bar
-                  dataKey="turnBytes"
-                  stackId="network"
-                  fill="var(--color-turnBytes)"
+                  dataKey='turnBytes'
+                  stackId='network'
+                  fill='var(--color-turnBytes)'
                   radius={[0, 0, 0, 0]}
                 />
                 <Bar
-                  dataKey="tunnelBytes"
-                  stackId="network"
-                  fill="var(--color-tunnelBytes)"
+                  dataKey='tunnelBytes'
+                  stackId='network'
+                  fill='var(--color-tunnelBytes)'
                   radius={[4, 4, 0, 0]}
                 />
               </BarChart>
@@ -163,11 +178,14 @@ export function UsageCharts({
           {!hasEnclaveRequestData(data) ? (
             <EmptyState />
           ) : (
-            <ChartContainer config={enclaveRequestsConfig} className="h-[250px] w-full">
+            <ChartContainer
+              config={enclaveRequestsConfig}
+              className='h-[250px] w-full'
+            >
               <BarChart data={data} accessibilityLayer>
                 <CartesianGrid vertical={false} />
                 <XAxis
-                  dataKey="date"
+                  dataKey='date'
                   tickFormatter={formatDate}
                   tickLine={false}
                   axisLine={false}
@@ -183,68 +201,16 @@ export function UsageCharts({
                 />
                 <ChartLegend content={<ChartLegendContent />} />
                 <Bar
-                  dataKey="enclaveRequests"
-                  fill="var(--color-enclaveRequests)"
+                  dataKey='enclaveRequests'
+                  fill='var(--color-enclaveRequests)'
                   radius={[4, 4, 0, 0]}
                 />
                 <Bar
-                  dataKey="enclaveImageRequests"
-                  fill="var(--color-enclaveImageRequests)"
+                  dataKey='enclaveImageRequests'
+                  fill='var(--color-enclaveImageRequests)'
                   radius={[4, 4, 0, 0]}
                 />
               </BarChart>
-            </ChartContainer>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Enclave Tokens */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Enclave Tokens</CardTitle>
-          <CardDescription>Input & output token usage (last 30 days)</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {!hasEnclaveTokenData(data) ? (
-            <EmptyState />
-          ) : (
-            <ChartContainer config={enclaveTokensConfig} className="h-[250px] w-full">
-              <AreaChart data={data} accessibilityLayer>
-                <CartesianGrid vertical={false} />
-                <XAxis
-                  dataKey="date"
-                  tickFormatter={formatDate}
-                  tickLine={false}
-                  axisLine={false}
-                  tickMargin={8}
-                />
-                <YAxis tickLine={false} axisLine={false} width={50} />
-                <ChartTooltip
-                  content={
-                    <ChartTooltipContent
-                      indicator="line"
-                      labelFormatter={(label) => formatDate(label)}
-                    />
-                  }
-                />
-                <ChartLegend content={<ChartLegendContent />} />
-                <Area
-                  dataKey="enclaveInputTokens"
-                  type="monotone"
-                  fill="var(--color-enclaveInputTokens)"
-                  fillOpacity={0.3}
-                  stroke="var(--color-enclaveInputTokens)"
-                  stackId="tokens"
-                />
-                <Area
-                  dataKey="enclaveOutputTokens"
-                  type="monotone"
-                  fill="var(--color-enclaveOutputTokens)"
-                  fillOpacity={0.3}
-                  stroke="var(--color-enclaveOutputTokens)"
-                  stackId="tokens"
-                />
-              </AreaChart>
             </ChartContainer>
           )}
         </CardContent>
