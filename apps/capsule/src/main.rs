@@ -35,11 +35,11 @@ async fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt()
         .with_env_filter(
             tracing_subscriber::EnvFilter::from_default_env()
-                .add_directive("enclave=debug".parse().unwrap()),
+                .add_directive("capsule=debug".parse().unwrap()),
         )
         .init();
 
-    tracing::info!("Starting Enclave server...");
+    tracing::info!("Starting Capsule server...");
 
     // Load configuration (API keys removed from env after loading)
     let config = Config::from_env()?;
@@ -83,7 +83,7 @@ async fn main() -> anyhow::Result<()> {
     let addr = format!("0.0.0.0:{}", config.port);
     let listener = tokio::net::TcpListener::bind(&addr).await?;
 
-    tracing::info!("Enclave server listening on {}", addr);
+    tracing::info!("Capsule server listening on {}", addr);
     tracing::info!("Security: Private key exists only in memory");
     tracing::info!("Security: Decrypted images are zeroized after use");
     tracing::info!("Security: API keys protected with Zeroizing<String>");

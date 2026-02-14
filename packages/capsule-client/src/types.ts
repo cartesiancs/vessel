@@ -37,10 +37,10 @@ export interface PublicKeyResponse {
 }
 
 /**
- * Enclave 클라이언트 옵션
+ * Capsule 클라이언트 옵션
  */
-export interface EnclaveClientOptions {
-  /** Enclave 서버 URL */
+export interface CapsuleClientOptions {
+  /** Capsule 서버 URL */
   baseUrl: string;
   /** 요청 타임아웃 (ms) */
   timeout?: number;
@@ -52,8 +52,8 @@ export interface EnclaveClientOptions {
    *
    * @example
    * ```typescript
-   * const client = new EnclaveClient({
-   *   baseUrl: 'https://enclave.example.com',
+   * const client = new CapsuleClient({
+   *   baseUrl: 'https://capsule.example.com',
    *   getAccessToken: async () => {
    *     const { data: { session } } = await supabase.auth.getSession();
    *     return session?.access_token ?? null;

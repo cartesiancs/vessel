@@ -49,23 +49,23 @@ const networkChartConfig = {
   },
 } satisfies ChartConfig;
 
-const enclaveRequestsConfig = {
-  enclaveRequests: {
+const capsuleRequestsConfig = {
+  capsuleRequests: {
     label: "API Requests",
     color: "var(--color-chart-3)",
   },
-  enclaveImageRequests: {
+  capsuleImageRequests: {
     label: "Image Requests",
     color: "var(--color-chart-4)",
   },
 } satisfies ChartConfig;
 
-const enclaveTokensConfig = {
-  enclaveInputTokens: {
+const capsuleTokensConfig = {
+  capsuleInputTokens: {
     label: "Input Tokens",
     color: "var(--color-chart-1)",
   },
-  enclaveOutputTokens: {
+  capsuleOutputTokens: {
     label: "Output Tokens",
     color: "var(--color-chart-5)",
   },
@@ -83,13 +83,13 @@ function hasNetworkData(data: DailyUsage[]): boolean {
   return data.some((d) => d.turnBytes > 0 || d.tunnelBytes > 0);
 }
 
-function hasEnclaveRequestData(data: DailyUsage[]): boolean {
-  return data.some((d) => d.enclaveRequests > 0 || d.enclaveImageRequests > 0);
+function hasCapsuleRequestData(data: DailyUsage[]): boolean {
+  return data.some((d) => d.capsuleRequests > 0 || d.capsuleImageRequests > 0);
 }
 
-function hasEnclaveTokenData(data: DailyUsage[]): boolean {
+function hasCapsuleTokenData(data: DailyUsage[]): boolean {
   return data.some(
-    (d) => d.enclaveInputTokens > 0 || d.enclaveOutputTokens > 0,
+    (d) => d.capsuleInputTokens > 0 || d.capsuleOutputTokens > 0,
   );
 }
 
@@ -168,18 +168,18 @@ export function UsageCharts({
         </CardContent>
       </Card>
 
-      {/* Enclave Requests */}
+      {/* Capsule Requests */}
       <Card>
         <CardHeader>
-          <CardTitle>Enclave Requests</CardTitle>
+          <CardTitle>Capsule Requests</CardTitle>
           <CardDescription>API & image requests (last 30 days)</CardDescription>
         </CardHeader>
         <CardContent>
-          {!hasEnclaveRequestData(data) ? (
+          {!hasCapsuleRequestData(data) ? (
             <EmptyState />
           ) : (
             <ChartContainer
-              config={enclaveRequestsConfig}
+              config={capsuleRequestsConfig}
               className='h-[250px] w-full'
             >
               <BarChart data={data} accessibilityLayer>
@@ -201,13 +201,13 @@ export function UsageCharts({
                 />
                 <ChartLegend content={<ChartLegendContent />} />
                 <Bar
-                  dataKey='enclaveRequests'
-                  fill='var(--color-enclaveRequests)'
+                  dataKey='capsuleRequests'
+                  fill='var(--color-capsuleRequests)'
                   radius={[4, 4, 0, 0]}
                 />
                 <Bar
-                  dataKey='enclaveImageRequests'
-                  fill='var(--color-enclaveImageRequests)'
+                  dataKey='capsuleImageRequests'
+                  fill='var(--color-capsuleImageRequests)'
                   radius={[4, 4, 0, 0]}
                 />
               </BarChart>

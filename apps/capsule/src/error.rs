@@ -6,9 +6,9 @@ use axum::{
 use serde_json::json;
 use thiserror::Error;
 
-/// Enclave error types
+/// Capsule error types
 #[derive(Error, Debug)]
-pub enum EnclaveError {
+pub enum CapsuleError {
     #[error("Invalid public key format")]
     InvalidPublicKey,
 
@@ -40,18 +40,18 @@ pub enum EnclaveError {
     SubscriptionRequired,
 }
 
-impl IntoResponse for EnclaveError {
+impl IntoResponse for CapsuleError {
     fn into_response(self) -> Response {
         let (status, error_message) = match &self {
-            EnclaveError::InvalidPublicKey
-            | EnclaveError::InvalidNonce
-            | EnclaveError::InvalidCiphertext => (StatusCode::BAD_REQUEST, self.to_string()),
+            CapsuleError::InvalidPublicKey
+            | CapsuleError::InvalidNonce
+            | CapsuleError::InvalidCiphertext => (StatusCode::BAD_REQUEST, self.to_string()),
 
-            EnclaveError::DecryptionFailed => {
+            CapsuleError::DecryptionFailed => {
                 (StatusCode::BAD_REQUEST, "Decryption failed".to_string())
             }
 
-            EnclaveError::CipherInitFailed | EnclaveError::Internal(_) => {
+            CapsuleError::CipherInitFailed | CapsuleError::Internal(_) => {
                 // Internal errors don't expose details
                 tracing::error!("Internal error: {}", self);
                 (
@@ -60,12 +60,12 @@ impl IntoResponse for EnclaveError {
                 )
             }
 
-            EnclaveError::OpenAIError(msg) => {
+            CapsuleError::OpenAIError(msg) => {
                 tracing::error!("OpenAI error: {}", msg);
                 (StatusCode::BAD_GATEWAY, "AI service error".to_string())
             }
 
-            EnclaveError::ConfigError(msg) => {
+            CapsuleError::ConfigError(msg) => {
                 tracing::error!("Config error: {}", msg);
                 (
                     StatusCode::INTERNAL_SERVER_ERROR,
@@ -73,11 +73,11 @@ impl IntoResponse for EnclaveError {
                 )
             }
 
-            EnclaveError::RateLimited(reason) => {
+            CapsuleError::RateLimited(reason) => {
                 (StatusCode::TOO_MANY_REQUESTS, reason.clone())
             }
 
-            EnclaveError::SubscriptionRequired => {
+            CapsuleError::SubscriptionRequired => {
                 (
                     StatusCode::FORBIDDEN,
                     "Pro subscription required".to_string(),
@@ -93,8 +93,8 @@ impl IntoResponse for EnclaveError {
     }
 }
 
-impl From<anyhow::Error> for EnclaveError {
+impl From<anyhow::Error> for CapsuleError {
     fn from(err: anyhow::Error) -> Self {
-        EnclaveError::Internal(err.to_string())
+        CapsuleError::Internal(err.to_string())
     }
 }

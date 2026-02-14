@@ -1,19 +1,19 @@
 /**
- * @vessel/enclave-client
+ * @vessel/capsule-client
  *
  * 보안 이미지 분석을 위한 클라이언트 SDK
  *
  * ## 설치
  * ```bash
- * npm install @vessel/enclave-client
+ * npm install @vessel/capsule-client
  * ```
  *
  * ## 사용법
  * ```typescript
- * import { EnclaveClient } from '@vessel/enclave-client';
+ * import { CapsuleClient } from '@vessel/capsule-client';
  *
- * const client = new EnclaveClient({
- *   baseUrl: 'https://enclave.example.com',
+ * const client = new CapsuleClient({
+ *   baseUrl: 'https://capsule.example.com',
  * });
  *
  * // 이미지 분석
@@ -34,10 +34,10 @@
  */
 
 export {
-  EnclaveClient,
-  EnclaveAuthError,
-  EnclaveRateLimitError,
-  EnclaveSubscriptionError,
+  CapsuleClient,
+  CapsuleAuthError,
+  CapsuleRateLimitError,
+  CapsuleSubscriptionError,
 } from './client';
 export { encryptImage, fileToBytes } from './crypto';
 export type {
@@ -45,7 +45,7 @@ export type {
   ChatRequest,
   ChatResponse,
   PublicKeyResponse,
-  EnclaveClientOptions,
+  CapsuleClientOptions,
   AnalyzeImageOptions,
   StreamCallback,
 } from './types';

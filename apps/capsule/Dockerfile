@@ -23,8 +23,8 @@ RUN touch src/main.rs && cargo build --release
 FROM alpine:3.19
 
 # 보안: non-root 사용자 생성
-RUN addgroup -g 1001 enclave && \
-    adduser -u 1001 -G enclave -s /bin/sh -D enclave
+RUN addgroup -g 1001 capsule && \
+    adduser -u 1001 -G capsule -s /bin/sh -D capsule
 
 # 런타임 의존성
 RUN apk add --no-cache ca-certificates
@@ -32,13 +32,13 @@ RUN apk add --no-cache ca-certificates
 WORKDIR /app
 
 # 빌드된 바이너리 복사
-COPY --from=builder /app/target/release/enclave .
+COPY --from=builder /app/target/release/capsule .
 
 # 소유권 변경
-RUN chown -R enclave:enclave /app
+RUN chown -R capsule:capsule /app
 
 # non-root로 실행
-USER enclave
+USER capsule
 
 # 포트 노출
 EXPOSE 3000
@@ -52,4 +52,4 @@ ENV RUST_LOG=info
 ENV PORT=3000
 
 # 실행
-CMD ["./enclave"]
+CMD ["./capsule"]

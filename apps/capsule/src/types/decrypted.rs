@@ -1,7 +1,7 @@
 use base64::{engine::general_purpose::STANDARD, Engine};
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
-/// 복호화된 이미지 - Enclave 내부에서만 존재
+/// 복호화된 이미지 - Capsule 내부에서만 존재
 ///
 /// # 보안 특성
 /// - `Debug` 미구현: 로그에 출력 불가

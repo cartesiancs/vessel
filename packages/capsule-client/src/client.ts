@@ -3,7 +3,7 @@ import type {
   AnalyzeImageOptions,
   ChatRequest,
   ChatResponse,
-  EnclaveClientOptions,
+  CapsuleClientOptions,
   PublicKeyResponse,
   StreamCallback,
 } from './types';
@@ -13,10 +13,10 @@ import type {
  *
  * 인증 토큰이 없거나 만료된 경우 발생
  */
-export class EnclaveAuthError extends Error {
+export class CapsuleAuthError extends Error {
   constructor(message: string = 'Authentication required') {
     super(message);
-    this.name = 'EnclaveAuthError';
+    this.name = 'CapsuleAuthError';
   }
 }
 
@@ -25,10 +25,10 @@ export class EnclaveAuthError extends Error {
  *
  * 일일 사용량 제한을 초과한 경우 발생
  */
-export class EnclaveRateLimitError extends Error {
+export class CapsuleRateLimitError extends Error {
   constructor(message: string = 'Rate limit exceeded') {
     super(message);
-    this.name = 'EnclaveRateLimitError';
+    this.name = 'CapsuleRateLimitError';
   }
 }
 
@@ -37,22 +37,22 @@ export class EnclaveRateLimitError extends Error {
  *
  * Pro 구독이 필요한 기능을 비구독자가 사용하려 할 때 발생
  */
-export class EnclaveSubscriptionError extends Error {
+export class CapsuleSubscriptionError extends Error {
   constructor(message: string = 'Pro subscription required') {
     super(message);
-    this.name = 'EnclaveSubscriptionError';
+    this.name = 'CapsuleSubscriptionError';
   }
 }
 
 /**
- * Enclave 클라이언트
+ * Capsule 클라이언트
  *
  * 보안 이미지 분석을 위한 클라이언트 SDK
  *
  * @example
  * ```typescript
- * const client = new EnclaveClient({
- *   baseUrl: 'https://enclave.example.com',
+ * const client = new CapsuleClient({
+ *   baseUrl: 'https://capsule.example.com',
  * });
  *
  * // 이미지 분석
@@ -64,13 +64,13 @@ export class EnclaveSubscriptionError extends Error {
  * console.log(response.response);
  * ```
  */
-export class EnclaveClient {
+export class CapsuleClient {
   private baseUrl: string;
   private timeout: number;
   private serverPublicKey: string | null = null;
   private getAccessToken?: () => Promise<string | null>;
 
-  constructor(options: EnclaveClientOptions) {
+  constructor(options: CapsuleClientOptions) {
     this.baseUrl = options.baseUrl.replace(/\/$/, ''); // trailing slash 제거
     this.timeout = options.timeout ?? 60000;
     this.getAccessToken = options.getAccessToken;
@@ -225,16 +225,16 @@ export class EnclaveClient {
 
       // Handle auth-related errors
       if (response.status === 401) {
-        throw new EnclaveAuthError('Authentication required. Please sign in.');
+        throw new CapsuleAuthError('Authentication required. Please sign in.');
       }
       if (response.status === 403) {
-        throw new EnclaveSubscriptionError(
+        throw new CapsuleSubscriptionError(
           'Pro subscription required. Please upgrade at vessel.land/pricing'
         );
       }
       if (response.status === 429) {
         const errorText = await response.text();
-        throw new EnclaveRateLimitError(errorText || 'Rate limit exceeded. Try again later.');
+        throw new CapsuleRateLimitError(errorText || 'Rate limit exceeded. Try again later.');
       }
 
       if (!response.ok) {
@@ -282,16 +282,16 @@ export class EnclaveClient {
 
       // Handle auth-related errors
       if (response.status === 401) {
-        throw new EnclaveAuthError('Authentication required. Please sign in.');
+        throw new CapsuleAuthError('Authentication required. Please sign in.');
       }
       if (response.status === 403) {
-        throw new EnclaveSubscriptionError(
+        throw new CapsuleSubscriptionError(
           'Pro subscription required. Please upgrade at vessel.land/pricing'
         );
       }
       if (response.status === 429) {
         const errorText = await response.text();
-        throw new EnclaveRateLimitError(errorText || 'Rate limit exceeded. Try again later.');
+        throw new CapsuleRateLimitError(errorText || 'Rate limit exceeded. Try again later.');
       }
 
       if (!response.ok) {

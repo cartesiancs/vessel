@@ -1,5 +1,5 @@
 {
-  "name": "enclave-tests",
+  "name": "capsule-tests",
   "type": "module",
   "private": true,
   "scripts": {

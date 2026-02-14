@@ -17,7 +17,7 @@ use futures_util::{stream::Stream, StreamExt};
 use std::sync::Arc;
 
 use crate::api::AuthUser;
-use crate::error::EnclaveError;
+use crate::error::CapsuleError;
 use crate::types::{ChatRequest, ChatResponse};
 use crate::AppState;
 
@@ -41,18 +41,18 @@ pub async fn chat_handler(
     State(state): State<Arc<AppState>>,
     auth: AuthUser,
     Json(req): Json<ChatRequest>,
-) -> Result<Json<ChatResponse>, EnclaveError> {
+) -> Result<Json<ChatResponse>, CapsuleError> {
     // 1. Check subscription and rate limits
     let rate_status = state
         .usage_tracker
         .check_rate_limit(&auth.user_id)
         .await
-        .map_err(|e| EnclaveError::Internal(e.to_string()))?;
+        .map_err(|e| CapsuleError::Internal(e.to_string()))?;
 
     // 2. Block non-subscribers
     if !rate_status.subscribed {
         tracing::info!(user_id = %auth.user_id, "Subscription required");
-        return Err(EnclaveError::SubscriptionRequired);
+        return Err(CapsuleError::SubscriptionRequired);
     }
 
     // 3. Check rate limit
@@ -62,7 +62,7 @@ pub async fn chat_handler(
             reason = ?rate_status.reason,
             "Rate limited"
         );
-        return Err(EnclaveError::RateLimited(
+        return Err(CapsuleError::RateLimited(
             rate_status.reason.unwrap_or_else(|| "Rate limit exceeded".to_string()),
         ));
     }
@@ -91,14 +91,14 @@ pub async fn chat_handler(
             .openai
             .analyze_image(&req.message, decrypted)
             .await
-            .map_err(|e| EnclaveError::OpenAIError(e.to_string()))?
+            .map_err(|e| CapsuleError::OpenAIError(e.to_string()))?
     } else {
         // Text only
         state
             .openai
             .chat(&req.message)
             .await
-            .map_err(|e| EnclaveError::OpenAIError(e.to_string()))?
+            .map_err(|e| CapsuleError::OpenAIError(e.to_string()))?
     };
 
     tracing::info!(
@@ -136,18 +136,18 @@ pub async fn chat_stream_handler(
     State(state): State<Arc<AppState>>,
     auth: AuthUser,
     Json(req): Json<ChatRequest>,
-) -> Result<Sse<impl Stream<Item = Result<Event, EnclaveError>>>, EnclaveError> {
+) -> Result<Sse<impl Stream<Item = Result<Event, CapsuleError>>>, CapsuleError> {
     // 1. Check subscription and rate limits
     let rate_status = state
         .usage_tracker
         .check_rate_limit(&auth.user_id)
         .await
-        .map_err(|e| EnclaveError::Internal(e.to_string()))?;
+        .map_err(|e| CapsuleError::Internal(e.to_string()))?;
 
     // 2. Block non-subscribers
     if !rate_status.subscribed {
         tracing::info!(user_id = %auth.user_id, "Subscription required");
-        return Err(EnclaveError::SubscriptionRequired);
+        return Err(CapsuleError::SubscriptionRequired);
     }
 
     // 3. Check rate limit
@@ -157,7 +157,7 @@ pub async fn chat_stream_handler(
             reason = ?rate_status.reason,
             "Rate limited"
         );
-        return Err(EnclaveError::RateLimited(
+        return Err(CapsuleError::RateLimited(
             rate_status.reason.unwrap_or_else(|| "Rate limit exceeded".to_string()),
         ));
     }
@@ -180,13 +180,13 @@ pub async fn chat_stream_handler(
             .openai
             .analyze_image_stream(&req.message, decrypted)
             .await
-            .map_err(|e| EnclaveError::OpenAIError(e.to_string()))?
+            .map_err(|e| CapsuleError::OpenAIError(e.to_string()))?
     } else {
         state
             .openai
             .chat_stream(&req.message)
             .await
-            .map_err(|e| EnclaveError::OpenAIError(e.to_string()))?
+            .map_err(|e| CapsuleError::OpenAIError(e.to_string()))?
     };
 
     // 5. Track usage after stream completes (fire-and-forget)

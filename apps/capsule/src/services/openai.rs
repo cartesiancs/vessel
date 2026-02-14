@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use std::pin::Pin;
 use zeroize::{Zeroize, Zeroizing};
 
-use crate::error::EnclaveError;
+use crate::error::CapsuleError;
 use crate::types::DecryptedImage;
 
 const OPENAI_API_URL: &str = "https://api.openai.com/v1/chat/completions";
@@ -152,7 +152,7 @@ impl OpenAIService {
     pub async fn chat_stream(
         &self,
         message: &str,
-    ) -> Result<(Pin<Box<dyn Stream<Item = Result<Event, EnclaveError>> + Send>>, std::sync::Arc<std::sync::Mutex<TokenUsage>>), anyhow::Error>
+    ) -> Result<(Pin<Box<dyn Stream<Item = Result<Event, CapsuleError>> + Send>>, std::sync::Arc<std::sync::Mutex<TokenUsage>>), anyhow::Error>
     {
         let request_body = ChatRequest {
             model: self.model.clone(),
@@ -192,7 +192,7 @@ impl OpenAIService {
         &self,
         message: &str,
         decrypted_image: DecryptedImage,
-    ) -> Result<(Pin<Box<dyn Stream<Item = Result<Event, EnclaveError>> + Send>>, std::sync::Arc<std::sync::Mutex<TokenUsage>>), anyhow::Error>
+    ) -> Result<(Pin<Box<dyn Stream<Item = Result<Event, CapsuleError>> + Send>>, std::sync::Arc<std::sync::Mutex<TokenUsage>>), anyhow::Error>
     {
         let mut image_base64 = decrypted_image.to_base64();
         drop(decrypted_image);
@@ -245,7 +245,7 @@ impl OpenAIService {
     fn process_stream_with_usage(
         response: reqwest::Response,
         usage: std::sync::Arc<std::sync::Mutex<TokenUsage>>,
-    ) -> impl Stream<Item = Result<Event, EnclaveError>> {
+    ) -> impl Stream<Item = Result<Event, CapsuleError>> {
         async_stream::stream! {
             let mut stream = response.bytes_stream();
 
@@ -283,7 +283,7 @@ impl OpenAIService {
                         }
                     }
                     Err(e) => {
-                        yield Err(EnclaveError::OpenAIError(e.to_string()));
+                        yield Err(CapsuleError::OpenAIError(e.to_string()));
                         return;
                     }
                 }

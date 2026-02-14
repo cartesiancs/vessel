@@ -1,7 +1,7 @@
 {
-  "name": "@vessel/enclave-client",
+  "name": "@vessel/capsule-client",
   "version": "0.1.0",
-  "description": "Client SDK for Vessel Enclave - Secure image encryption and API client",
+  "description": "Client SDK for Vessel Capsule - Secure image encryption and API client",
   "type": "module",
   "main": "dist/index.js",
   "module": "dist/index.js",
@@ -32,7 +32,7 @@
     "encryption",
     "x25519",
     "xchacha20",
-    "enclave",
+    "capsule",
     "secure"
   ],
   "license": "MIT"

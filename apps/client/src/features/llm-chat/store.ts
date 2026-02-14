@@ -1,10 +1,10 @@
 import { create } from "zustand";
 import {
-  EnclaveClient,
-  EnclaveAuthError,
-  EnclaveSubscriptionError,
-  EnclaveRateLimitError,
-} from "@vessel/enclave-client";
+  CapsuleClient,
+  CapsuleAuthError,
+  CapsuleSubscriptionError,
+  CapsuleRateLimitError,
+} from "@vessel/capsule-client";
 import { supabase } from "@/lib/supabase";
 import type { ChatMessage, ChatPanelState } from "./types";
 
@@ -12,11 +12,11 @@ function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 }
 
-const ENCLAVE_URL = import.meta.env.VITE_ENCLAVE_URL || "http://localhost:3000";
+const CAPSULE_URL = import.meta.env.VITE_CAPSULE_URL || "http://localhost:3000";
 
-// EnclaveClient singleton with Supabase token provider
-const enclaveClient = new EnclaveClient({
-  baseUrl: ENCLAVE_URL,
+// CapsuleClient singleton with Supabase token provider
+const capsuleClient = new CapsuleClient({
+  baseUrl: CAPSULE_URL,
   timeout: 120000, // Image analysis may take a long time
   getAccessToken: async () => {
     const {
@@ -61,7 +61,7 @@ export const useChatStore = create<ChatPanelState>((set, get) => ({
     }));
 
     try {
-      await enclaveClient.chatStream(content, (chunk, done) => {
+      await capsuleClient.chatStream(content, (chunk, done) => {
         if (done) {
           set((state) => ({
             messages: state.messages.map((m) =>
@@ -83,14 +83,14 @@ export const useChatStore = create<ChatPanelState>((set, get) => ({
       let errorMessage = "Failed to send message";
       let showInChat = false;
 
-      if (error instanceof EnclaveAuthError) {
+      if (error instanceof CapsuleAuthError) {
         errorMessage = "Please sign in to continue.";
         showInChat = true;
-      } else if (error instanceof EnclaveSubscriptionError) {
+      } else if (error instanceof CapsuleSubscriptionError) {
         errorMessage =
           "Pro subscription required. Upgrade at [vessel.cartesiancs.com/pricing](https://vessel.cartesiancs.com/pricing)";
         showInChat = true;
-      } else if (error instanceof EnclaveRateLimitError) {
+      } else if (error instanceof CapsuleRateLimitError) {
         errorMessage = "Daily usage limit reached. Please try again tomorrow.";
         showInChat = true;
       } else if (error instanceof Error) {
@@ -146,7 +146,7 @@ export const useChatStore = create<ChatPanelState>((set, get) => ({
 
     try {
       // Send encrypted image (streaming)
-      await enclaveClient.analyzeImageStream(
+      await capsuleClient.analyzeImageStream(
         { image, message: content },
         (chunk, done) => {
           if (done) {
@@ -171,14 +171,14 @@ export const useChatStore = create<ChatPanelState>((set, get) => ({
       let errorMessage = "Failed to analyze image";
       let showInChat = false;
 
-      if (error instanceof EnclaveAuthError) {
+      if (error instanceof CapsuleAuthError) {
         errorMessage = "Please sign in to continue.";
         showInChat = true;
-      } else if (error instanceof EnclaveSubscriptionError) {
+      } else if (error instanceof CapsuleSubscriptionError) {
         errorMessage =
           "Pro subscription required. Upgrade at [vessel.cartesiancs.com/pricing](https://vessel.cartesiancs.com/pricing)";
         showInChat = true;
-      } else if (error instanceof EnclaveRateLimitError) {
+      } else if (error instanceof CapsuleRateLimitError) {
         errorMessage = "Daily usage limit reached. Please try again tomorrow.";
         showInChat = true;
       } else if (error instanceof Error) {

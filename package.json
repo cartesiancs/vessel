@@ -15,7 +15,7 @@
     "server:prod": "cargo run -p server --release",
     "desktop": "npm run dev --workspace=desktop",
     "desktop:build": "npm run tauri build --workspace=desktop",
-    "enclave": "cd ./apps/enclave && cargo run -p enclave",
+    "capsule": "cd ./apps/capsule && cargo run -p capsule",
     "build": "cd ./apps/server && cargo build --release",
     "build:landing": "npm run build --workspace=landing && vitepress build docs",
     "docs:dev": "vitepress dev docs",

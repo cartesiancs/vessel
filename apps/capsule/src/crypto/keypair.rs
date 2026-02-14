@@ -4,7 +4,7 @@ use tokio::sync::RwLock;
 use x25519_dalek::{PublicKey, StaticSecret};
 
 use crate::crypto::decrypt;
-use crate::error::EnclaveError;
+use crate::error::CapsuleError;
 use crate::types::{DecryptedImage, EncryptedImage};
 
 /// 서버 키 쌍 관리자
@@ -60,7 +60,7 @@ impl KeyManager {
     /// - 이 메서드만이 Private Key에 접근 가능
     /// - 복호화된 이미지는 `DecryptedImage` 타입으로 반환
     /// - `DecryptedImage`는 Debug/Clone 미구현으로 노출 방지
-    pub async fn decrypt(&self, encrypted: &EncryptedImage) -> Result<DecryptedImage, EnclaveError> {
+    pub async fn decrypt(&self, encrypted: &EncryptedImage) -> Result<DecryptedImage, CapsuleError> {
         decrypt(&self.secret, encrypted).await
     }
 }

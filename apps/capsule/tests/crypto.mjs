@@ -10,8 +10,8 @@ import { sha256 } from '@noble/hashes/sha256';
 import { randomBytes } from '@noble/ciphers/webcrypto';
 
 /** HKDF 상수 (서버와 동일해야 함) */
-const HKDF_SALT = new TextEncoder().encode('vessel-enclave-v1-salt');
-const HKDF_INFO = new TextEncoder().encode('vessel-enclave-v1-key');
+const HKDF_SALT = new TextEncoder().encode('vessel-capsule-v1-salt');
+const HKDF_INFO = new TextEncoder().encode('vessel-capsule-v1-key');
 
 /** Base64 인코딩 */
 export function bytesToBase64(bytes) {

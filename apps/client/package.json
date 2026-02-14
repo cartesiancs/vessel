@@ -15,7 +15,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@vessel/enclave-client": "file:../../packages/enclave-client",
+    "@vessel/capsule-client": "file:../../packages/capsule-client",
     "@codemirror/lang-json": "^6.0.2",
     "@emotion/react": "^11.14.0",
     "@monaco-editor/react": "^4.7.0",

@@ -1,8 +1,8 @@
 /**
- * Enclave API 테스트
+ * Capsule API 테스트
  *
  * 사용법:
- *   cd apps/enclave/tests
+ *   cd apps/capsule/tests
  *   npm install
  *   npm test                         # 텍스트 전용 테스트
  *   npm test ./path/to/image.jpg     # 이미지 분석 테스트
@@ -11,7 +11,7 @@
 import { readFileSync } from 'fs';
 import { encryptImage } from './crypto.mjs';
 
-const BASE_URL = process.env.ENCLAVE_URL || 'http://localhost:3000';
+const BASE_URL = process.env.CAPSULE_URL || 'http://localhost:3000';
 
 // 테스트 결과 추적
 const results = {
@@ -198,7 +198,7 @@ async function testInvalidEncryptedImage() {
 // ============================================
 
 async function main() {
-  console.log(`\nEnclave API Tests`);
+  console.log(`\nCapsule API Tests`);
   console.log(`Server: ${BASE_URL}`);
   console.log('─'.repeat(50));
 

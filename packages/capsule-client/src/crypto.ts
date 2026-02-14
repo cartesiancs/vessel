@@ -6,9 +6,9 @@ import { randomBytes } from '@noble/ciphers/webcrypto';
 import type { EncryptedImage } from './types';
 
 /** HKDF salt (서버와 동일해야 함) */
-const HKDF_SALT = new TextEncoder().encode('vessel-enclave-v1-salt');
+const HKDF_SALT = new TextEncoder().encode('vessel-capsule-v1-salt');
 /** HKDF info (서버와 동일해야 함) */
-const HKDF_INFO = new TextEncoder().encode('vessel-enclave-v1-key');
+const HKDF_INFO = new TextEncoder().encode('vessel-capsule-v1-key');
 
 /**
  * Base64 encoding (handles large arrays)

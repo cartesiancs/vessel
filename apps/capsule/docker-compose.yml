@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  enclave:
+  capsule:
     build:
       context: .
       dockerfile: Dockerfile

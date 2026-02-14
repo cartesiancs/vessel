@@ -10,12 +10,12 @@ use tokio::sync::RwLock;
 use x25519_dalek::{PublicKey, StaticSecret};
 use zeroize::Zeroize;
 
-use crate::error::EnclaveError;
+use crate::error::CapsuleError;
 use crate::types::{DecryptedImage, EncryptedImage};
 
 /// HKDF에 사용할 salt와 info
-const HKDF_SALT: &[u8] = b"vessel-enclave-v1-salt";
-const HKDF_INFO: &[u8] = b"vessel-enclave-v1-key";
+const HKDF_SALT: &[u8] = b"vessel-capsule-v1-salt";
+const HKDF_INFO: &[u8] = b"vessel-capsule-v1-key";
 
 /// 암호화된 이미지 복호화
 ///
@@ -30,24 +30,24 @@ const HKDF_INFO: &[u8] = b"vessel-enclave-v1-key";
 pub async fn decrypt(
     server_secret: &Arc<RwLock<StaticSecret>>,
     encrypted: &EncryptedImage,
-) -> Result<DecryptedImage, EnclaveError> {
+) -> Result<DecryptedImage, CapsuleError> {
     // 1. Base64 디코딩
     let ephemeral_pk_bytes = STANDARD
         .decode(&encrypted.ephemeral_public_key)
-        .map_err(|_| EnclaveError::InvalidPublicKey)?;
+        .map_err(|_| CapsuleError::InvalidPublicKey)?;
 
     let nonce_bytes = STANDARD
         .decode(&encrypted.nonce)
-        .map_err(|_| EnclaveError::InvalidNonce)?;
+        .map_err(|_| CapsuleError::InvalidNonce)?;
 
     let ciphertext = STANDARD
         .decode(&encrypted.ciphertext)
-        .map_err(|_| EnclaveError::InvalidCiphertext)?;
+        .map_err(|_| CapsuleError::InvalidCiphertext)?;
 
     // 2. 공개키 파싱 (32 bytes)
     let ephemeral_pk: [u8; 32] = ephemeral_pk_bytes
         .try_into()
-        .map_err(|_| EnclaveError::InvalidPublicKey)?;
+        .map_err(|_| CapsuleError::InvalidPublicKey)?;
     let client_public = PublicKey::from(ephemeral_pk);
 
     // 3. Shared Secret 계산 (X25519 ECDH)
@@ -60,7 +60,7 @@ pub async fn decrypt(
     let mut symmetric_key = [0u8; 32];
     let hkdf = Hkdf::<Sha256>::new(Some(HKDF_SALT), shared_secret.as_bytes());
     hkdf.expand(HKDF_INFO, &mut symmetric_key)
-        .map_err(|_| EnclaveError::CipherInitFailed)?;
+        .map_err(|_| CapsuleError::CipherInitFailed)?;
 
     // Shared secret 즉시 클리어
     shared_secret.zeroize();
@@ -68,18 +68,18 @@ pub async fn decrypt(
     // 5. Nonce 파싱 (24 bytes for XChaCha20)
     let nonce: [u8; 24] = nonce_bytes
         .try_into()
-        .map_err(|_| EnclaveError::InvalidNonce)?;
+        .map_err(|_| CapsuleError::InvalidNonce)?;
 
     // 6. XChaCha20-Poly1305로 복호화
     let cipher =
-        XChaCha20Poly1305::new_from_slice(&symmetric_key).map_err(|_| EnclaveError::CipherInitFailed)?;
+        XChaCha20Poly1305::new_from_slice(&symmetric_key).map_err(|_| CapsuleError::CipherInitFailed)?;
 
     // 대칭키 즉시 클리어
     symmetric_key.zeroize();
 
     let plaintext = cipher
         .decrypt(XNonce::from_slice(&nonce), ciphertext.as_ref())
-        .map_err(|_| EnclaveError::DecryptionFailed)?;
+        .map_err(|_| CapsuleError::DecryptionFailed)?;
 
     tracing::debug!("Successfully decrypted {} bytes", plaintext.len());
 
@@ -102,7 +102,7 @@ mod tests {
         };
 
         let result = decrypt(&secret, &encrypted).await;
-        assert!(matches!(result, Err(EnclaveError::InvalidPublicKey)));
+        assert!(matches!(result, Err(CapsuleError::InvalidPublicKey)));
     }
 
     #[tokio::test]
@@ -117,6 +117,6 @@ mod tests {
         };
 
         let result = decrypt(&secret, &encrypted).await;
-        assert!(matches!(result, Err(EnclaveError::InvalidNonce)));
+        assert!(matches!(result, Err(CapsuleError::InvalidNonce)));
     }
 }

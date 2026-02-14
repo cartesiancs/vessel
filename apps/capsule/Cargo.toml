@@ -1,5 +1,5 @@
 [package]
-name = "enclave"
+name = "capsule"
 version = "0.1.0"
 edition = "2021"
 
@@ -46,5 +46,5 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 dotenvy = "0.15"
 
 [[bin]]
-name = "enclave"
+name = "capsule"
 path = "src/main.rs"

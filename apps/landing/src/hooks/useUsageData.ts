@@ -6,10 +6,10 @@ export interface DailyUsage {
   date: string;
   turnBytes: number;
   tunnelBytes: number;
-  enclaveRequests: number;
-  enclaveImageRequests: number;
-  enclaveInputTokens: number;
-  enclaveOutputTokens: number;
+  capsuleRequests: number;
+  capsuleImageRequests: number;
+  capsuleInputTokens: number;
+  capsuleOutputTokens: number;
 }
 
 function getThirtyDaysAgo(): string {
@@ -36,7 +36,7 @@ export function useUsageData(user: User | null) {
       setLoading(true);
       const since = getThirtyDaysAgo();
 
-      const [turnRes, tunnelRes, enclaveRes] = await Promise.all([
+      const [turnRes, tunnelRes, capsuleRes] = await Promise.all([
         supabase
           .from("turn_usage_periods")
           .select("period_start, egress_bytes, ingress_bytes")
@@ -63,10 +63,10 @@ export function useUsageData(user: User | null) {
             date,
             turnBytes: 0,
             tunnelBytes: 0,
-            enclaveRequests: 0,
-            enclaveImageRequests: 0,
-            enclaveInputTokens: 0,
-            enclaveOutputTokens: 0,
+            capsuleRequests: 0,
+            capsuleImageRequests: 0,
+            capsuleInputTokens: 0,
+            capsuleOutputTokens: 0,
           };
           map.set(date, entry);
         }
@@ -87,13 +87,13 @@ export function useUsageData(user: User | null) {
         }
       }
 
-      if (enclaveRes.data) {
-        for (const row of enclaveRes.data) {
+      if (capsuleRes.data) {
+        for (const row of capsuleRes.data) {
           const entry = getOrCreate(row.date);
-          entry.enclaveRequests += row.request_count;
-          entry.enclaveImageRequests += row.image_requests;
-          entry.enclaveInputTokens += row.input_tokens;
-          entry.enclaveOutputTokens += row.output_tokens;
+          entry.capsuleRequests += row.request_count;
+          entry.capsuleImageRequests += row.image_requests;
+          entry.capsuleInputTokens += row.input_tokens;
+          entry.capsuleOutputTokens += row.output_tokens;
         }
       }
 

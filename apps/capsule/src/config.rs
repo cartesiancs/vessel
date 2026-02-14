@@ -1,6 +1,6 @@
 use zeroize::Zeroizing;
 
-use crate::error::EnclaveError;
+use crate::error::CapsuleError;
 
 /// Application configuration
 pub struct Config {
@@ -24,21 +24,21 @@ impl Config {
     /// # Security
     /// - API keys are protected with `Zeroizing<String>`
     /// - Sensitive environment variables are removed after loading
-    pub fn from_env() -> Result<Self, EnclaveError> {
+    pub fn from_env() -> Result<Self, CapsuleError> {
         dotenvy::dotenv().ok();
 
         // Load OpenAI API key
         let openai_api_key = std::env::var("OPENAI_API_KEY").map_err(|_| {
-            EnclaveError::ConfigError("OPENAI_API_KEY environment variable is required".to_string())
+            CapsuleError::ConfigError("OPENAI_API_KEY environment variable is required".to_string())
         })?;
 
         // Load Supabase configuration
         let supabase_url = std::env::var("SUPABASE_URL").map_err(|_| {
-            EnclaveError::ConfigError("SUPABASE_URL environment variable is required".to_string())
+            CapsuleError::ConfigError("SUPABASE_URL environment variable is required".to_string())
         })?;
 
         let supabase_service_key = std::env::var("SUPABASE_SERVICE_KEY").map_err(|_| {
-            EnclaveError::ConfigError(
+            CapsuleError::ConfigError(
                 "SUPABASE_SERVICE_KEY environment variable is required".to_string(),
             )
         })?;
