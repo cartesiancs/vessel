@@ -13,6 +13,7 @@ import { ThreeCardsSection } from "@/components/sections/ThreeCards";
 import { SecurityCTASection } from "@/components/sections/SecurityCta";
 import { IntegrationSection } from "@/components/sections/IntegrationImage";
 import { ListCardsSection } from "@/components/sections/ListCards";
+import { CapsulePromoSection } from "@/components/sections/CapsulePromo";
 
 function LandingPage() {
   return (
@@ -52,6 +53,7 @@ function LandingPage() {
         <IntegrationSection />
         <ThreeCardsSection />
         <SecurityCTASection />
+        <CapsulePromoSection />
         <FAQSection />
         <FooterCtaSection />
       </main>
