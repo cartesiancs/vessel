@@ -203,7 +203,7 @@ pub async fn web_server(
         )
         .route("/storage/mkdir/*path", post(storage::create_dir_handler))
         .route("/storage/rename/*from_path", post(storage::rename_handler))
-        .route("/states/:entity_id", post(state::set_state))
+        .route("/states/*topic", post(state::set_state))
         .route(
             "/recordings",
             post(recordings::start_recording).get(recordings::list_recordings),

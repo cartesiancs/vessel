@@ -19,6 +19,7 @@ pub async fn remap_topics(State(state): State<Arc<AppState>>) -> Result<usize, A
                 "udp" => Some(Protocol::Udp),
                 "lora" => Some(Protocol::Lora),
                 "RTSP" => Some(Protocol::RTSP),
+                "HTTP" => Some(Protocol::Http),
                 _ => None,
             };
 

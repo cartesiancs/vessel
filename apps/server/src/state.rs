@@ -29,6 +29,7 @@ pub enum Protocol {
     Udp,
     Lora,
     RTSP,
+    Http,
 }
 
 #[derive(Clone, Debug)]
