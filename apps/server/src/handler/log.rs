@@ -52,9 +52,16 @@ fn read_log_file_content(filename: &str) -> Result<String, io::Error> {
         ));
     }
 
+    const MAX_LINES: usize = 3000;
+
     let path = PathBuf::from(LOG_DIR).join(filename);
     let contents = fs::read_to_string(path)?;
-    Ok(contents.lines().rev().collect::<Vec<&str>>().join("\n"))
+    Ok(contents
+        .lines()
+        .rev()
+        .take(MAX_LINES)
+        .collect::<Vec<&str>>()
+        .join("\n"))
 }
 
 pub async fn get_latest_log_handler(AuthUser(_user): AuthUser) -> Response {
