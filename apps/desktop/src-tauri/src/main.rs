@@ -131,7 +131,6 @@ fn start_server_sidecar(
     let libs_dir = resource_dir.join("libs");
     let gst_plugins_dir = resource_dir.join("gstreamer-1.0");
     let gst_helpers_dir = gst_plugins_dir.join("helpers");
-    let python_dir = resource_dir.join("python3.12");
 
     // Build DYLD_FALLBACK_LIBRARY_PATH: bundled libs first, then system fallbacks
     let mut dyld_paths: Vec<String> = vec![libs_dir.display().to_string()];
@@ -140,8 +139,6 @@ fn start_server_sidecar(
     #[cfg(debug_assertions)]
     {
         dyld_paths.extend([
-            "/opt/homebrew/opt/python@3.12/Frameworks/Python.framework/Versions/3.12/lib"
-                .to_string(),
             "/opt/homebrew/opt/sqlite/lib".to_string(),
             "/opt/homebrew/opt/libiconv/lib".to_string(),
             "/opt/homebrew/lib".to_string(),
@@ -177,16 +174,6 @@ fn start_server_sidecar(
     envs.insert(
         "GST_REGISTRY".to_string(),
         workdir.join("gst-registry.bin").display().to_string(),
-    );
-
-    // Python environment: set PYTHONHOME and PYTHONPATH for embedded Python
-    envs.insert(
-        "PYTHONHOME".to_string(),
-        resource_dir.display().to_string(),
-    );
-    envs.insert(
-        "PYTHONPATH".to_string(),
-        python_dir.display().to_string(),
     );
 
     let sidecar_log = workdir.join("log/sidecar.log");

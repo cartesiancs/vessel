@@ -1,4 +1,4 @@
-import { CustomNode } from "@/entities/custom-nodes/types";
+import { CustomNode, CustomNodeDynamicData } from "@/entities/custom-nodes/types";
 import { DEFINITION_NODE } from "./flowNode";
 import { NodeTypes, Node, DataNodeTypeType } from "./flowTypes";
 
@@ -47,12 +47,34 @@ export function getCustomValue(
       return null;
     }
 
-    // NOTE: FIX THIS CODE( multiple parse )
-    const valueData = JSON.parse(JSON.parse(value[0].data));
-    for (let index = 0; index < valueData.connectors.length; index++) {
-      valueData.connectors[
-        index
-      ].id = `${id}-${valueData.connectors[index].type}${index}`;
+    let valueData = value[0].data;
+    if (typeof valueData === "string") {
+      try {
+        valueData = JSON.parse(valueData);
+      } catch {
+        return null;
+      }
+    }
+
+    if (!valueData) {
+      return null;
+    }
+
+    // 중첩 구조 처리: {"data":{"connectors":[...],...},...} → 내부 data 사용
+    const nested = valueData.data as Record<string, unknown> | undefined;
+    if (!valueData.connectors && nested && nested.connectors) {
+      valueData = nested as CustomNodeDynamicData;
+    }
+
+    valueData.nodeType = value[0].node_type;
+
+    if (!valueData.connectors) {
+      valueData.connectors = [];
+    }
+
+    const connectors = valueData.connectors as Array<Record<string, unknown>>;
+    for (let index = 0; index < connectors.length; index++) {
+      connectors[index].id = `${id}-${connectors[index].type}${index}`;
     }
 
     return valueData;

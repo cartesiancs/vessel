@@ -84,7 +84,7 @@ function CustomNodeForm({
           onChange={handleNodeTypeChange}
           required
           disabled={isEditing}
-          placeholder='e.g., python-adder'
+          placeholder='e.g., custom-adder'
         />
       </div>
       <div>
@@ -165,7 +165,7 @@ export function AddCustomNode() {
           <DialogHeader>
             <DialogTitle>Custom Node Registry</DialogTitle>
             <DialogDescription>
-              Manage custom Python nodes available in the flow editor.
+              Manage custom script nodes available in the flow editor.
             </DialogDescription>
           </DialogHeader>
 

@@ -18,7 +18,6 @@ STAGING="$ROOT/target/bundle-staging"
 LIBS_DIR="$STAGING/libs"
 GST_PLUGINS_DIR="$STAGING/gstreamer-1.0"
 GST_HELPERS_DIR="$STAGING/gstreamer-1.0/helpers"
-PYTHON_DIR="$STAGING/python3.12"
 SERVER_BIN="$ROOT/target/release/server"
 
 ARCH=$(uname -m)
@@ -36,7 +35,7 @@ echo "==> Staging directory: $STAGING"
 # Clean & create staging directories
 # ---------------------------------------------------------------------------
 rm -rf "$STAGING"
-mkdir -p "$LIBS_DIR" "$GST_PLUGINS_DIR" "$GST_HELPERS_DIR" "$PYTHON_DIR"
+mkdir -p "$LIBS_DIR" "$GST_PLUGINS_DIR" "$GST_HELPERS_DIR"
 
 # ---------------------------------------------------------------------------
 # Helper: resolve a dylib path through symlinks and copy to LIBS_DIR
@@ -147,21 +146,7 @@ for rel in "${OTHER_DEPS[@]}"; do
 done
 
 # ---------------------------------------------------------------------------
-# 4. Collect Python framework dylib
-# ---------------------------------------------------------------------------
-echo "==> Collecting Python 3.12 framework..."
-PYTHON_FW="$BREW_PREFIX/opt/python@3.12/Frameworks/Python.framework/Versions/3.12"
-if [ -d "$PYTHON_FW" ]; then
-  cat "$PYTHON_FW/Python" > "$LIBS_DIR/Python"
-  chmod 644 "$LIBS_DIR/Python"
-  ln -sf Python "$LIBS_DIR/libpython3.12.dylib"
-  echo "    copied Python framework dylib"
-else
-  echo "    WARNING: Python 3.12 framework not found"
-fi
-
-# ---------------------------------------------------------------------------
-# 5. Recursively collect transitive dependencies
+# 4. Recursively collect transitive dependencies
 # ---------------------------------------------------------------------------
 echo "==> Collecting transitive dependencies..."
 # Run multiple passes until no new libs are discovered
@@ -242,41 +227,7 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# 8. Collect minimal Python stdlib
-# ---------------------------------------------------------------------------
-echo "==> Collecting Python 3.12 stdlib..."
-PYTHON_STDLIB="$PYTHON_FW/lib/python3.12"
-if [ -d "$PYTHON_STDLIB" ]; then
-  # Use tar to copy without extended attributes
-  tar -cf - -C "$PYTHON_STDLIB" . | tar -xf - -C "$PYTHON_DIR"
-  # Remove unnecessary parts to save space
-  rm -rf "$PYTHON_DIR/test" \
-         "$PYTHON_DIR/tkinter" \
-         "$PYTHON_DIR/__pycache__" \
-         "$PYTHON_DIR/ensurepip" \
-         "$PYTHON_DIR/idlelib" \
-         "$PYTHON_DIR/turtledemo" \
-         "$PYTHON_DIR/lib2to3" \
-         "$PYTHON_DIR/distutils" \
-         "$PYTHON_DIR/unittest" \
-         "$PYTHON_DIR/pydoc_data" \
-         "$PYTHON_DIR/turtle.py" \
-         "$PYTHON_DIR/doctest.py"
-  # Replace dead symlinks (copied from Homebrew) with empty dirs or remove them
-  find "$PYTHON_DIR" -type l ! -exec test -e {} \; -print | while IFS= read -r link; do
-    rm "$link"
-    # If the symlink name suggests a directory (like site-packages), create one
-    if [[ "$(basename "$link")" != *.* ]]; then
-      mkdir -p "$link"
-    fi
-  done
-  echo "    copied Python stdlib (trimmed)"
-else
-  echo "    WARNING: Python stdlib not found at $PYTHON_STDLIB"
-fi
-
-# ---------------------------------------------------------------------------
-# 9. Rewrite install_names
+# 8. Rewrite install_names
 # ---------------------------------------------------------------------------
 echo "==> Rewriting install_names for bundled libs..."
 
@@ -358,5 +309,4 @@ echo ""
 echo "==> Bundle staging complete!"
 echo "    Libs:    $(ls "$LIBS_DIR" | wc -l | tr -d ' ') files"
 echo "    Plugins: $(ls "$GST_PLUGINS_DIR"/*.dylib 2>/dev/null | wc -l | tr -d ' ') files"
-echo "    Python:  $(du -sh "$PYTHON_DIR" 2>/dev/null | awk '{print $1}')"
 echo "    Staging: $STAGING"

@@ -34,8 +34,7 @@
     "externalBin": ["../../../target/release/server"],
     "resources": {
       "../../../target/bundle-staging/libs": "libs",
-      "../../../target/bundle-staging/gstreamer-1.0": "gstreamer-1.0",
-      "../../../target/bundle-staging/python3.12": "python3.12"
+      "../../../target/bundle-staging/gstreamer-1.0": "gstreamer-1.0"
     }
   },
   "plugins": {

@@ -3,9 +3,7 @@ export interface CustomNodeFromApi {
   data: CustomNodeDynamicData;
 }
 
-export interface CustomNodeDynamicData {
-  [key: string]: unknown;
-}
+export type CustomNodeDynamicData = Record<string, unknown>;
 
 export interface CustomNodeData {
   name: string;
