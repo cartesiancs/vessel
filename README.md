@@ -44,11 +44,16 @@ When everything is implemented, individuals will be able to protect themselves f
 - Connect all sensers (MQTT, RTP, RTSP, HTTP, ...)
 - RTP Audio & Video Streaming
 - RTSP Video Streaming
+- Real-time streaming support
 - Flow Visual Logic
+- Custom Script Language Support
 - Pub/Sub MQTT with Flow
 - Map based UI
 - Home Assistant Integration
 - ROS2 Integration
+- External access support
+- Capsule (Zero-Knowledge LLM Call) security.
+- Local-first design, Offline-first design.
 
 ## Develop
 
@@ -59,7 +64,6 @@ Get your local copy up and running.
 - [Rust](https://www.rust-lang.org/) & Cargo
 - [Node.js](https://nodejs.org/en/) (v18+) and npm
 - [gstreamer](https://gstreamer.freedesktop.org/documentation/rust/git/docs/gstreamer/index.html)
-- [Python](https://www.python.org/) (3.12+)
 - [mosquitto (MQTT)](https://mosquitto.org/) (additional)
 
 ### Option1. Run normally
