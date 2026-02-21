@@ -39,7 +39,7 @@ import {
 import { NavFooter } from "./footer";
 import { isElectron } from "@/lib/electron";
 import { useDynamicDashboardStore } from "@/entities/dynamic-dashboard/store";
-import { useConfigStore } from "@/entities/configurations/store";
+import { useIntegrationStore } from "@/entities/integrations/store";
 import {
   ComponentProps,
   useCallback,
@@ -164,11 +164,8 @@ export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
     setActiveDashboard,
     activeDashboardId,
   } = useDynamicDashboardStore();
-  const {
-    configurations,
-    fetchConfigs,
-    isLoading: isConfigLoading,
-  } = useConfigStore();
+  const { isHaConnected, isRos2Connected, fetchStatus } =
+    useIntegrationStore();
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -188,19 +185,12 @@ export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
   }, [location.search]);
 
   const controlViews = useMemo(() => {
-    const hasConfig = (key: string) =>
-      configurations.some((c) => c.key === key && c.value);
-
-    const isHaConnected =
-      hasConfig("home_assistant_url") && hasConfig("home_assistant_token");
-    const isRos2Connected = hasConfig("ros2_websocket_url");
-
     return [
       { id: "main", name: "Dashboard" },
       isHaConnected && { id: "ha", name: "Home Assistant" },
       isRos2Connected && { id: "ros2", name: "ROS2" },
     ].filter(Boolean) as { id: string; name: string }[];
-  }, [configurations]);
+  }, [isHaConnected, isRos2Connected]);
 
   const handleScroll = useCallback(() => {
     const el = scrollRef.current;
@@ -235,10 +225,8 @@ export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
   }, [hasLoaded, isLoading, loadDashboards]);
 
   useEffect(() => {
-    if (!configurations.length && !isConfigLoading) {
-      fetchConfigs();
-    }
-  }, [configurations.length, isConfigLoading, fetchConfigs]);
+    fetchStatus();
+  }, [fetchStatus]);
 
   return (
     <Sidebar

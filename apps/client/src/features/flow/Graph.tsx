@@ -37,8 +37,7 @@ import { renderButtonNode } from "./nodes/ButtonNode";
 import { zoomIdentity } from "d3-zoom";
 import { AddCustomNode } from "./AddCustomNode";
 import { useCustomNodeStore } from "@/entities/custom-nodes/store";
-import { useConfigStore } from "@/entities/configurations/store";
-import { isValidConfig } from "../integration/validate";
+import { useIntegrationStore } from "@/entities/integrations/store";
 import { SelectedItemActions } from "./SelectedItemActions";
 
 type NodeGroup = {
@@ -86,11 +85,11 @@ export function Graph({
   const edgesRef = useRef(edges);
   const nodesRef = useRef(nodes);
 
-  const { configurations, fetchConfigs } = useConfigStore();
+  const { isRos2Connected, fetchStatus } = useIntegrationStore();
 
   useEffect(() => {
-    fetchConfigs();
-  }, [fetchConfigs]);
+    fetchStatus();
+  }, [fetchStatus]);
 
   const [nodeRenderers, setNodeRenderers] = useState<
     Record<string, NodeRenderer>
@@ -140,8 +139,6 @@ export function Graph({
       },
     ];
 
-    const isRos2Connected = isValidConfig(configurations, "ROS");
-
     if (isRos2Connected) {
       baseGroups.push({
         label: "ROS2",
@@ -165,7 +162,7 @@ export function Graph({
     }
 
     return baseGroups;
-  }, [customNodes, configurations]);
+  }, [customNodes, isRos2Connected]);
 
   const handleClickOption = (node: Node) => {
     setOpenedNode(node);
@@ -210,8 +207,6 @@ export function Graph({
         renderButtonNode(g, d, () => handleClickOption(d)),
     };
 
-    const isRos2Connected = isValidConfig(configurations, "ROS");
-
     if (isRos2Connected) {
       ros2NodeKey.forEach((element) => {
         baseRenderers[element] = (g, d) =>
@@ -229,7 +224,7 @@ export function Graph({
       ...baseRenderers,
       ...customNodeRenderers,
     });
-  }, [customNodes, configurations]);
+  }, [customNodes, isRos2Connected]);
 
   useEffect(() => {
     edgesRef.current = edges;

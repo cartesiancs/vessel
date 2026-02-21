@@ -10,7 +10,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Home, Bot, ArrowRight, CheckCircle, Loader2 } from "lucide-react";
-import { useConfigStore } from "@/entities/configurations/store";
+import { useIntegrationStore } from "@/entities/integrations/store";
 import {
   StepComponentProps,
   FinalStepProps,
@@ -21,7 +21,6 @@ import { HA_Step1_URL, HA_Step2_Token } from "./HA";
 import { ROS2_Step1_Bridge, ROS2_Step2_Address } from "./ROS";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
-import { isValidConfig } from "./validate";
 
 const FinalStep: React.FC<FinalStepProps> = ({ integrationName }) => (
   <div className='py-8 text-center flex flex-col items-center justify-center gap-4'>
@@ -36,15 +35,18 @@ const FinalStep: React.FC<FinalStepProps> = ({ integrationName }) => (
 const wizardConfig: {
   [key in IntegrationId]: {
     name: string;
+    registrationId: string;
     steps: {
       title: string;
       configKey?: string;
       component: React.FC<StepComponentProps>;
     }[];
+    buildConfig: (formData: Record<string, string>) => Record<string, string>;
   };
 } = {
   "home-assistant": {
     name: "Home Assistant",
+    registrationId: "home_assistant",
     steps: [
       {
         title: "Connect to Home Assistant",
@@ -57,9 +59,14 @@ const wizardConfig: {
         component: HA_Step2_Token,
       },
     ],
+    buildConfig: (formData) => ({
+      url: formData["home_assistant_url"] || "",
+      token: formData["home_assistant_token"] || "",
+    }),
   },
   ros2: {
     name: "ROS2",
+    registrationId: "ros2",
     steps: [
       {
         title: "Prerequisites",
@@ -71,6 +78,9 @@ const wizardConfig: {
         component: ROS2_Step2_Address,
       },
     ],
+    buildConfig: (formData) => ({
+      websocket_url: formData["ros2_websocket_url"] || "",
+    }),
   },
 };
 
@@ -82,7 +92,7 @@ const IntegrationWizardModal: React.FC<IntegrationWizardModalProps> = ({
   const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState<{ [key: string]: string }>({});
   const [isSaving, setIsSaving] = useState(false);
-  const { createConfig } = useConfigStore();
+  const { registerIntegration } = useIntegrationStore();
 
   const config = wizardConfig[integrationId];
   const totalSteps = config.steps.length;
@@ -94,23 +104,19 @@ const IntegrationWizardModal: React.FC<IntegrationWizardModalProps> = ({
     }
   };
 
-  const handleNext = async () => {
-    const stepInfo = config.steps[currentStep];
-    const value = stepInfo.configKey ? formData[stepInfo.configKey] : undefined;
+  const isLastConfigStep = currentStep === totalSteps - 1;
 
-    if (stepInfo.configKey && value) {
+  const handleNext = async () => {
+    if (isLastConfigStep) {
+      // On the last configurable step, register the entire integration
       setIsSaving(true);
       try {
-        await createConfig({
-          key: stepInfo.configKey,
-          value: value,
-          enabled: 1,
-          description: `${config.name} configuration setting`,
-        });
+        const integrationConfig = config.buildConfig(formData);
+        await registerIntegration(config.registrationId, integrationConfig);
         setCurrentStep((prev) => prev + 1);
       } catch (error) {
-        console.error("Failed to save configuration:", error);
-        toast("Failed to save configuration.");
+        console.error("Failed to register integration:", error);
+        toast("Failed to register integration.");
       } finally {
         setIsSaving(false);
       }
@@ -204,40 +210,42 @@ const initialIntegrations: {
 export function Intergration() {
   const [selectedIntegration, setSelectedIntegration] =
     useState<IntegrationId | null>(null);
-  const { configurations, fetchConfigs } = useConfigStore();
+  const { isHaConnected, isRos2Connected, fetchStatus } =
+    useIntegrationStore();
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetchConfigs();
-  }, [fetchConfigs]);
+    fetchStatus();
+  }, [fetchStatus]);
 
   const integrations = useMemo(() => {
-    const isHaConnected = isValidConfig(configurations, "HA");
-    const isRos2Connected = isValidConfig(configurations, "ROS");
-
     return initialIntegrations.map((int) => {
       if (int.id === "home-assistant") {
         return {
           ...int,
-          status: isHaConnected ? "Connected" : "Not Connected",
+          status: isHaConnected
+            ? ("Connected" as const)
+            : ("Not Connected" as const),
         };
       }
       if (int.id === "ros2") {
         return {
           ...int,
-          status: isRos2Connected ? "Connected" : "Not Connected",
+          status: isRos2Connected
+            ? ("Connected" as const)
+            : ("Not Connected" as const),
         };
       }
       return int;
     });
-  }, [configurations]);
+  }, [isHaConnected, isRos2Connected]);
 
   const handleConnectClick = (integrationId: IntegrationId) => {
     setSelectedIntegration(integrationId);
   };
 
   const handleWizardComplete = () => {
-    fetchConfigs();
+    fetchStatus();
     setSelectedIntegration(null);
   };
 

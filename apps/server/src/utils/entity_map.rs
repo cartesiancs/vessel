@@ -20,6 +20,8 @@ pub async fn remap_topics(State(state): State<Arc<AppState>>) -> Result<usize, A
                 "lora" => Some(Protocol::Lora),
                 "RTSP" => Some(Protocol::RTSP),
                 "HTTP" => Some(Protocol::Http),
+                "home_assistant" => Some(Protocol::HomeAssistant),
+                "ros2" => Some(Protocol::Ros2),
                 _ => None,
             };
 

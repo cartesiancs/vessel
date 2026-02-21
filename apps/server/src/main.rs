@@ -113,7 +113,7 @@ async fn main() -> Result<()> {
         streams: streams.clone(),
         mqtt_tx: mqtt_tx.clone(),
         jwt_secret: jwt_secret,
-        pool: pool,
+        pool: pool.clone(),
         topic_map: Arc::new(RwLock::new(Vec::new())),
         topic_map_notify: topic_map_notify_tx,
         flow_manager_tx,
@@ -217,6 +217,7 @@ async fn main() -> Result<()> {
         mqtt_tx.clone(),
         streams.clone(),
         configs.clone(),
+        pool.clone(),
     );
     tokio::spawn(async move {
         flow_manager.run().await;

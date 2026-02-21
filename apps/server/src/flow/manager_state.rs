@@ -8,13 +8,14 @@ use crate::{
     state::{DbPool, MqttMessage, StreamManager},
 };
 use anyhow::Result;
+use chrono::Utc;
 use rumqttc::AsyncClient;
 use std::{collections::HashMap, sync::Arc};
 use tokio::{
     sync::{broadcast, mpsc},
     task::JoinHandle,
 };
-use tracing::{error, info};
+use tracing::{error, info, warn};
 
 pub enum FlowManagerCommand {
     StartFlow {
@@ -45,6 +46,7 @@ pub struct FlowManagerActor {
     stream_manager: StreamManager,
     binary_store: BinaryStore,
     system_configs: Vec<SystemConfiguration>,
+    pool: DbPool,
 }
 
 impl FlowManagerActor {
@@ -54,6 +56,7 @@ impl FlowManagerActor {
         mqtt_tx: broadcast::Sender<MqttMessage>,
         stream_manager: StreamManager,
         system_configs: Vec<SystemConfiguration>,
+        pool: DbPool,
     ) -> Self {
         Self {
             receiver,
@@ -63,6 +66,7 @@ impl FlowManagerActor {
             stream_manager,
             binary_store: BinaryStore::new(),
             system_configs,
+            pool,
         }
     }
 
@@ -79,12 +83,17 @@ impl FlowManagerActor {
                         continue;
                     }
                     info!("Starting flow execution for flow_id: {}", flow_id);
+
+                    // Enrich system_configs with entity-based integration configs
+                    let mut enriched_configs = self.system_configs.clone();
+                    enrich_configs_from_entities(&self.pool, &mut enriched_configs);
+
                     match FlowEngine::new(
                         graph,
                         Some(self.mqtt_tx.clone()),
                         self.stream_manager.clone(),
                         self.binary_store.clone(),
-                        self.system_configs.clone(),
+                        enriched_configs,
                     ) {
                         Ok(engine) => {
                             let engine = Arc::new(engine);
@@ -144,5 +153,71 @@ impl FlowManagerActor {
                 }
             }
         }
+    }
+}
+
+/// Enrich system_configs with values from entity-based integration configurations.
+/// This allows flow nodes using placeholders like `{:ros2_websocket_url}` to resolve
+/// from entity configurations when they are not present in system_configurations.
+fn enrich_configs_from_entities(pool: &DbPool, configs: &mut Vec<SystemConfiguration>) {
+    let now = Utc::now().naive_utc();
+
+    // Home Assistant bridge entity → home_assistant_url, home_assistant_token
+    if let Ok(Some(ha_entity)) =
+        db::repository::get_entity_with_config_by_entity_id(pool, "home_assistant.bridge")
+    {
+        if let Some(config) = ha_entity.configuration {
+            if let Some(url) = config.get("url").and_then(|v| v.as_str()) {
+                if !configs.iter().any(|c| c.key == "home_assistant_url") {
+                    configs.push(SystemConfiguration {
+                        id: 0,
+                        key: "home_assistant_url".to_string(),
+                        value: url.to_string(),
+                        enabled: 1,
+                        description: Some("Auto-enriched from entity config".to_string()),
+                        created_at: now,
+                        updated_at: now,
+                    });
+                }
+            }
+            if let Some(token) = config.get("token").and_then(|v| v.as_str()) {
+                if !configs.iter().any(|c| c.key == "home_assistant_token") {
+                    configs.push(SystemConfiguration {
+                        id: 0,
+                        key: "home_assistant_token".to_string(),
+                        value: token.to_string(),
+                        enabled: 1,
+                        description: Some("Auto-enriched from entity config".to_string()),
+                        created_at: now,
+                        updated_at: now,
+                    });
+                }
+            }
+        }
+    } else {
+        warn!("Could not look up home_assistant.bridge entity for config enrichment");
+    }
+
+    // ROS2 bridge entity → ros2_websocket_url
+    if let Ok(Some(ros2_entity)) =
+        db::repository::get_entity_with_config_by_entity_id(pool, "ros2.bridge")
+    {
+        if let Some(config) = ros2_entity.configuration {
+            if let Some(ws_url) = config.get("websocket_url").and_then(|v| v.as_str()) {
+                if !configs.iter().any(|c| c.key == "ros2_websocket_url") {
+                    configs.push(SystemConfiguration {
+                        id: 0,
+                        key: "ros2_websocket_url".to_string(),
+                        value: ws_url.to_string(),
+                        enabled: 1,
+                        description: Some("Auto-enriched from entity config".to_string()),
+                        created_at: now,
+                        updated_at: now,
+                    });
+                }
+            }
+        }
+    } else {
+        warn!("Could not look up ros2.bridge entity for config enrichment");
     }
 }

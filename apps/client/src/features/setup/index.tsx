@@ -1,8 +1,7 @@
-import { getConfigs } from "@/entities/configurations/api";
 import { getDevices } from "@/entities/device/api";
 import { getAllEntities } from "@/entities/entity/api";
 import { getFlows } from "@/entities/flow/api";
-import { isValidConfig } from "../integration/validate";
+import { getIntegrationStatus } from "@/entities/integrations/api";
 
 export type SetupStep = {
   id: string;
@@ -21,13 +20,8 @@ export const initialSetupSteps: SetupStep[] = [
     isCompleted: false,
     url: "/servers",
     verifyStatus: async () => {
-      const response = await getConfigs();
-
-      if (response.data.length > 0) {
-        return isValidConfig(response.data, "HA");
-      } else {
-        return false;
-      }
+      const status = await getIntegrationStatus();
+      return status.home_assistant.connected;
     },
   },
   {

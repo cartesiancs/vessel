@@ -7,6 +7,7 @@ pub mod devices;
 pub mod entities;
 pub mod flows;
 pub mod ha;
+pub mod integration;
 pub mod log;
 pub mod map;
 pub mod permissions;

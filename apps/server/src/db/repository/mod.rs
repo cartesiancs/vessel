@@ -845,6 +845,147 @@ pub fn get_all_entities_with_states_and_configs_filter(
     Ok(result)
 }
 
+pub fn get_entity_with_config_by_entity_id(
+    pool: &DbPool,
+    target_entity_id: &str,
+) -> Result<Option<EntityWithConfig>, anyhow::Error> {
+    use crate::db::schema::entities::dsl as e;
+    use crate::db::schema::entities_configurations::dsl as ec;
+
+    let mut conn = pool.get()?;
+
+    let result = e::entities
+        .filter(e::entity_id.eq(target_entity_id))
+        .left_join(ec::entities_configurations.on(e::id.eq(ec::entity_id)))
+        .first::<(Entity, Option<EntityConfiguration>)>(&mut conn)
+        .optional()?;
+
+    Ok(result.map(|(entity, config_opt)| {
+        let configuration = config_opt
+            .map(|c| serde_json::from_str(&c.configuration).unwrap_or(serde_json::Value::Null))
+            .filter(|v| !v.is_null());
+        EntityWithConfig {
+            entity,
+            configuration,
+        }
+    }))
+}
+
+pub fn upsert_device(
+    pool: &DbPool,
+    target_device_id: &str,
+    target_name: Option<&str>,
+    target_manufacturer: Option<&str>,
+    target_model: Option<&str>,
+) -> Result<Device, anyhow::Error> {
+    use crate::db::schema::devices::dsl::*;
+
+    let mut conn = pool.get()?;
+
+    let existing = devices
+        .filter(device_id.eq(target_device_id))
+        .select(Device::as_select())
+        .first::<Device>(&mut conn)
+        .optional()?;
+
+    if let Some(existing_device) = existing {
+        let updated = diesel::update(devices.find(existing_device.id))
+            .set((
+                name.eq(target_name),
+                manufacturer.eq(target_manufacturer),
+                model.eq(target_model),
+            ))
+            .get_result(&mut conn)?;
+        Ok(updated)
+    } else {
+        let new_device = NewDevice {
+            device_id: target_device_id,
+            name: target_name,
+            manufacturer: target_manufacturer,
+            model: target_model,
+        };
+        let created = diesel::insert_into(devices)
+            .values(&new_device)
+            .get_result(&mut conn)?;
+        Ok(created)
+    }
+}
+
+pub fn upsert_entity_with_config(
+    pool: &DbPool,
+    target_entity_id: &str,
+    target_device_id: Option<i32>,
+    target_friendly_name: Option<&str>,
+    target_platform: Option<&str>,
+    target_entity_type: Option<&str>,
+    config_str: &str,
+) -> Result<(Entity, Option<EntityConfiguration>), anyhow::Error> {
+    use crate::db::schema::entities;
+    use crate::db::schema::entities_configurations;
+
+    let mut conn = pool.get()?;
+
+    let existing = entities::table
+        .filter(entities::entity_id.eq(target_entity_id))
+        .select(Entity::as_select())
+        .first::<Entity>(&mut conn)
+        .optional()?;
+
+    conn.transaction(|conn| {
+        let entity: Entity = if let Some(existing_entity) = existing {
+            diesel::update(entities::table.find(existing_entity.id))
+                .set((
+                    entities::device_id.eq(target_device_id),
+                    entities::friendly_name.eq(target_friendly_name),
+                    entities::platform.eq(target_platform),
+                    entities::entity_type.eq(target_entity_type),
+                ))
+                .get_result(conn)?
+        } else {
+            let new_entity = NewEntity {
+                entity_id: target_entity_id,
+                device_id: target_device_id,
+                friendly_name: target_friendly_name,
+                platform: target_platform,
+                entity_type: target_entity_type,
+            };
+            diesel::insert_into(entities::table)
+                .values(&new_entity)
+                .get_result(conn)?
+        };
+
+        if !config_str.is_empty() {
+            let new_config = NewEntityConfiguration {
+                entity_id: entity.id,
+                configuration: config_str,
+            };
+
+            let config: EntityConfiguration =
+                diesel::insert_into(entities_configurations::table)
+                    .values(&new_config)
+                    .on_conflict(entities_configurations::entity_id)
+                    .do_update()
+                    .set(entities_configurations::configuration.eq(config_str))
+                    .get_result(conn)?;
+
+            Ok((entity, Some(config)))
+        } else {
+            Ok((entity, None))
+        }
+    })
+}
+
+pub fn delete_device_by_device_id(
+    pool: &DbPool,
+    target_device_id: &str,
+) -> Result<usize, anyhow::Error> {
+    use crate::db::schema::devices::dsl::*;
+    let mut conn = pool.get()?;
+    let num_deleted =
+        diesel::delete(devices.filter(device_id.eq(target_device_id))).execute(&mut conn)?;
+    Ok(num_deleted)
+}
+
 pub fn create_map_layer(pool: &DbPool, new_layer: NewMapLayer) -> Result<MapLayer, anyhow::Error> {
     use crate::db::schema::map_layers::dsl::*;
 

@@ -30,6 +30,8 @@ pub enum Protocol {
     Lora,
     RTSP,
     Http,
+    HomeAssistant,
+    Ros2,
 }
 
 #[derive(Clone, Debug)]

@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-import { useConfigStore } from "@/entities/configurations/store";
+import { useIntegrationStore } from "@/entities/integrations/store";
 import { HaDashboard } from "@/features/ha";
 import { useNavigate, useSearchParams } from "react-router";
 
@@ -37,26 +37,20 @@ export function DashboardPage() {
   const [selectedDashboard, setSelectedDashboard] = useState(initialView);
   const navigate = useNavigate();
 
-  const { configurations, fetchConfigs } = useConfigStore();
+  const { isHaConnected, isRos2Connected, fetchStatus } =
+    useIntegrationStore();
 
   useEffect(() => {
-    fetchConfigs();
-  }, [fetchConfigs]);
+    fetchStatus();
+  }, [fetchStatus]);
 
   const dashboards = useMemo(() => {
-    const hasConfig = (key: string) =>
-      configurations.some((c) => c.key === key && c.value);
-
-    const isHaConnected =
-      hasConfig("home_assistant_url") && hasConfig("home_assistant_token");
-    const isRos2Connected = hasConfig("ros2_websocket_url");
-
     return [
       { id: "main", name: "Dashboard" },
       isHaConnected && { id: "ha", name: "Home Assistant" },
       isRos2Connected && { id: "ros2", name: "ROS2" },
     ].filter(Boolean) as { id: string; name: string }[];
-  }, [configurations]);
+  }, [isHaConnected, isRos2Connected]);
 
   useEffect(() => {
     const view = searchParams.get("view");
