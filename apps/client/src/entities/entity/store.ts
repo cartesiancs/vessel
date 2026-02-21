@@ -6,16 +6,20 @@ interface EntityState {
   entities: Entity[];
   isLoading: boolean;
   error: string | null;
+  autoOpenEntityId: number | null;
   fetchEntities: () => Promise<void>;
   createEntity: (data: EntityPayload) => Promise<void>;
   updateEntity: (id: number, data: EntityPayload) => Promise<void>;
   deleteEntity: (id: number) => Promise<void>;
+  setAutoOpenEntityId: (id: number | null) => void;
 }
 
 export const useEntityStore = create<EntityState>((set, get) => ({
   entities: [],
   isLoading: false,
   error: null,
+  autoOpenEntityId: null,
+  setAutoOpenEntityId: (id) => set({ autoOpenEntityId: id }),
   fetchEntities: async () => {
     set({ isLoading: true, error: null });
     try {

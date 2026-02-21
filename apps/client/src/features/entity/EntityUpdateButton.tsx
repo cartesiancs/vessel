@@ -29,16 +29,18 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface Props {
   entity: Entity;
+  defaultOpen?: boolean;
 }
 
 type EntityFormValues = Omit<EntityPayload, "configuration"> & {
   configuration: string;
 };
 
-export function EntityUpdateButton({ entity }: Props) {
-  const [isOpen, setIsOpen] = useState(false);
+export function EntityUpdateButton({ entity, defaultOpen = false }: Props) {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
   const [jsonError, setJsonError] = useState<string | null>(null);
   const updateEntity = useEntityStore((state) => state.updateEntity);
+  const setAutoOpenEntityId = useEntityStore((state) => state.setAutoOpenEntityId);
   const { register, handleSubmit, control, watch, setValue } =
     useForm<EntityFormValues>({
       defaultValues: {
@@ -83,16 +85,28 @@ export function EntityUpdateButton({ entity }: Props) {
 
     await updateEntity(entity.id, finalPayload);
     setIsOpen(false);
+    if (defaultOpen) {
+      setAutoOpenEntityId(null);
+    }
+  };
+
+  const handleOpenChange = (open: boolean) => {
+    setIsOpen(open);
+    if (!open && defaultOpen) {
+      setAutoOpenEntityId(null);
+    }
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-          <Pencil className='mr-2 h-4 w-4' />
-          <span>Edit</span>
-        </DropdownMenuItem>
-      </DialogTrigger>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
+      {!defaultOpen && (
+        <DialogTrigger asChild>
+          <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+            <Pencil className='mr-2 h-4 w-4' />
+            <span>Edit</span>
+          </DropdownMenuItem>
+        </DialogTrigger>
+      )}
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Edit Entity</DialogTitle>

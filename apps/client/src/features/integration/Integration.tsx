@@ -272,7 +272,7 @@ export function Intergration() {
               <Button
                 size='sm'
                 variant='secondary'
-                onClick={() => navigate("/servers")}
+                onClick={() => navigate(`/devices?configure=${integration.id}`)}
               >
                 Configure
               </Button>

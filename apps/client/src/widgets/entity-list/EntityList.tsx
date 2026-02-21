@@ -30,7 +30,7 @@ import { Button } from "@/components/ui/button";
 
 export function EntityList() {
   const { selectedDevice } = useDeviceStore();
-  const { entities, isLoading, fetchEntities } = useEntityStore();
+  const { entities, isLoading, fetchEntities, autoOpenEntityId } = useEntityStore();
 
   useEffect(() => {
     fetchEntities();
@@ -39,6 +39,10 @@ export function EntityList() {
   const filteredEntities = selectedDevice
     ? entities.filter((e) => e.device_id === selectedDevice.id)
     : [];
+
+  const autoOpenEntity = autoOpenEntityId
+    ? filteredEntities.find((e) => e.id === autoOpenEntityId)
+    : null;
 
   return (
     <Card>
@@ -112,6 +116,9 @@ export function EntityList() {
           </Table>
         )}
       </CardContent>
+      {autoOpenEntity && (
+        <EntityUpdateButton entity={autoOpenEntity} defaultOpen={true} />
+      )}
     </Card>
   );
 }
