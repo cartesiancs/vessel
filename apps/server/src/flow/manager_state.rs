@@ -220,4 +220,40 @@ fn enrich_configs_from_entities(pool: &DbPool, configs: &mut Vec<SystemConfigura
     } else {
         warn!("Could not look up ros2.bridge entity for config enrichment");
     }
+
+    // RTL-SDR server entity → sdr_host, sdr_port
+    if let Ok(Some(sdr_entity)) =
+        db::repository::get_entity_with_config_by_entity_id(pool, "sdr.server")
+    {
+        if let Some(config) = sdr_entity.configuration {
+            if let Some(host) = config.get("host").and_then(|v| v.as_str()) {
+                if !configs.iter().any(|c| c.key == "sdr_host") {
+                    configs.push(SystemConfiguration {
+                        id: 0,
+                        key: "sdr_host".to_string(),
+                        value: host.to_string(),
+                        enabled: 1,
+                        description: Some("Auto-enriched from entity config".to_string()),
+                        created_at: now,
+                        updated_at: now,
+                    });
+                }
+            }
+            if let Some(port) = config.get("port").and_then(|v| v.as_str()) {
+                if !configs.iter().any(|c| c.key == "sdr_port") {
+                    configs.push(SystemConfiguration {
+                        id: 0,
+                        key: "sdr_port".to_string(),
+                        value: port.to_string(),
+                        enabled: 1,
+                        description: Some("Auto-enriched from entity config".to_string()),
+                        created_at: now,
+                        updated_at: now,
+                    });
+                }
+            }
+        }
+    } else {
+        warn!("Could not look up sdr.server entity for config enrichment");
+    }
 }

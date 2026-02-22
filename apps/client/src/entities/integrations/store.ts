@@ -4,6 +4,7 @@ import * as api from "./api";
 interface IntegrationState {
   isHaConnected: boolean;
   isRos2Connected: boolean;
+  isSdrConnected: boolean;
   isLoading: boolean;
   error: string | null;
   fetchStatus: () => Promise<void>;
@@ -17,6 +18,7 @@ interface IntegrationState {
 export const useIntegrationStore = create<IntegrationState>((set, get) => ({
   isHaConnected: false,
   isRos2Connected: false,
+  isSdrConnected: false,
   isLoading: false,
   error: null,
   fetchStatus: async () => {
@@ -26,6 +28,7 @@ export const useIntegrationStore = create<IntegrationState>((set, get) => ({
       set({
         isHaConnected: response.data.home_assistant.connected,
         isRos2Connected: response.data.ros2.connected,
+        isSdrConnected: response.data.sdr.connected,
         isLoading: false,
       });
     } catch (err) {

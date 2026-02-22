@@ -29,6 +29,7 @@ import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { useIntegrationStore } from "@/entities/integrations/store";
 import { HaDashboard } from "@/features/ha";
+import { SdrDashboard } from "@/features/sdr/SdrDashboard";
 import { useNavigate, useSearchParams } from "react-router";
 
 export function DashboardPage() {
@@ -37,7 +38,7 @@ export function DashboardPage() {
   const [selectedDashboard, setSelectedDashboard] = useState(initialView);
   const navigate = useNavigate();
 
-  const { isHaConnected, isRos2Connected, fetchStatus } =
+  const { isHaConnected, isRos2Connected, isSdrConnected, fetchStatus } =
     useIntegrationStore();
 
   useEffect(() => {
@@ -49,8 +50,9 @@ export function DashboardPage() {
       { id: "main", name: "Dashboard" },
       isHaConnected && { id: "ha", name: "Home Assistant" },
       isRos2Connected && { id: "ros2", name: "ROS2" },
+      isSdrConnected && { id: "sdr", name: "RTL-SDR" },
     ].filter(Boolean) as { id: string; name: string }[];
-  }, [isHaConnected, isRos2Connected]);
+  }, [isHaConnected, isRos2Connected, isSdrConnected]);
 
   useEffect(() => {
     const view = searchParams.get("view");
@@ -143,6 +145,7 @@ export function DashboardPage() {
 
               <div className='@container/main flex flex-1 flex-col gap-2'>
                 {selectedDashboard == "ha" && <HaDashboard />}
+                {selectedDashboard == "sdr" && <SdrDashboard />}
               </div>
             </div>
           </div>

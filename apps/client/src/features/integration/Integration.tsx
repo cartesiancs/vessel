@@ -9,7 +9,7 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Home, Bot, ArrowRight, CheckCircle, Loader2 } from "lucide-react";
+import { Home, Bot, Radio, ArrowRight, CheckCircle, Loader2 } from "lucide-react";
 import { useIntegrationStore } from "@/entities/integrations/store";
 import {
   StepComponentProps,
@@ -19,6 +19,7 @@ import {
 } from "./types";
 import { HA_Step1_URL, HA_Step2_Token } from "./HA";
 import { ROS2_Step1_Bridge, ROS2_Step2_Address } from "./ROS";
+import { SDR_Step1_Info, SDR_Step2_Host, SDR_Step3_Port } from "./SDR";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
 
@@ -80,6 +81,30 @@ const wizardConfig: {
     ],
     buildConfig: (formData) => ({
       websocket_url: formData["ros2_websocket_url"] || "",
+    }),
+  },
+  sdr: {
+    name: "RTL-SDR",
+    registrationId: "sdr",
+    steps: [
+      {
+        title: "RTL-SDR (rtl_tcp) Prerequisites",
+        component: SDR_Step1_Info,
+      },
+      {
+        title: "Enter Server Host",
+        configKey: "sdr_host",
+        component: SDR_Step2_Host,
+      },
+      {
+        title: "Enter Server Port",
+        configKey: "sdr_port",
+        component: SDR_Step3_Port,
+      },
+    ],
+    buildConfig: (formData) => ({
+      host: formData["sdr_host"] || "",
+      port: formData["sdr_port"] || "1234",
     }),
   },
 };
@@ -205,12 +230,20 @@ const initialIntegrations: {
     icon: <Bot className='h-8 w-8 text-green-500' />,
     status: "Not Connected",
   },
+  {
+    id: "sdr",
+    name: "RTL-SDR",
+    description:
+      "Connect to an RTL-SDR receiver via rtl_tcp for software-defined radio control and spectrum monitoring.",
+    icon: <Radio className='h-8 w-8 text-purple-500' />,
+    status: "Not Connected",
+  },
 ];
 
 export function Intergration() {
   const [selectedIntegration, setSelectedIntegration] =
     useState<IntegrationId | null>(null);
-  const { isHaConnected, isRos2Connected, fetchStatus } =
+  const { isHaConnected, isRos2Connected, isSdrConnected, fetchStatus } =
     useIntegrationStore();
   const navigate = useNavigate();
 
@@ -236,9 +269,17 @@ export function Intergration() {
             : ("Not Connected" as const),
         };
       }
+      if (int.id === "sdr") {
+        return {
+          ...int,
+          status: isSdrConnected
+            ? ("Connected" as const)
+            : ("Not Connected" as const),
+        };
+      }
       return int;
     });
-  }, [isHaConnected, isRos2Connected]);
+  }, [isHaConnected, isRos2Connected, isSdrConnected]);
 
   const handleConnectClick = (integrationId: IntegrationId) => {
     setSelectedIntegration(integrationId);

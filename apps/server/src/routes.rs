@@ -15,8 +15,8 @@ use tracing::info;
 use crate::{
     handler::{
         auth::auth_with_password, configurations, custom_nodes, dashboards, device_tokens, devices,
-        entities, flows, ha, integration, log, map, permissions, recordings, roles, stat, state,
-        storage, streams, tunnel, users, ws::ws_handler,
+        entities, flows, ha, integration, log, map, permissions, recordings, roles, sdr, stat,
+        state, storage, streams, tunnel, users, ws::ws_handler,
     },
     state::AppState,
 };
@@ -168,6 +168,11 @@ pub async fn web_server(
         )
         .route("/ha/states", get(ha::get_all_states))
         .route("/ha/states/:entity_id", post(ha::post_state))
+        .route("/sdr/frequency", post(sdr::set_frequency))
+        .route("/sdr/samplerate", get(sdr::get_samplerate))
+        .route("/sdr/start", post(sdr::start_stream))
+        .route("/sdr/stop", post(sdr::stop_stream))
+        .route("/sdr/audio", get(sdr::sdr_audio_ws))
         .route("/integrations/register", post(integration::register_integration))
         .route("/integrations/status", get(integration::get_integration_status))
         .route("/integrations/:integration_id", delete(integration::delete_integration))

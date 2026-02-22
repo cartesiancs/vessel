@@ -9,6 +9,7 @@ pub mod flows;
 pub mod ha;
 pub mod integration;
 pub mod log;
+pub mod sdr;
 pub mod map;
 pub mod permissions;
 pub mod recordings;

@@ -75,6 +75,33 @@ pub async fn register_integration(
 
             Ok(Json(json!({ "status": "success", "integration_id": "ros2" })))
         }
+        "sdr" => {
+            let host = payload
+                .config
+                .get("host")
+                .and_then(|v| v.as_str())
+                .ok_or_else(|| anyhow!("Missing 'host' in config"))?;
+            let port = payload
+                .config
+                .get("port")
+                .and_then(|v| v.as_str())
+                .ok_or_else(|| anyhow!("Missing 'port' in config"))?;
+
+            let device =
+                db::repository::upsert_device(&state.pool, "sdr_server", Some("RTL-SDR"), Some("RTL-SDR"), None)?;
+
+            db::repository::upsert_entity_with_config(
+                &state.pool,
+                "sdr.server",
+                Some(device.id),
+                Some("RTL-SDR (rtl_tcp)"),
+                Some("sdr"),
+                Some("server"),
+                &json!({ "host": host, "port": port }).to_string(),
+            )?;
+
+            Ok(Json(json!({ "status": "success", "integration_id": "sdr" })))
+        }
         other => Err(anyhow!("Unknown integration_id: {}", other).into()),
     }
 }
@@ -92,12 +119,19 @@ pub async fn get_integration_status(
         "ros2.bridge",
     )?;
 
+    let sdr = db::repository::get_entity_with_config_by_entity_id(
+        &state.pool,
+        "sdr.server",
+    )?;
+
     let ha_connected = ha.is_some();
     let ros2_connected = ros2.is_some();
+    let sdr_connected = sdr.is_some();
 
     Ok(Json(json!({
         "home_assistant": { "connected": ha_connected },
-        "ros2": { "connected": ros2_connected }
+        "ros2": { "connected": ros2_connected },
+        "sdr": { "connected": sdr_connected }
     })))
 }
 
@@ -114,6 +148,10 @@ pub async fn delete_integration(
         "ros2" => {
             db::repository::delete_device_by_device_id(&state.pool, "ros2_bridge")?;
             Ok(Json(json!({ "status": "success", "message": "ROS2 integration removed" })))
+        }
+        "sdr" => {
+            db::repository::delete_device_by_device_id(&state.pool, "sdr_server")?;
+            Ok(Json(json!({ "status": "success", "message": "RTL-SDR integration removed" })))
         }
         other => Err(anyhow!("Unknown integration_id: {}", other).into()),
     }

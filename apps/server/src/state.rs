@@ -32,6 +32,7 @@ pub enum Protocol {
     Http,
     HomeAssistant,
     Ros2,
+    Sdrpp,
 }
 
 #[derive(Clone, Debug)]

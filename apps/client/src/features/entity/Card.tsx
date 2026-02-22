@@ -12,11 +12,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { MoreVertical } from "lucide-react";
+import { MoreVertical, Radio } from "lucide-react";
 import { formatSimpleDateTime } from "@/lib/time";
 import { StreamReceiver } from "../rtc/StreamReceiver";
 import { RecordingMenuItem } from "../recording/RecordingButton";
 import { AnalyzeMenuItem } from "./AnalyzeMenuItem";
+import { useNavigate } from "react-router";
 
 type StreamState = {
   topic: string;
@@ -43,6 +44,31 @@ export function EntityCard({
   item: EntityAll;
   streamsState?: StreamState[];
 }) {
+  const navigate = useNavigate();
+
+  if (item.platform === "sdr") {
+    return (
+      <Card key={item.id}>
+        <CardHeader className='px-4'>
+          <CardDescription>{item.friendly_name}</CardDescription>
+          <CardTitle className='text-2xl font-semibold tabular-nums'>
+            <Radio className='h-5 w-5 text-purple-500 inline mr-2' />
+            RTL-SDR
+          </CardTitle>
+        </CardHeader>
+        <CardFooter className='flex-row items-center justify-between px-4 text-sm'>
+          <div className='font-medium'>RTL-SDR Server</div>
+          <Button
+            size='sm'
+            variant='outline'
+            onClick={() => navigate("/dashboard?view=sdr")}
+          >
+            Open Control Panel
+          </Button>
+        </CardFooter>
+      </Card>
+    );
+  }
   if (
     item.platform == "UDP" &&
     item.configuration &&

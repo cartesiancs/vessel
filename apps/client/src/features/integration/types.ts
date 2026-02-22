@@ -1,4 +1,4 @@
-export type IntegrationId = "home-assistant" | "ros2";
+export type IntegrationId = "home-assistant" | "ros2" | "sdr";
 
 export interface StepComponentProps {
   value: string;
