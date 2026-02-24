@@ -7,6 +7,7 @@ use rhai::{Dynamic, Engine, Scope};
 use rhai_rand::RandomPackage;
 use serde_json::Value;
 use std::collections::HashMap;
+use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::task;
 use tracing::{error, info};
 
@@ -53,6 +54,12 @@ impl ExecutableNode for CustomNode {
         let blocking_task = task::spawn_blocking(move || {
             let mut engine = Engine::new();
             engine.register_global_module(RandomPackage::new().as_shared_module());
+            engine.register_fn("epoch_ms", || -> i64 {
+                SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .unwrap()
+                    .as_millis() as i64
+            });
 
             let inputs_dynamic: Dynamic = rhai::serde::to_dynamic(&inputs)
                 .map_err(|e| anyhow!("Input conversion failed: {}", e))?;

@@ -21,13 +21,29 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Blocks, Edit, PlusCircle, Trash2, Loader2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import {
+  Blocks,
+  Edit,
+  PlusCircle,
+  Trash2,
+  Loader2,
+  Download,
+} from "lucide-react";
 import { useCustomNodeStore } from "@/entities/custom-nodes/store";
 import {
   CustomNode,
   CustomNodeDynamicData,
   CustomNodeFromApi,
 } from "@/entities/custom-nodes/types";
+import {
+  RHAI_PRESETS,
+  getPresetCategories,
+  getPresetsByCategory,
+  presetToApiPayload,
+  type RhaiPreset,
+  type PresetCategory,
+} from "@/entities/custom-nodes/presets";
 import { toast } from "sonner";
 import { JsonCodeEditor } from "../json/JsonEditor";
 
@@ -114,9 +130,11 @@ export function AddCustomNode() {
     isLoading,
   } = useCustomNodeStore();
   const [isDialogOpen, setDialogOpen] = useState(false);
-  const [view, setView] = useState<"list" | "form">("list");
+  const [view, setView] = useState<"list" | "form" | "presets">("list");
   const [editingNode, setEditingNode] = useState<CustomNode | null>(null);
   const [deletingNode, setDeletingNode] = useState<CustomNode | null>(null);
+  const [selectedCategory, setSelectedCategory] =
+    useState<PresetCategory | null>(null);
 
   useEffect(() => {
     fetchAllNodes();
@@ -134,7 +152,41 @@ export function AddCustomNode() {
 
   const handleBackToList = () => {
     setEditingNode(null);
+    setSelectedCategory(null);
     setView("list");
+  };
+
+  const handleAddFromPreset = () => {
+    setSelectedCategory(null);
+    setView("presets");
+  };
+
+  const handleRegisterPreset = async (preset: RhaiPreset) => {
+    const alreadyExists = nodes.some((n) => n.node_type === preset.nodeId);
+    if (alreadyExists) {
+      toast(`Node "${preset.displayName}" is already registered.`);
+      return;
+    }
+    const payload = presetToApiPayload(preset);
+    await createNode(payload);
+    toast(`Preset "${preset.displayName}" registered successfully.`);
+  };
+
+  const handleRegisterAll = async () => {
+    const presetsToRegister = (
+      selectedCategory ? getPresetsByCategory(selectedCategory) : RHAI_PRESETS
+    ).filter((preset) => !nodes.some((n) => n.node_type === preset.nodeId));
+
+    if (presetsToRegister.length === 0) {
+      toast("All presets are already registered.");
+      return;
+    }
+
+    for (const preset of presetsToRegister) {
+      const payload = presetToApiPayload(preset);
+      await createNode(payload);
+    }
+    toast(`${presetsToRegister.length} presets registered successfully.`);
   };
 
   const handleSubmit = async (nodeData: CustomNodeFromApi) => {
@@ -161,7 +213,7 @@ export function AddCustomNode() {
             <Blocks className='h-4 w-4' />
           </Button>
         </DialogTrigger>
-        <DialogContent className='max-w-3xl h-[80vh] flex flex-col'>
+        <DialogContent className='min-w-[80vw] h-[80vh] flex flex-col'>
           <DialogHeader>
             <DialogTitle>Custom Node Registry</DialogTitle>
             <DialogDescription>
@@ -172,6 +224,13 @@ export function AddCustomNode() {
           {view === "list" && (
             <div className='flex-grow overflow-y-auto pr-2'>
               <div className='flex justify-end mb-4 gap-2'>
+                <Button
+                  size='sm'
+                  variant={"outline"}
+                  onClick={handleAddFromPreset}
+                >
+                  <Download className='mr-2 h-4 w-4' /> Add from Preset
+                </Button>
                 <Button size='sm' variant={"outline"}>
                   <PlusCircle className='mr-2 h-4 w-4' /> Select dir
                 </Button>
@@ -192,7 +251,7 @@ export function AddCustomNode() {
                     >
                       <div>
                         <p className='font-semibold'>{node.node_type}</p>
-                        <p className='text-sm text-muted-foreground'>
+                        <p className='text-sm text-muted-foreground truncate max-w-xs'>
                           {JSON.stringify(node)}
                         </p>
                       </div>
@@ -230,6 +289,101 @@ export function AddCustomNode() {
               onCancel={handleBackToList}
               initialNode={editingNode}
             />
+          )}
+
+          {view === "presets" && (
+            <div className='flex-grow overflow-y-auto pr-2'>
+              <div className='flex justify-between items-center mb-4'>
+                <Button size='sm' variant='ghost' onClick={handleBackToList}>
+                  Back to List
+                </Button>
+                <Button
+                  size='sm'
+                  variant='outline'
+                  onClick={handleRegisterAll}
+                  disabled={isLoading}
+                >
+                  <Download className='mr-2 h-4 w-4' />
+                  {selectedCategory
+                    ? `Register All ${selectedCategory}`
+                    : "Register All"}
+                </Button>
+              </div>
+
+              <div className='flex flex-wrap gap-2 mb-4'>
+                {getPresetCategories().map((cat) => (
+                  <Badge
+                    key={cat}
+                    variant={selectedCategory === cat ? "default" : "outline"}
+                    className='cursor-pointer'
+                    onClick={() =>
+                      setSelectedCategory(selectedCategory === cat ? null : cat)
+                    }
+                  >
+                    {cat}
+                  </Badge>
+                ))}
+              </div>
+
+              <div className='space-y-2'>
+                {(selectedCategory
+                  ? getPresetsByCategory(selectedCategory)
+                  : RHAI_PRESETS
+                ).map((preset) => {
+                  const isRegistered = nodes.some(
+                    (n) => n.node_type === preset.nodeId,
+                  );
+                  return (
+                    <div
+                      key={preset.nodeId}
+                      className='flex items-center justify-between p-3 border rounded-md'
+                    >
+                      <div className='flex-1'>
+                        <div className='flex items-center gap-2'>
+                          <p className='font-semibold text-sm'>
+                            {preset.displayName}
+                          </p>
+                          <Badge variant='secondary' className='text-xs'>
+                            {preset.category}
+                          </Badge>
+                          {isRegistered && (
+                            <Badge
+                              variant='outline'
+                              className='text-xs text-green-500'
+                            >
+                              Registered
+                            </Badge>
+                          )}
+                        </div>
+                        <p className='text-xs text-muted-foreground mt-1'>
+                          {preset.description}
+                        </p>
+                        <p className='text-xs text-muted-foreground'>
+                          In:{" "}
+                          {preset.connectors
+                            .filter((c) => c.type === "in")
+                            .map((c) => c.name)
+                            .join(", ") || "none"}{" "}
+                          | Out:{" "}
+                          {preset.connectors
+                            .filter((c) => c.type === "out")
+                            .map((c) => c.name)
+                            .join(", ")}
+                        </p>
+                      </div>
+                      <Button
+                        size='sm'
+                        variant={isRegistered ? "outline" : "default"}
+                        disabled={isRegistered || isLoading}
+                        onClick={() => handleRegisterPreset(preset)}
+                      >
+                        {isRegistered ? "Added" : "Register"}
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           )}
         </DialogContent>
       </Dialog>
