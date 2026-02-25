@@ -5,11 +5,18 @@ import {
   CapsuleSubscriptionError,
   CapsuleRateLimitError,
 } from "@vessel/capsule-client";
+import type { HistoryMessage } from "@vessel/capsule-client";
 import { supabase } from "@/lib/supabase";
 import type { ChatMessage, ChatPanelState } from "./types";
 
 function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+}
+
+function buildHistory(messages: ChatMessage[]): HistoryMessage[] {
+  return messages
+    .filter((m) => !m.isStreaming && !m.content.startsWith("⚠️"))
+    .map((m) => ({ role: m.role, content: m.content }));
 }
 
 const CAPSULE_URL = import.meta.env.VITE_CAPSULE_URL || "http://localhost:3000";
@@ -61,6 +68,7 @@ export const useChatStore = create<ChatPanelState>((set, get) => ({
     }));
 
     try {
+      const history = buildHistory(get().messages.slice(0, -2));
       await capsuleClient.chatStream(content, (chunk, done) => {
         if (done) {
           set((state) => ({
@@ -78,7 +86,7 @@ export const useChatStore = create<ChatPanelState>((set, get) => ({
             ),
           }));
         }
-      });
+      }, { history });
     } catch (error) {
       let errorMessage = "Failed to send message";
       let showInChat = false;
@@ -146,6 +154,7 @@ export const useChatStore = create<ChatPanelState>((set, get) => ({
 
     try {
       // Send encrypted image (streaming)
+      const history = buildHistory(get().messages.slice(0, -2));
       await capsuleClient.analyzeImageStream(
         { image, message: content },
         (chunk, done) => {
@@ -166,6 +175,7 @@ export const useChatStore = create<ChatPanelState>((set, get) => ({
             }));
           }
         },
+        { history },
       );
     } catch (error) {
       let errorMessage = "Failed to analyze image";

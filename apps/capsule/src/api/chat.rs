@@ -67,14 +67,21 @@ pub async fn chat_handler(
         ));
     }
 
+    // 3.5. Validate history
+    req.validate_history()?;
+
     tracing::info!(
         user_id = %auth.user_id,
         message_len = req.message.len(),
         has_image = req.encrypted_image.is_some(),
+        history_len = req.history.as_ref().map(|h| h.len()).unwrap_or(0),
+        has_system_prompt = req.system_prompt.is_some(),
         "Chat request"
     );
 
     let is_image_request = req.encrypted_image.is_some();
+    let history_slice = req.history.as_deref();
+    let system_prompt = req.system_prompt.as_deref();
 
     // 4. Process request
     let result = if let Some(encrypted_image) = req.encrypted_image {
@@ -89,14 +96,14 @@ pub async fn chat_handler(
         // - Auto drop → zeroize at function end
         state
             .openai
-            .analyze_image(&req.message, decrypted)
+            .analyze_image(&req.message, decrypted, system_prompt, history_slice)
             .await
             .map_err(|e| CapsuleError::OpenAIError(e.to_string()))?
     } else {
         // Text only
         state
             .openai
-            .chat(&req.message)
+            .chat(&req.message, system_prompt, history_slice)
             .await
             .map_err(|e| CapsuleError::OpenAIError(e.to_string()))?
     };
@@ -162,14 +169,21 @@ pub async fn chat_stream_handler(
         ));
     }
 
+    // 3.5. Validate history
+    req.validate_history()?;
+
     tracing::info!(
         user_id = %auth.user_id,
         message_len = req.message.len(),
         has_image = req.encrypted_image.is_some(),
+        history_len = req.history.as_ref().map(|h| h.len()).unwrap_or(0),
+        has_system_prompt = req.system_prompt.is_some(),
         "Stream chat request"
     );
 
     let is_image_request = req.encrypted_image.is_some();
+    let history_slice = req.history.as_deref();
+    let system_prompt = req.system_prompt.as_deref();
 
     // 4. Process request
     let (stream, usage) = if let Some(encrypted_image) = req.encrypted_image {
@@ -178,13 +192,13 @@ pub async fn chat_stream_handler(
 
         state
             .openai
-            .analyze_image_stream(&req.message, decrypted)
+            .analyze_image_stream(&req.message, decrypted, system_prompt, history_slice)
             .await
             .map_err(|e| CapsuleError::OpenAIError(e.to_string()))?
     } else {
         state
             .openai
-            .chat_stream(&req.message)
+            .chat_stream(&req.message, system_prompt, history_slice)
             .await
             .map_err(|e| CapsuleError::OpenAIError(e.to_string()))?
     };

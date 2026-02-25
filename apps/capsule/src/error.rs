@@ -38,6 +38,9 @@ pub enum CapsuleError {
 
     #[error("Subscription required")]
     SubscriptionRequired,
+
+    #[error("History validation failed: {0}")]
+    HistoryTooLarge(String),
 }
 
 impl IntoResponse for CapsuleError {
@@ -82,6 +85,10 @@ impl IntoResponse for CapsuleError {
                     StatusCode::FORBIDDEN,
                     "Pro subscription required".to_string(),
                 )
+            }
+
+            CapsuleError::HistoryTooLarge(msg) => {
+                (StatusCode::BAD_REQUEST, msg.clone())
             }
         };
 

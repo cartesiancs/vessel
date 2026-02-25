@@ -39,11 +39,15 @@ export {
   CapsuleRateLimitError,
   CapsuleSubscriptionError,
 } from './client';
+export { Conversation } from './conversation';
+export type { ConversationOptions } from './conversation';
 export { encryptImage, fileToBytes } from './crypto';
 export type {
   EncryptedImage,
   ChatRequest,
   ChatResponse,
+  ChatOptions,
+  HistoryMessage,
   PublicKeyResponse,
   CapsuleClientOptions,
   AnalyzeImageOptions,

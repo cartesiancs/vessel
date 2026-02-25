@@ -6,7 +6,7 @@ use std::pin::Pin;
 use zeroize::{Zeroize, Zeroizing};
 
 use crate::error::CapsuleError;
-use crate::types::DecryptedImage;
+use crate::types::{DecryptedImage, HistoryMessage};
 
 const OPENAI_API_URL: &str = "https://api.openai.com/v1/chat/completions";
 
@@ -37,14 +37,49 @@ impl OpenAIService {
         self
     }
 
+    /// 메시지 배열 빌드: system_prompt → history → current_message
+    fn build_messages(
+        system_prompt: Option<&str>,
+        history: Option<&[HistoryMessage]>,
+        current_message: Message,
+    ) -> Vec<Message> {
+        let mut messages = Vec::new();
+
+        if let Some(prompt) = system_prompt {
+            messages.push(Message {
+                role: "system".to_string(),
+                content: MessageContent::Text(prompt.to_string()),
+            });
+        }
+
+        if let Some(history) = history {
+            for msg in history {
+                messages.push(Message {
+                    role: msg.role.clone(),
+                    content: MessageContent::Text(msg.content.clone()),
+                });
+            }
+        }
+
+        messages.push(current_message);
+        messages
+    }
+
     /// 텍스트 전용 채팅
-    pub async fn chat(&self, message: &str) -> Result<ChatResult, anyhow::Error> {
+    pub async fn chat(
+        &self,
+        message: &str,
+        system_prompt: Option<&str>,
+        history: Option<&[HistoryMessage]>,
+    ) -> Result<ChatResult, anyhow::Error> {
+        let current = Message {
+            role: "user".to_string(),
+            content: MessageContent::Text(message.to_string()),
+        };
+
         let request_body = ChatRequest {
             model: self.model.clone(),
-            messages: vec![Message {
-                role: "user".to_string(),
-                content: MessageContent::Text(message.to_string()),
-            }],
+            messages: Self::build_messages(system_prompt, history, current),
             max_tokens: Some(4096),
             stream: false,
             stream_options: None,
@@ -86,6 +121,8 @@ impl OpenAIService {
         &self,
         message: &str,
         decrypted_image: DecryptedImage, // 소유권 이전 → 함수 종료 시 자동 drop
+        system_prompt: Option<&str>,
+        history: Option<&[HistoryMessage]>,
     ) -> Result<ChatResult, anyhow::Error> {
         // base64 인코딩 (임시 변수)
         let mut image_base64 = decrypted_image.to_base64();
@@ -94,21 +131,23 @@ impl OpenAIService {
         // to_base64() 호출 후 더 이상 사용하지 않으므로 여기서 drop
         drop(decrypted_image);
 
+        let current = Message {
+            role: "user".to_string(),
+            content: MessageContent::MultiPart(vec![
+                ContentPart::Text {
+                    text: message.to_string(),
+                },
+                ContentPart::ImageUrl {
+                    image_url: ImageUrl {
+                        url: format!("data:image/jpeg;base64,{}", image_base64),
+                    },
+                },
+            ]),
+        };
+
         let request_body = ChatRequest {
             model: self.model.clone(),
-            messages: vec![Message {
-                role: "user".to_string(),
-                content: MessageContent::MultiPart(vec![
-                    ContentPart::Text {
-                        text: message.to_string(),
-                    },
-                    ContentPart::ImageUrl {
-                        image_url: ImageUrl {
-                            url: format!("data:image/jpeg;base64,{}", image_base64),
-                        },
-                    },
-                ]),
-            }],
+            messages: Self::build_messages(system_prompt, history, current),
             max_tokens: Some(4096),
             stream: false,
             stream_options: None,
@@ -152,14 +191,18 @@ impl OpenAIService {
     pub async fn chat_stream(
         &self,
         message: &str,
+        system_prompt: Option<&str>,
+        history: Option<&[HistoryMessage]>,
     ) -> Result<(Pin<Box<dyn Stream<Item = Result<Event, CapsuleError>> + Send>>, std::sync::Arc<std::sync::Mutex<TokenUsage>>), anyhow::Error>
     {
+        let current = Message {
+            role: "user".to_string(),
+            content: MessageContent::Text(message.to_string()),
+        };
+
         let request_body = ChatRequest {
             model: self.model.clone(),
-            messages: vec![Message {
-                role: "user".to_string(),
-                content: MessageContent::Text(message.to_string()),
-            }],
+            messages: Self::build_messages(system_prompt, history, current),
             max_tokens: Some(4096),
             stream: true,
             stream_options: Some(StreamOptions { include_usage: true }),
@@ -192,26 +235,30 @@ impl OpenAIService {
         &self,
         message: &str,
         decrypted_image: DecryptedImage,
+        system_prompt: Option<&str>,
+        history: Option<&[HistoryMessage]>,
     ) -> Result<(Pin<Box<dyn Stream<Item = Result<Event, CapsuleError>> + Send>>, std::sync::Arc<std::sync::Mutex<TokenUsage>>), anyhow::Error>
     {
         let mut image_base64 = decrypted_image.to_base64();
         drop(decrypted_image);
 
+        let current = Message {
+            role: "user".to_string(),
+            content: MessageContent::MultiPart(vec![
+                ContentPart::Text {
+                    text: message.to_string(),
+                },
+                ContentPart::ImageUrl {
+                    image_url: ImageUrl {
+                        url: format!("data:image/jpeg;base64,{}", image_base64),
+                    },
+                },
+            ]),
+        };
+
         let request_body = ChatRequest {
             model: self.model.clone(),
-            messages: vec![Message {
-                role: "user".to_string(),
-                content: MessageContent::MultiPart(vec![
-                    ContentPart::Text {
-                        text: message.to_string(),
-                    },
-                    ContentPart::ImageUrl {
-                        image_url: ImageUrl {
-                            url: format!("data:image/jpeg;base64,{}", image_base64),
-                        },
-                    },
-                ]),
-            }],
+            messages: Self::build_messages(system_prompt, history, current),
             max_tokens: Some(4096),
             stream: true,
             stream_options: Some(StreamOptions { include_usage: true }),

@@ -1,4 +1,27 @@
 /**
+ * 대화 히스토리의 단일 메시지
+ *
+ * 멀티턴 대화를 위해 사용. 클라이언트가 히스토리를 관리하고
+ * 매 요청에 포함시킴.
+ */
+export interface HistoryMessage {
+  /** 메시지 역할 */
+  role: 'user' | 'assistant' | 'system';
+  /** 텍스트 내용 */
+  content: string;
+}
+
+/**
+ * 대화 히스토리 및 시스템 프롬프트 옵션
+ */
+export interface ChatOptions {
+  /** 시스템 프롬프트 */
+  systemPrompt?: string;
+  /** 대화 히스토리 (오래된 순서) */
+  history?: HistoryMessage[];
+}
+
+/**
  * 암호화된 이미지 데이터
  */
 export interface EncryptedImage {
@@ -18,6 +41,10 @@ export interface ChatRequest {
   message: string;
   /** 암호화된 이미지 (선택사항) */
   encrypted_image?: EncryptedImage;
+  /** 대화 히스토리 (선택사항, 오래된 순서) */
+  history?: HistoryMessage[];
+  /** 시스템 프롬프트 (선택사항) */
+  system_prompt?: string;
 }
 
 /**

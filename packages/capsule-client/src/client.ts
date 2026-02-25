@@ -1,6 +1,7 @@
 import { encryptImage, fileToBytes } from './crypto';
 import type {
   AnalyzeImageOptions,
+  ChatOptions,
   ChatRequest,
   ChatResponse,
   CapsuleClientOptions,
@@ -106,9 +107,16 @@ export class CapsuleClient {
 
   /**
    * 텍스트 전용 채팅
+   *
+   * @param message - 사용자 메시지
+   * @param options - 대화 히스토리 및 시스템 프롬프트 (선택사항)
    */
-  async chat(message: string): Promise<ChatResponse> {
-    const request: ChatRequest = { message };
+  async chat(message: string, options?: ChatOptions): Promise<ChatResponse> {
+    const request: ChatRequest = {
+      message,
+      ...(options?.history && { history: options.history }),
+      ...(options?.systemPrompt && { system_prompt: options.systemPrompt }),
+    };
 
     return this.fetch<ChatResponse>('/api/chat', {
       method: 'POST',
@@ -129,7 +137,7 @@ export class CapsuleClient {
    * 4. 서버에서 복호화 후 AI 분석
    * 5. 응답 수신
    */
-  async analyzeImage(options: AnalyzeImageOptions): Promise<ChatResponse> {
+  async analyzeImage(options: AnalyzeImageOptions, chatOptions?: ChatOptions): Promise<ChatResponse> {
     // 1. 서버 공개키 획득
     const publicKey = await this.getPublicKey();
 
@@ -148,6 +156,8 @@ export class CapsuleClient {
     const request: ChatRequest = {
       message: options.message,
       encrypted_image: encryptedImage,
+      ...(chatOptions?.history && { history: chatOptions.history }),
+      ...(chatOptions?.systemPrompt && { system_prompt: chatOptions.systemPrompt }),
     };
 
     return this.fetch<ChatResponse>('/api/chat', {
@@ -158,19 +168,32 @@ export class CapsuleClient {
 
   /**
    * 스트리밍 채팅
+   *
+   * @param message - 사용자 메시지
+   * @param onChunk - 스트리밍 청크 콜백
+   * @param options - 대화 히스토리 및 시스템 프롬프트 (선택사항)
    */
-  async chatStream(message: string, onChunk: StreamCallback): Promise<void> {
-    const request: ChatRequest = { message };
+  async chatStream(message: string, onChunk: StreamCallback, options?: ChatOptions): Promise<void> {
+    const request: ChatRequest = {
+      message,
+      ...(options?.history && { history: options.history }),
+      ...(options?.systemPrompt && { system_prompt: options.systemPrompt }),
+    };
 
     await this.fetchStream('/api/chat/stream', request, onChunk);
   }
 
   /**
    * 스트리밍 이미지 분석
+   *
+   * @param options - 이미지 분석 옵션
+   * @param onChunk - 스트리밍 청크 콜백
+   * @param chatOptions - 대화 히스토리 및 시스템 프롬프트 (선택사항)
    */
   async analyzeImageStream(
     options: AnalyzeImageOptions,
-    onChunk: StreamCallback
+    onChunk: StreamCallback,
+    chatOptions?: ChatOptions,
   ): Promise<void> {
     // 1. 서버 공개키 획득
     const publicKey = await this.getPublicKey();
@@ -190,6 +213,8 @@ export class CapsuleClient {
     const request: ChatRequest = {
       message: options.message,
       encrypted_image: encryptedImage,
+      ...(chatOptions?.history && { history: chatOptions.history }),
+      ...(chatOptions?.systemPrompt && { system_prompt: chatOptions.systemPrompt }),
     };
 
     await this.fetchStream('/api/chat/stream', request, onChunk);
