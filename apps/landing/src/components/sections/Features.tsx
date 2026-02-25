@@ -1,8 +1,8 @@
-import { useState } from "react";
 import { useFadeInOnScroll } from "@/lib/useFadeInOnScroll";
 
 const features = [
   {
+    number: "01",
     title: "Flow",
     description:
       "Orchestrate sensors and automations with a flow-based editor that connects devices, AI models, and actions.",
@@ -10,6 +10,7 @@ const features = [
     alt: "Flow visual editor",
   },
   {
+    number: "02",
     title: "Dashboard",
     description:
       "Track streams, alerts, and system health in one place with a centralized command view.",
@@ -17,6 +18,7 @@ const features = [
     alt: "Dashboard monitoring",
   },
   {
+    number: "03",
     title: "Map",
     description:
       "Coordinate devices spatially with a map UI for faster decisions and responses.",
@@ -26,74 +28,56 @@ const features = [
 ];
 
 export function FeaturesSection() {
-  const [activeIndex, setActiveIndex] = useState(0);
   const { ref: sectionRef, isVisible } = useFadeInOnScroll<HTMLElement>();
 
   return (
-    <section ref={sectionRef} className='w-full h-[100%]'>
+    <section ref={sectionRef} className='w-full'>
       <div
-        className={`container mx-auto max-w-6xl px-8 md:px-10 py-50 transition-all duration-700 ease-out ${
+        className={`container mx-auto max-w-6xl px-8 md:px-10 py-32 transition-all duration-700 ease-out ${
           isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
         }`}
       >
-        <div className='mb-12 text-left'>
-          <h2 className='mt-3 text-3xl font-bold tracking-tight md:text-4xl'>
-            Physical AI Platform,{" "}
-            <span className='text-neutral-500'>Local-First by Design</span>
+        {/* Header */}
+        <div className='mb-16 text-left'>
+          <h2 className='text-3xl font-bold tracking-tight md:text-4xl leading-tight'>
+            Physical AI Platform.{" "}
+            <span className='text-neutral-500'>Local-First by Design.</span>
           </h2>
         </div>
 
-        <div className='flex h-[420px] w-full gap-4 md:h-[480px]'>
-          {features.map((feature, index) => {
-            const isActive = activeIndex === index;
+        {/* Feature Cards */}
+        <div className='grid grid-cols-1 md:grid-cols-3 gap-0'>
+          {features.map((feature, index) => (
+            <div
+              key={feature.title}
+              className={`relative border border-dashed border-neutral-700 p-6 flex flex-col transition-all duration-500 ease-out ${
+                isVisible
+                  ? "opacity-100 translate-y-0"
+                  : "opacity-0 translate-y-4"
+              }`}
+              style={{ transitionDelay: `${index * 120}ms` }}
+            >
+              {/* Number Label */}
+              <span className='text-sm text-neutral-500 tracking-widest font-mono'>
+                [ {feature.number} ]
+              </span>
 
-            return (
-              <button
-                key={feature.title}
-                type='button'
-                className={`relative flex min-w-0 basis-0 overflow-hidden border border-border transition-[flex-grow,opacity,transform] duration-500 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
-                  isVisible
-                    ? "opacity-100 translate-y-0"
-                    : "opacity-0 translate-y-4"
-                }`}
-                style={{
-                  flexGrow: isActive ? 2.4 : 1,
-                  transitionDelay: `${index * 100}ms`,
-                }}
-                onMouseEnter={() => setActiveIndex(index)}
-                onFocus={() => setActiveIndex(index)}
-                onClick={() => setActiveIndex(index)}
-                aria-pressed={isActive}
-                aria-label={feature.title}
-              >
+              {/* Image Area */}
+              <div className='flex-1 flex items-center justify-center py-12'>
                 <img
                   src={feature.image}
                   alt={feature.alt}
-                  className={`absolute inset-0 h-full w-full object-cover transition-all duration-500 ease-out ${
-                    isActive ? "brightness-100" : "brightness-[0.6]"
-                  }`}
+                  className='max-h-48 w-auto object-contain opacity-60'
                   loading='lazy'
                 />
-                <div
-                  className='absolute inset-0 bg-gradient-to-t from-black/70 via-black/25 to-transparent'
-                  aria-hidden='true'
-                />
-                <div
-                  className={`absolute inset-x-0 bottom-0 p-6 text-left text-white transition-all duration-500 ease-out ${
-                    isActive
-                      ? "translate-y-0 opacity-100"
-                      : "translate-y-4 opacity-0"
-                  }`}
-                  aria-hidden={!isActive}
-                >
-                  <h3 className='text-xl font-semibold'>{feature.title}</h3>
-                  <p className='mt-2 text-sm text-white/80'>
-                    {feature.description}
-                  </p>
-                </div>
-              </button>
-            );
-          })}
+              </div>
+
+              {/* Description */}
+              <p className='text-sm leading-relaxed text-neutral-300'>
+                {feature.description}
+              </p>
+            </div>
+          ))}
         </div>
       </div>
     </section>

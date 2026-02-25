@@ -37,6 +37,8 @@ import {
   notifyListeners,
   type TurnCredentialsResponse,
 } from "@/features/rtc/turnService";
+import { useChatStore } from "@/features/llm-chat/store";
+import { storage } from "@/lib/storage";
 
 export function SettingsPage() {
   const { status, isLoading, error, refresh, start, stop } = useTunnelStore();
@@ -51,6 +53,19 @@ export function SettingsPage() {
   );
   const [target, setTarget] = useState("http://127.0.0.1:6174");
   const [localError, setLocalError] = useState<string | null>(null);
+
+  const { updateCapsuleUrl } = useChatStore();
+  const [capsuleUrl, setCapsuleUrl] = useState(
+    storage.getCapsuleUrl() || import.meta.env.VITE_CAPSULE_URL || "http://localhost:3000",
+  );
+  const [capsuleSaved, setCapsuleSaved] = useState(false);
+
+  const handleSaveCapsuleUrl = () => {
+    updateCapsuleUrl(capsuleUrl);
+    setCapsuleSaved(true);
+    toast.success("Capsule URL updated");
+    setTimeout(() => setCapsuleSaved(false), 2000);
+  };
 
   const [turnLoading, setTurnLoading] = useState(false);
   const [turnResult, setTurnResult] = useState<TurnCredentialsResponse | null>(
@@ -203,6 +218,34 @@ export function SettingsPage() {
                   Sign in with Google
                 </Button>
               )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Capsule Server</CardTitle>
+              <CardDescription>
+                Configure the Capsule AI server URL for chat and image analysis
+              </CardDescription>
+            </CardHeader>
+            <CardContent className='space-y-3'>
+              <div className='space-y-1'>
+                <Label htmlFor='capsule-url'>Capsule Server URL</Label>
+                <div className='flex gap-2'>
+                  <Input
+                    id='capsule-url'
+                    placeholder='http://localhost:3000'
+                    value={capsuleUrl}
+                    onChange={(e) => setCapsuleUrl(e.target.value)}
+                  />
+                  <Button onClick={handleSaveCapsuleUrl}>
+                    {capsuleSaved ? "Saved" : "Save"}
+                  </Button>
+                </div>
+              </div>
+              <p className='text-xs text-muted-foreground'>
+                Default: {import.meta.env.VITE_CAPSULE_URL || "http://localhost:3000"}
+              </p>
             </CardContent>
           </Card>
 

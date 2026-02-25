@@ -106,6 +106,16 @@ export class CapsuleClient {
   }
 
   /**
+   * Base URL 변경
+   *
+   * 서버가 바뀌면 공개키도 달라지므로 캐시를 자동으로 초기화
+   */
+  setBaseUrl(url: string): void {
+    this.baseUrl = url.replace(/\/$/, '');
+    this.serverPublicKey = null;
+  }
+
+  /**
    * 텍스트 전용 채팅
    *
    * @param message - 사용자 메시지

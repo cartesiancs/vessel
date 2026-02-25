@@ -1,6 +1,7 @@
 const TOKEN_KEY = "vessel_token";
 const SERVER_URL_KEY = "vessel_server_url";
 const RECENT_URLS_KEY = "vessel_recent_server_urls";
+const CAPSULE_URL_KEY = "vessel_capsule_url";
 
 export const storage = {
   getToken: (): string | null => {
@@ -46,8 +47,21 @@ export const storage = {
     localStorage.removeItem(RECENT_URLS_KEY);
   },
 
+  getCapsuleUrl: (): string | null => {
+    return localStorage.getItem(CAPSULE_URL_KEY);
+  },
+
+  setCapsuleUrl: (url: string): void => {
+    localStorage.setItem(CAPSULE_URL_KEY, url);
+  },
+
+  removeCapsuleUrl: (): void => {
+    localStorage.removeItem(CAPSULE_URL_KEY);
+  },
+
   clearAll: (): void => {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(SERVER_URL_KEY);
+    localStorage.removeItem(CAPSULE_URL_KEY);
   },
 };

@@ -7,6 +7,7 @@ import {
 } from "@vessel/capsule-client";
 import type { HistoryMessage } from "@vessel/capsule-client";
 import { supabase } from "@/lib/supabase";
+import { storage } from "@/lib/storage";
 import type { ChatMessage, ChatPanelState } from "./types";
 
 function generateId(): string {
@@ -19,11 +20,11 @@ function buildHistory(messages: ChatMessage[]): HistoryMessage[] {
     .map((m) => ({ role: m.role, content: m.content }));
 }
 
-const CAPSULE_URL = import.meta.env.VITE_CAPSULE_URL || "http://localhost:3000";
+const DEFAULT_CAPSULE_URL = import.meta.env.VITE_CAPSULE_URL || "http://localhost:3000";
 
 // CapsuleClient singleton with Supabase token provider
 const capsuleClient = new CapsuleClient({
-  baseUrl: CAPSULE_URL,
+  baseUrl: storage.getCapsuleUrl() || DEFAULT_CAPSULE_URL,
   timeout: 120000, // Image analysis may take a long time
   getAccessToken: async () => {
     const {
@@ -226,5 +227,10 @@ export const useChatStore = create<ChatPanelState>((set, get) => ({
       }
     });
     set({ messages: [], error: null });
+  },
+
+  updateCapsuleUrl: (url: string) => {
+    storage.setCapsuleUrl(url);
+    capsuleClient.setBaseUrl(url);
   },
 }));

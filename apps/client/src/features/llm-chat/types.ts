@@ -35,4 +35,6 @@ export interface ChatPanelState {
   /** Select image */
   setPendingImage: (image: File | null) => void;
   clearMessages: () => void;
+  /** Update the Capsule server URL at runtime */
+  updateCapsuleUrl: (url: string) => void;
 }

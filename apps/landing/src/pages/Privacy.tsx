@@ -137,7 +137,7 @@ export function PrivacyPage() {
         <section ref={principlesRef} className='w-full bg-black text-white'>
           <div
             className={cx(
-              "container mx-auto max-w-6xl px-8 py-24 md:px-10",
+              "container mx-auto max-w-6xl px-8 py-40 md:px-10",
               "transition-all duration-700 ease-out",
               principlesVisible
                 ? "opacity-100 translate-y-0"
@@ -190,7 +190,7 @@ export function PrivacyPage() {
         >
           <div
             className={cx(
-              "container mx-auto flex h-full max-w-6xl flex-col gap-12 px-8 py-16 md:flex-row md:items-center md:justify-between md:px-10",
+              "container mx-auto flex h-full max-w-6xl flex-col gap-12 px-8 py-30 md:flex-row md:items-center md:justify-between md:px-10",
               "transition-all duration-700 ease-out",
               selfHostVisible
                 ? "opacity-100 translate-y-0"
@@ -257,7 +257,7 @@ export function PrivacyPage() {
         <section ref={cloudRef} className='w-full bg-black text-white'>
           <div
             className={cx(
-              "container mx-auto max-w-6xl px-8 py-24 md:px-10",
+              "container mx-auto max-w-6xl px-8 py-40 md:px-10",
               "transition-all duration-700 ease-out",
               cloudVisible
                 ? "opacity-100 translate-y-0"
