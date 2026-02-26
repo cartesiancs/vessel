@@ -33,7 +33,7 @@ export function FeaturesSection() {
   return (
     <section ref={sectionRef} className='w-full'>
       <div
-        className={`container mx-auto max-w-6xl px-8 md:px-10 py-32 transition-all duration-700 ease-out ${
+        className={`container mx-auto max-w-7xl px-8 md:px-10 py-32 transition-all duration-700 ease-out ${
           isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
         }`}
       >

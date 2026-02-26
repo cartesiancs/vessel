@@ -92,7 +92,7 @@ export function MidCTASection() {
     >
       <div
         className={cx(
-          "container mx-auto flex h-full max-w-6xl flex-col gap-12 px-8 md:px-10 py-16 md:flex-row md:items-center md:justify-between",
+          "container mx-auto flex h-full max-w-7xl flex-col gap-12 px-8 md:px-10 py-16 md:flex-row md:items-center md:justify-between",
           "transition-all duration-700 ease-out",
           isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6",
         )}
