@@ -54,8 +54,8 @@ export function UsecaseSection() {
       >
         <div className='mb-12 text-left'>
           <h2 className='mt-3 text-3xl font-bold tracking-tight md:text-4xl'>
-            Home Protection{" "}
-            <span className='text-neutral-500'>for Independent Living</span>
+            Explore{" "}
+            <span className='text-neutral-500'>What You Can Build</span>
           </h2>
           {/* <p className='mt-3 text-lg text-muted-foreground'>
             Vessel is a SaaS platform designed to remotely manage and control

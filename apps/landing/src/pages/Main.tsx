@@ -14,6 +14,7 @@ import { SecurityCTASection } from "@/components/sections/SecurityCta";
 import { IntegrationSection } from "@/components/sections/IntegrationImage";
 import { ListCardsSection } from "@/components/sections/ListCards";
 import { CapsulePromoSection } from "@/components/sections/CapsulePromo";
+import { ScrollTextRevealSection } from "@/components/sections/ScrollTextReveal";
 
 function LandingPage() {
   return (
@@ -47,6 +48,7 @@ function LandingPage() {
 
         <SubheadingSection />
         <FeaturesSection />
+        <ScrollTextRevealSection />
         <UsecaseSection />
         <ListCardsSection />
         <MidCTASection />

@@ -46,11 +46,13 @@ export function FeaturesSection() {
         </div>
 
         {/* Feature Cards */}
-        <div className='grid grid-cols-1 md:grid-cols-3 gap-0'>
+        <div className='grid grid-cols-1 md:grid-cols-4 gap-0'>
           {features.map((feature, index) => (
             <div
               key={feature.title}
               className={`relative border border-dashed border-neutral-700 p-6 flex flex-col transition-all duration-500 ease-out ${
+                index === 0 ? "md:col-span-2" : ""
+              } ${
                 isVisible
                   ? "opacity-100 translate-y-0"
                   : "opacity-0 translate-y-4"
