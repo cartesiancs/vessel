@@ -54,8 +54,7 @@ export function UsecaseSection() {
       >
         <div className='mb-12 text-left'>
           <h2 className='mt-3 text-3xl font-bold tracking-tight md:text-4xl'>
-            Explore{" "}
-            <span className='text-neutral-500'>What You Can Build</span>
+            Explore <span className='text-neutral-500'>What You Can Build</span>
           </h2>
           {/* <p className='mt-3 text-lg text-muted-foreground'>
             Vessel is a SaaS platform designed to remotely manage and control
@@ -74,7 +73,7 @@ export function UsecaseSection() {
                       type='button'
                       onClick={() => setActiveIndex(idx)}
                       className={cx(
-                        "flex w-full items-center justify-between gap-4 py-4 text-left",
+                        "flex w-full items-center justify-between gap-4 py-4 text-left cursor-pointer",
                         "focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                       )}
                       aria-expanded={isOpen}
@@ -120,7 +119,7 @@ export function UsecaseSection() {
             </div>
           </div>
 
-          <div className='relative w-full lg:w-[70%] h-full min-h-0'>
+          <div className='relative w-full lg:w-[70%] h-[540px] min-h-0'>
             <div className='absolute inset-0'>
               <img
                 key={active.image}

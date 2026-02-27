@@ -148,7 +148,7 @@ export function ListCardsSection() {
         <div className='relative'>
           <div
             ref={trackRef}
-            className='relative left-1/2 flex w-screen -translate-x-1/2 snap-x snap-mandatory gap-6 overflow-x-auto pb-8'
+            className='relative left-1/2 flex w-screen -translate-x-1/2 snap-x snap-mandatory gap-6 overflow-x-auto pb-8 cursor-grab active:cursor-grabbing'
             style={{
               paddingLeft: paddingInline.left,
               paddingRight: paddingInline.right,
@@ -183,7 +183,7 @@ export function ListCardsSection() {
                     (activeIndex - 1 + slides.length) % slides.length,
                   )
                 }
-                className='flex h-9 w-9 items-center justify-center border border-white/10 bg-white/5 text-white transition hover:border-white/20 hover:bg-white/10'
+                className='flex h-9 w-9 items-center justify-center border border-white/10 bg-white/5 text-white transition hover:border-white/20 hover:bg-white/10 cursor-pointer'
                 aria-label='View previous slide'
               >
                 <ChevronLeft className='h-4 w-4' />
@@ -191,7 +191,7 @@ export function ListCardsSection() {
               <button
                 type='button'
                 onClick={() => scrollToIndex((activeIndex + 1) % slides.length)}
-                className='flex h-9 w-9 items-center justify-center border border-white/10 bg-white/5 text-white transition hover:border-white/20 hover:bg-white/10'
+                className='flex h-9 w-9 items-center justify-center border border-white/10 bg-white/5 text-white transition hover:border-white/20 hover:bg-white/10 cursor-pointer'
                 aria-label='View next slide'
               >
                 <ChevronRight className='h-4 w-4' />

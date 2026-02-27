@@ -67,7 +67,7 @@ export function CapsuleUsecases() {
                       type='button'
                       onClick={() => setActiveIndex(idx)}
                       className={cx(
-                        "flex w-full items-center justify-between gap-4 py-4 text-left",
+                        "flex w-full items-center justify-between gap-4 py-4 text-left cursor-pointer",
                         "focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                       )}
                       aria-expanded={isOpen}

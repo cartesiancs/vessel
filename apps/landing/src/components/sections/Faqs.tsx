@@ -56,7 +56,7 @@ export function FAQSection() {
                   type='button'
                   onClick={() => setActiveIndex(isOpen ? null : idx)}
                   className={cx(
-                    "flex w-full items-center justify-between gap-4 py-5 text-left",
+                    "flex w-full items-center justify-between gap-4 py-5 text-left cursor-pointer",
                     "focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black",
                   )}
                   aria-expanded={isOpen}
