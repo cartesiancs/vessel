@@ -1,5 +1,4 @@
 import React, { useMemo, useState } from "react";
-import { ChevronDown } from "lucide-react";
 import { useFadeInOnScroll } from "@/lib/useFadeInOnScroll";
 
 type Usecase = {
@@ -44,97 +43,61 @@ export function UsecaseSection() {
   const active = useMemo(() => usecases[activeIndex], [activeIndex]);
 
   return (
-    <section ref={sectionRef} className='w-full h-[100vh]'>
+    <section ref={sectionRef} className='w-full'>
       <div
         className={cx(
           "container mx-auto max-w-7xl px-5 md:px-10 py-16 transition-all duration-700 ease-out",
-          "h-full flex flex-col",
+          "flex flex-col",
           isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6",
         )}
       >
-        <div className='mb-12 text-left'>
+        <div className='mb-10 text-left'>
           <h2 className='mt-3 text-3xl font-bold tracking-tight md:text-4xl'>
             Explore <span className='text-neutral-500'>What You Can Build</span>
           </h2>
-          {/* <p className='mt-3 text-lg text-muted-foreground'>
-            Vessel is a SaaS platform designed to remotely manage and control
-            multiple devices within home or RV environments.
-          </p> */}
         </div>
 
-        <div className='flex w-full flex-1 flex-col gap-6 lg:flex-row min-h-0'>
-          <div className='w-full lg:w-[30%] h-full min-h-0'>
-            <div className='h-full overflow-auto'>
-              {usecases.map((u, idx) => {
-                const isOpen = idx === activeIndex;
-                return (
-                  <div key={u.title} className='border-b border-gray-500'>
-                    <button
-                      type='button'
-                      onClick={() => setActiveIndex(idx)}
-                      className={cx(
-                        "flex w-full items-center justify-between gap-4 py-4 text-left cursor-pointer",
-                        "focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-                      )}
-                      aria-expanded={isOpen}
-                      aria-controls={`usecase-panel-${idx}`}
-                      id={`usecase-trigger-${idx}`}
-                    >
-                      <div className='min-w-0'>
-                        <div className='text-base font-semibold leading-snug'>
-                          {u.title}
-                        </div>
-                      </div>
-
-                      <ChevronDown
-                        className={cx(
-                          "h-5 w-5 flex-none transition-transform duration-200",
-                          isOpen ? "rotate-180" : "rotate-0",
-                        )}
-                        aria-hidden='true'
-                      />
-                    </button>
-
-                    <div
-                      id={`usecase-panel-${idx}`}
-                      role='region'
-                      aria-labelledby={`usecase-trigger-${idx}`}
-                      className={cx(
-                        "overflow-hidden transition-[max-height] duration-300 ease-out",
-                        isOpen ? "max-h-40" : "max-h-0",
-                      )}
-                    >
-                      <div
-                        className={cx(
-                          "pb-4 text-sm text-muted-foreground transition-opacity duration-300 ease-out",
-                          isOpen ? "opacity-100" : "opacity-0",
-                        )}
-                      >
-                        {u.description}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className='relative w-full lg:w-[70%] h-[540px] min-h-0'>
-            <div className='absolute inset-0'>
-              <img
-                key={active.image}
-                src={active.image}
-                alt={active.alt}
-                className='h-full w-full object-cover'
-                loading='lazy'
-              />
-              <div
-                className='absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent'
-                aria-hidden='true'
-              />
-            </div>
-          </div>
+        {/* Image area */}
+        <div className='relative w-full overflow-hidden aspect-[16/10] md:aspect-[16/9]'>
+          <img
+            key={active.image}
+            src={active.image}
+            alt={active.alt}
+            className='absolute inset-0 h-full w-full object-cover transition-opacity duration-500'
+            loading='lazy'
+          />
+          <div
+            className='absolute inset-0 bg-gradient-to-t from-black/40 to-transparent'
+            aria-hidden='true'
+          />
         </div>
+
+        {/* Tab bar */}
+        <div className='mt-8 flex justify-center gap-4 md:gap-8'>
+          {usecases.map((u, idx) => {
+            const isActive = idx === activeIndex;
+            return (
+              <button
+                key={u.title}
+                type='button'
+                onClick={() => setActiveIndex(idx)}
+                className={cx(
+                  "pb-2 text-sm md:text-base font-medium transition-all duration-200 cursor-pointer border-b-2",
+                  isActive
+                    ? "text-white border-white"
+                    : "text-neutral-500 border-transparent hover:text-neutral-300",
+                )}
+              >
+                {u.title}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Description */}
+        <p className='mt-6 mx-auto max-w-2xl text-center text-sm md:text-base leading-relaxed text-neutral-400'>
+          {active.description}
+        </p>
       </div>
     </section>
   );

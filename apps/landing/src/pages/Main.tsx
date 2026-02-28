@@ -22,7 +22,7 @@ function LandingPage() {
     <>
       <Navbar />
       <main className='w-screen bg-background text-foreground'>
-        <section className='flex h-dvh flex-col items-center justify-center px-5 md:px-10'>
+        <section className='flex h-svh flex-col items-center justify-center px-5 md:px-10'>
           <div className='flex flex-col items-start gap-y-6'>
             <h1 className='self-center text-4xl md:text-6xl lg:text-6xl md:leading-17 leading-10 md:font-bold font-semibold tracking-tight text-center'>
               The open source <br /> alternative to Anduril
