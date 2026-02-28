@@ -15,13 +15,14 @@ import { IntegrationSection } from "@/components/sections/IntegrationImage";
 import { ListCardsSection } from "@/components/sections/ListCards";
 import { CapsulePromoSection } from "@/components/sections/CapsulePromo";
 import { ScrollTextRevealSection } from "@/components/sections/ScrollTextReveal";
+import { ScrollBoxSection } from "@/components/sections/ScrollBox";
 
 function LandingPage() {
   return (
     <>
       <Navbar />
       <main className='w-screen bg-background text-foreground'>
-        <section className='flex min-h-screen flex-col items-center justify-center px-8 md:px-10'>
+        <section className='flex h-dvh flex-col items-center justify-center px-8 md:px-10'>
           <div className='flex flex-col items-start gap-y-6'>
             <h1 className='self-center text-4xl md:text-6xl lg:text-6xl md:leading-17 leading-10 md:font-bold font-semibold tracking-tight text-center'>
               The open source <br /> alternative to Anduril
@@ -54,6 +55,7 @@ function LandingPage() {
         <MidCTASection />
         <IntegrationSection />
         <ThreeCardsSection />
+        <ScrollBoxSection />
         <SecurityCTASection />
         <CapsulePromoSection />
         <FAQSection />

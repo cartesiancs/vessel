@@ -31,7 +31,7 @@ export function SubheadingSection() {
       ref={sectionRef}
       className='flex h-[400px] items-center justify-center px-6'
     >
-      <h1 className='flex flex-wrap items-center justify-center gap-2 text-center text-neutral-200 text-[48px] font-semibold leading-tight tracking-tight'>
+      <h1 className='flex flex-wrap items-center justify-center gap-2 text-center text-neutral-200 text-2xl md:text-[48px] font-semibold leading-tight tracking-tight'>
         {TITLE.split(" ").map((word, index) => (
           <span
             key={word + index}
