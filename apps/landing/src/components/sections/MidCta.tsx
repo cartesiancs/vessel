@@ -92,7 +92,7 @@ export function MidCTASection() {
     >
       <div
         className={cx(
-          "container mx-auto flex h-full max-w-7xl flex-col gap-12 px-8 md:px-10 py-16 md:flex-row md:items-center md:justify-between",
+          "container mx-auto flex h-full max-w-7xl flex-col gap-12 px-5 md:px-10 py-16 md:flex-row md:items-center md:justify-between",
           "transition-all duration-700 ease-out",
           isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6",
         )}
@@ -125,8 +125,8 @@ export function MidCTASection() {
           </div>
         </div>
 
-        <div className='w-full md:w-[54%]'>
-          <div className='relative h-[260px] w-full md:h-[320px]'>
+        <div className='hidden w-full md:block md:w-[54%]'>
+          <div className='relative h-[320px] w-full'>
             <MapPlaneIllustration />
           </div>
         </div>

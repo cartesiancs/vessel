@@ -47,7 +47,7 @@ export function UsecaseSection() {
     <section ref={sectionRef} className='w-full h-[100vh]'>
       <div
         className={cx(
-          "container mx-auto max-w-7xl px-8 md:px-10 py-16 transition-all duration-700 ease-out",
+          "container mx-auto max-w-7xl px-5 md:px-10 py-16 transition-all duration-700 ease-out",
           "h-full flex flex-col",
           isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6",
         )}
