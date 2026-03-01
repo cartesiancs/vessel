@@ -162,7 +162,7 @@ export function ListCardsSection() {
                 ref={(el) => {
                   cardRefs.current[idx] = el;
                 }}
-                className='relative flex aspect-video shrink-0 snap-start basis-[85%] items-end overflow-hidden border border-white/10 bg-gradient-to-b from-white/10 to-white/5 shadow-[0_30px_120px_rgba(0,0,0,0.5)] md:aspect-auto md:h-[520px] md:basis-[70%]'
+                className='relative flex aspect-video min-h-[280px] shrink-0 snap-start basis-[85%] items-end overflow-hidden border border-white/10 bg-gradient-to-b from-white/10 to-white/5 shadow-[0_30px_120px_rgba(0,0,0,0.5)] md:aspect-auto md:min-h-0 md:h-[520px] md:basis-[70%]'
               >
                 <img
                   src={slide.image}
