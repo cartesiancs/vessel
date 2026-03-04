@@ -15,7 +15,7 @@ import { IntegrationSection } from "@/components/sections/IntegrationImage";
 import { ListCardsSection } from "@/components/sections/ListCards";
 import { CapsulePromoSection } from "@/components/sections/CapsulePromo";
 import { ScrollTextRevealSection } from "@/components/sections/ScrollTextReveal";
-import { ScrollBoxSection } from "@/components/sections/ScrollBox";
+import { HeroSceneSection } from "@/components/sections/HeroScene/HeroScene";
 
 function LandingPage() {
   return (
@@ -55,7 +55,7 @@ function LandingPage() {
         <MidCTASection />
         <IntegrationSection />
         <ThreeCardsSection />
-        <ScrollBoxSection />
+        <HeroSceneSection />
         <SecurityCTASection />
         <CapsulePromoSection />
         <FAQSection />
