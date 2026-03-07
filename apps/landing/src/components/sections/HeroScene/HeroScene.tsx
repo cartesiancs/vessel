@@ -1,69 +1,24 @@
-import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef } from "react";
 import { Canvas } from "@react-three/fiber";
+import { BakeShadows, MeshReflectorMaterial } from "@react-three/drei";
+import { EffectComposer, Bloom } from "@react-three/postprocessing";
 import { CameraRig } from "./CameraRig";
-import { SceneContent } from "./SceneContent";
+import { Instances, Computers } from "./Computers";
 
-const SCROLL_PAGES = 6;
+const SCROLL_PAGES = 3;
 
-/** Module-level scroll state for R3F components (no re-renders). */
 export const scrollState = { progress: 0 };
-
-function SceneLabels({ progress }: { progress: number }) {
-  const labels = [
-    { title: "Remote Command Center", range: [0.0, 0.18] },
-    { title: "Drone Surveillance", range: [0.2, 0.38] },
-    { title: "Perimeter Security", range: [0.4, 0.58] },
-    { title: "Robot Control", range: [0.6, 0.78] },
-    { title: "Connected Network", range: [0.82, 1.0] },
-  ];
-
-  return (
-    <div className="pointer-events-none absolute inset-0 z-10">
-      {labels.map((label) => {
-        const [start, end] = label.range;
-        const fadeIn = start + 0.04;
-        const fadeOut = end - 0.04;
-
-        let opacity = 0;
-        if (progress >= start && progress <= end) {
-          if (progress < fadeIn) opacity = (progress - start) / 0.04;
-          else if (progress > fadeOut) opacity = (end - progress) / 0.04;
-          else opacity = 1;
-        }
-
-        return (
-          <div
-            key={label.title}
-            className="absolute bottom-20 left-1/2 -translate-x-1/2 text-center"
-            style={{ opacity: Math.max(0, Math.min(1, opacity)) }}
-          >
-            <h3 className="text-2xl md:text-3xl font-bold text-white tracking-tight">
-              {label.title}
-            </h3>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
 
 export function HeroSceneSection() {
   const sectionRef = useRef<HTMLElement>(null);
-  const [labelProgress, setLabelProgress] = useState(0);
 
   const handleScroll = useCallback(() => {
     if (!sectionRef.current) return;
     const rect = sectionRef.current.getBoundingClientRect();
     const scrollableDistance = rect.height - window.innerHeight;
     const scrolled = -rect.top;
-    const progress =
-      scrollableDistance > 0 ? scrolled / scrollableDistance : 0;
-    const clamped = Math.max(0, Math.min(1, progress));
-
-    // Module-level for R3F (no re-render)
-    scrollState.progress = clamped;
-    // React state for HTML labels
-    setLabelProgress(clamped);
+    const progress = scrollableDistance > 0 ? scrolled / scrollableDistance : 0;
+    scrollState.progress = Math.max(0, Math.min(1, progress));
   }, []);
 
   useEffect(() => {
@@ -76,24 +31,73 @@ export function HeroSceneSection() {
     <section
       ref={sectionRef}
       style={{ height: `${SCROLL_PAGES * 100}vh` }}
-      className="relative bg-black"
+      className='relative bg-black'
     >
-      <div className="sticky top-0 h-screen flex items-center justify-center">
-        <SceneLabels progress={labelProgress} />
+      <div className='sticky top-0 h-screen'>
         <Canvas
           shadows
           dpr={[1, 1.5]}
-          gl={{
-            antialias: true,
-            alpha: false,
-            powerPreference: "high-performance",
+          camera={{
+            position: [-1.5, 1, 5.5],
+            fov: 45,
+            near: 1,
+            far: 20,
           }}
-          camera={{ position: [0, 8, 30], fov: 55, near: 0.1, far: 200 }}
           style={{ background: "#000000" }}
         >
           <Suspense fallback={null}>
+            <color attach='background' args={["black"]} />
+            <hemisphereLight intensity={0.15} groundColor='black' />
+            <spotLight
+              decay={0}
+              position={[10, 20, 10]}
+              angle={0.12}
+              penumbra={1}
+              intensity={1}
+              castShadow
+              shadow-mapSize={1024}
+            />
+
+            <group position={[0, -1, 0]}>
+              <Instances>
+                <Computers scale={0.5} />
+              </Instances>
+
+              <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]}>
+                <planeGeometry args={[50, 50]} />
+                <MeshReflectorMaterial
+                  blur={[300, 30]}
+                  resolution={2048}
+                  mixBlur={1}
+                  mixStrength={180}
+                  roughness={1}
+                  depthScale={1.2}
+                  minDepthThreshold={0.4}
+                  maxDepthThreshold={1.4}
+                  color='#202020'
+                  metalness={0.8}
+                />
+              </mesh>
+
+              <pointLight
+                distance={1}
+                intensity={0.2}
+                position={[-0.15, 0.7, 0]}
+                color='#ffa914'
+              />
+            </group>
+
+            <EffectComposer enableNormalPass={false}>
+              <Bloom
+                luminanceThreshold={0}
+                mipmapBlur
+                luminanceSmoothing={0.0}
+                intensity={2}
+              />
+            </EffectComposer>
+
             <CameraRig />
-            <SceneContent />
+            <BakeShadows />
           </Suspense>
         </Canvas>
       </div>
