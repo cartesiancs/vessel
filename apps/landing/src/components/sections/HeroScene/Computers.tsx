@@ -1,13 +1,7 @@
 import * as THREE from "three";
 import { useMemo, useContext, createContext, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
-import {
-  useGLTF,
-  Merged,
-  RenderTexture,
-  PerspectiveCamera,
-  Text,
-} from "@react-three/drei";
+import { useGLTF, Merged, useVideoTexture } from "@react-three/drei";
 
 const context = createContext<any>(null);
 
@@ -48,7 +42,7 @@ export function Computers(props: any) {
         rotation={[0, -0.06, 0]}
         scale={1.52}
       />
-      <ScreenText
+      <ScreenVideo
         frame='Object_206'
         panel='Object_207'
         position={[-0.36, 1.53, 0.39]}
@@ -58,8 +52,14 @@ export function Computers(props: any) {
   );
 }
 
-function Screen({ frame, panel, children, ...props }: any) {
+function ScreenVideo({ frame, panel, ...props }: any) {
   const { nodes, materials } = useGLTF("/glb/Computers.glb") as any;
+  const texture = useVideoTexture("/video/video.mp4", {
+    loop: true,
+    muted: true,
+    playsInline: true,
+  });
+
   return (
     <group {...props}>
       <mesh
@@ -69,59 +69,9 @@ function Screen({ frame, panel, children, ...props }: any) {
         material={materials.Texture}
       />
       <mesh geometry={nodes[panel].geometry}>
-        <meshBasicMaterial toneMapped={false}>
-          <RenderTexture width={512} height={512} attach='map' anisotropy={16}>
-            {children}
-          </RenderTexture>
-        </meshBasicMaterial>
+        <meshBasicMaterial map={texture} toneMapped={false} />
       </mesh>
     </group>
-  );
-}
-
-function ScreenText({
-  invert,
-  x = 0,
-  y = 1.2,
-  ...props
-}: {
-  invert?: boolean;
-  x?: number;
-  y?: number;
-  [key: string]: any;
-}) {
-  const textRef = useRef<any>(null!);
-  const rand = useMemo(() => Math.random() * 10000, []);
-
-  useFrame((state) => {
-    if (textRef.current) {
-      textRef.current.position.x =
-        x + Math.sin(rand + state.clock.elapsedTime / 4) * 8;
-    }
-  });
-
-  return (
-    <Screen {...props}>
-      <PerspectiveCamera
-        makeDefault
-        manual
-        aspect={1 / 1}
-        position={[0, 0, 15]}
-      />
-      <color attach='background' args={[invert ? "black" : "#3491ed"]} />
-      <ambientLight intensity={0.5} />
-      <directionalLight position={[10, 10, 5]} />
-      <Text
-        font='/Inter-Medium.woff'
-        position={[x, y, 0]}
-        ref={textRef}
-        fontSize={4}
-        letterSpacing={-0.1}
-        color={!invert ? "black" : "#3491ed"}
-      >
-        Vessel.
-      </Text>
-    </Screen>
   );
 }
 
