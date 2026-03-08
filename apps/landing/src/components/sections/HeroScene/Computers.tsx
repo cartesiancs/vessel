@@ -6,8 +6,8 @@ import {
   Merged,
   RenderTexture,
   PerspectiveCamera,
+  Text,
 } from "@react-three/drei";
-import { SpinningBox } from "./SpinningBox";
 
 const context = createContext<any>(null);
 
@@ -48,7 +48,7 @@ export function Computers(props: any) {
         rotation={[0, -0.06, 0]}
         scale={1.52}
       />
-      <ScreenInteractive
+      <ScreenText
         frame='Object_206'
         panel='Object_207'
         position={[-0.36, 1.53, 0.39]}
@@ -79,20 +79,48 @@ function Screen({ frame, panel, children, ...props }: any) {
   );
 }
 
-function ScreenInteractive(props: any) {
+function ScreenText({
+  invert,
+  x = 0,
+  y = 1.2,
+  ...props
+}: {
+  invert?: boolean;
+  x?: number;
+  y?: number;
+  [key: string]: any;
+}) {
+  const textRef = useRef<any>(null!);
+  const rand = useMemo(() => Math.random() * 10000, []);
+
+  useFrame((state) => {
+    if (textRef.current) {
+      textRef.current.position.x =
+        x + Math.sin(rand + state.clock.elapsedTime / 4) * 8;
+    }
+  });
+
   return (
     <Screen {...props}>
       <PerspectiveCamera
         makeDefault
         manual
         aspect={1 / 1}
-        position={[0, 0, 10]}
+        position={[0, 0, 15]}
       />
-      <color attach='background' args={["#ffa914"]} />
-      <ambientLight intensity={Math.PI / 2} />
-      <pointLight decay={0} position={[10, 10, 10]} intensity={Math.PI} />
-      <pointLight decay={0} position={[-10, -10, -10]} />
-      <SpinningBox position={[-3.15, 0.75, 0]} scale={0.5} />
+      <color attach='background' args={[invert ? "black" : "#3491ed"]} />
+      <ambientLight intensity={0.5} />
+      <directionalLight position={[10, 10, 5]} />
+      <Text
+        font='/Inter-Medium.woff'
+        position={[x, y, 0]}
+        ref={textRef}
+        fontSize={4}
+        letterSpacing={-0.1}
+        color={!invert ? "black" : "#3491ed"}
+      >
+        Vessel.
+      </Text>
     </Screen>
   );
 }

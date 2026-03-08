@@ -17,7 +17,8 @@ export function HeroSceneSection() {
     const rect = sectionRef.current.getBoundingClientRect();
     const scrollableDistance = rect.height - window.innerHeight;
     const scrolled = -rect.top;
-    const progress = scrollableDistance > 0 ? scrolled / scrollableDistance : 0;
+    const progress =
+      scrollableDistance > 0 ? scrolled / scrollableDistance : 0;
     scrollState.progress = Math.max(0, Math.min(1, progress));
   }, []);
 
