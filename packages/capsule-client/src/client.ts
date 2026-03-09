@@ -7,12 +7,14 @@ import type {
   CapsuleClientOptions,
   PublicKeyResponse,
   StreamCallback,
+  ToolCallCallback,
+  ToolCallResult,
 } from './types';
 
 /**
  * Authentication error
  *
- * 인증 토큰이 없거나 만료된 경우 발생
+ * Thrown when authentication token is missing or expired
  */
 export class CapsuleAuthError extends Error {
   constructor(message: string = 'Authentication required') {
@@ -24,7 +26,7 @@ export class CapsuleAuthError extends Error {
 /**
  * Rate limit error
  *
- * 일일 사용량 제한을 초과한 경우 발생
+ * Thrown when daily usage limit is exceeded
  */
 export class CapsuleRateLimitError extends Error {
   constructor(message: string = 'Rate limit exceeded') {
@@ -36,7 +38,7 @@ export class CapsuleRateLimitError extends Error {
 /**
  * Subscription required error
  *
- * Pro 구독이 필요한 기능을 비구독자가 사용하려 할 때 발생
+ * Thrown when a non-subscriber tries to access Pro features
  */
 export class CapsuleSubscriptionError extends Error {
   constructor(message: string = 'Pro subscription required') {
@@ -46,9 +48,9 @@ export class CapsuleSubscriptionError extends Error {
 }
 
 /**
- * Capsule 클라이언트
+ * Capsule Client
  *
- * 보안 이미지 분석을 위한 클라이언트 SDK
+ * Client SDK for secure image analysis
  *
  * @example
  * ```typescript
@@ -56,10 +58,10 @@ export class CapsuleSubscriptionError extends Error {
  *   baseUrl: 'https://capsule.example.com',
  * });
  *
- * // 이미지 분석
+ * // Analyze image
  * const response = await client.analyzeImage({
  *   image: imageFile,
- *   message: '이 이미지를 분석해주세요',
+ *   message: 'Please analyze this image',
  * });
  *
  * console.log(response.response);
@@ -72,16 +74,16 @@ export class CapsuleClient {
   private getAccessToken?: () => Promise<string | null>;
 
   constructor(options: CapsuleClientOptions) {
-    this.baseUrl = options.baseUrl.replace(/\/$/, ''); // trailing slash 제거
+    this.baseUrl = options.baseUrl.replace(/\/$/, '');
     this.timeout = options.timeout ?? 60000;
     this.getAccessToken = options.getAccessToken;
   }
 
   /**
-   * 서버 공개키 획득
+   * Fetch server public key
    *
-   * 캐싱됨 - 한 번 획득하면 재사용
-   * 서버 재시작 시 새로 획득 필요
+   * Cached - reused once fetched.
+   * Requires re-fetching after server restart.
    */
   async getPublicKey(): Promise<string> {
     if (this.serverPublicKey) {
@@ -97,18 +99,18 @@ export class CapsuleClient {
   }
 
   /**
-   * 캐시된 공개키 무효화
+   * Invalidate cached public key
    *
-   * 서버 재시작 후 호출 필요
+   * Should be called after server restart.
    */
   clearPublicKeyCache(): void {
     this.serverPublicKey = null;
   }
 
   /**
-   * Base URL 변경
+   * Change Base URL
    *
-   * 서버가 바뀌면 공개키도 달라지므로 캐시를 자동으로 초기화
+   * Automatically clears key cache since a different server has a different key.
    */
   setBaseUrl(url: string): void {
     this.baseUrl = url.replace(/\/$/, '');
@@ -116,16 +118,18 @@ export class CapsuleClient {
   }
 
   /**
-   * 텍스트 전용 채팅
+   * Text-only chat
    *
-   * @param message - 사용자 메시지
-   * @param options - 대화 히스토리 및 시스템 프롬프트 (선택사항)
+   * @param message - User message
+   * @param options - Conversation history and system prompt (optional)
    */
   async chat(message: string, options?: ChatOptions): Promise<ChatResponse> {
     const request: ChatRequest = {
       message,
       ...(options?.history && { history: options.history }),
       ...(options?.systemPrompt && { system_prompt: options.systemPrompt }),
+      ...(options?.tools && { tools: options.tools }),
+      ...(options?.toolChoice && { tool_choice: options.toolChoice }),
     };
 
     return this.fetch<ChatResponse>('/api/chat', {
@@ -135,23 +139,21 @@ export class CapsuleClient {
   }
 
   /**
-   * 이미지 분석
+   * Image analysis
    *
-   * @param options - 분석 옵션
-   * @returns AI 응답
+   * @param options - Analysis options
+   * @returns AI response
    *
-   * ## 보안 데이터 흐름
-   * 1. 서버 공개키 획득 (캐시됨)
-   * 2. 이미지를 공개키로 암호화 (X25519 + XChaCha20-Poly1305)
-   * 3. 암호화된 이미지를 서버로 전송
-   * 4. 서버에서 복호화 후 AI 분석
-   * 5. 응답 수신
+   * ## Secure data flow
+   * 1. Fetch server public key (cached)
+   * 2. Encrypt image with public key (X25519 + XChaCha20-Poly1305)
+   * 3. Send encrypted image to server
+   * 4. Server decrypts and analyzes with AI
+   * 5. Receive response
    */
   async analyzeImage(options: AnalyzeImageOptions, chatOptions?: ChatOptions): Promise<ChatResponse> {
-    // 1. 서버 공개키 획득
     const publicKey = await this.getPublicKey();
 
-    // 2. 이미지를 바이트 배열로 변환
     let imageBytes: Uint8Array;
     if (options.image instanceof Uint8Array) {
       imageBytes = options.image;
@@ -159,15 +161,15 @@ export class CapsuleClient {
       imageBytes = await fileToBytes(options.image);
     }
 
-    // 3. 이미지 암호화
     const encryptedImage = await encryptImage(imageBytes, publicKey);
 
-    // 4. 요청 전송
     const request: ChatRequest = {
       message: options.message,
       encrypted_image: encryptedImage,
       ...(chatOptions?.history && { history: chatOptions.history }),
       ...(chatOptions?.systemPrompt && { system_prompt: chatOptions.systemPrompt }),
+      ...(chatOptions?.tools && { tools: chatOptions.tools }),
+      ...(chatOptions?.toolChoice && { tool_choice: chatOptions.toolChoice }),
     };
 
     return this.fetch<ChatResponse>('/api/chat', {
@@ -177,38 +179,38 @@ export class CapsuleClient {
   }
 
   /**
-   * 스트리밍 채팅
+   * Streaming chat
    *
-   * @param message - 사용자 메시지
-   * @param onChunk - 스트리밍 청크 콜백
-   * @param options - 대화 히스토리 및 시스템 프롬프트 (선택사항)
+   * @param message - User message
+   * @param onChunk - Streaming chunk callback
+   * @param options - Conversation history and system prompt (optional)
    */
   async chatStream(message: string, onChunk: StreamCallback, options?: ChatOptions): Promise<void> {
     const request: ChatRequest = {
       message,
       ...(options?.history && { history: options.history }),
       ...(options?.systemPrompt && { system_prompt: options.systemPrompt }),
+      ...(options?.tools && { tools: options.tools }),
+      ...(options?.toolChoice && { tool_choice: options.toolChoice }),
     };
 
-    await this.fetchStream('/api/chat/stream', request, onChunk);
+    await this.fetchStream('/api/chat/stream', request, onChunk, options?.onToolCall);
   }
 
   /**
-   * 스트리밍 이미지 분석
+   * Streaming image analysis
    *
-   * @param options - 이미지 분석 옵션
-   * @param onChunk - 스트리밍 청크 콜백
-   * @param chatOptions - 대화 히스토리 및 시스템 프롬프트 (선택사항)
+   * @param options - Image analysis options
+   * @param onChunk - Streaming chunk callback
+   * @param chatOptions - Conversation history and system prompt (optional)
    */
   async analyzeImageStream(
     options: AnalyzeImageOptions,
     onChunk: StreamCallback,
     chatOptions?: ChatOptions,
   ): Promise<void> {
-    // 1. 서버 공개키 획득
     const publicKey = await this.getPublicKey();
 
-    // 2. 이미지를 바이트 배열로 변환
     let imageBytes: Uint8Array;
     if (options.image instanceof Uint8Array) {
       imageBytes = options.image;
@@ -216,35 +218,33 @@ export class CapsuleClient {
       imageBytes = await fileToBytes(options.image);
     }
 
-    // 3. 이미지 암호화
     const encryptedImage = await encryptImage(imageBytes, publicKey);
 
-    // 4. 스트리밍 요청
     const request: ChatRequest = {
       message: options.message,
       encrypted_image: encryptedImage,
       ...(chatOptions?.history && { history: chatOptions.history }),
       ...(chatOptions?.systemPrompt && { system_prompt: chatOptions.systemPrompt }),
+      ...(chatOptions?.tools && { tools: chatOptions.tools }),
+      ...(chatOptions?.toolChoice && { tool_choice: chatOptions.toolChoice }),
     };
 
-    await this.fetchStream('/api/chat/stream', request, onChunk);
+    await this.fetchStream('/api/chat/stream', request, onChunk, chatOptions?.onToolCall);
   }
 
   /**
-   * HTTP 요청
+   * HTTP request
    */
   private async fetch<T>(path: string, init: RequestInit): Promise<T> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), this.timeout);
 
     try {
-      // Build headers
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
         ...(init.headers as Record<string, string>),
       };
 
-      // Add Authorization header if token provider is configured
       if (this.getAccessToken) {
         const token = await this.getAccessToken();
         if (token) {
@@ -258,7 +258,6 @@ export class CapsuleClient {
         signal: controller.signal,
       });
 
-      // Handle auth-related errors
       if (response.status === 401) {
         throw new CapsuleAuthError('Authentication required. Please sign in.');
       }
@@ -284,23 +283,22 @@ export class CapsuleClient {
   }
 
   /**
-   * SSE 스트리밍 요청
+   * SSE streaming request
    */
   private async fetchStream(
     path: string,
     request: ChatRequest,
-    onChunk: StreamCallback
+    onChunk: StreamCallback,
+    onToolCall?: ToolCallCallback,
   ): Promise<void> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), this.timeout);
 
     try {
-      // Build headers
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
       };
 
-      // Add Authorization header if token provider is configured
       if (this.getAccessToken) {
         const token = await this.getAccessToken();
         if (token) {
@@ -315,7 +313,6 @@ export class CapsuleClient {
         signal: controller.signal,
       });
 
-      // Handle auth-related errors
       if (response.status === 401) {
         throw new CapsuleAuthError('Authentication required. Please sign in.');
       }
@@ -340,28 +337,51 @@ export class CapsuleClient {
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
+      let buffer = '';
+
+      const processLine = (line: string) => {
+        if (!line.startsWith('data: ')) return;
+        const data = line.slice(6);
+
+        if (data === '[DONE]') {
+          onChunk('', true);
+          return;
+        }
+
+        if (data.startsWith('[TOOL_CALLS]')) {
+          if (onToolCall) {
+            try {
+              const toolCalls: ToolCallResult[] = JSON.parse(data.slice('[TOOL_CALLS]'.length));
+              onToolCall(toolCalls);
+            } catch {
+              // malformed tool call JSON
+            }
+          }
+          return;
+        }
+
+        onChunk(data, false);
+      };
 
       while (true) {
         const { done, value } = await reader.read();
 
         if (done) {
+          if (buffer.trim()) {
+            processLine(buffer.trim());
+          }
           onChunk('', true);
           break;
         }
 
-        const text = decoder.decode(value, { stream: true });
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
 
-        // SSE 이벤트 파싱
-        for (const line of text.split('\n')) {
-          if (line.startsWith('data: ')) {
-            const data = line.slice(6);
-
-            if (data === '[DONE]') {
-              onChunk('', true);
-              return;
-            }
-
-            onChunk(data, false);
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (trimmed) {
+            processLine(trimmed);
           }
         }
       }

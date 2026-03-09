@@ -82,28 +82,24 @@ pub async fn chat_handler(
     let is_image_request = req.encrypted_image.is_some();
     let history_slice = req.history.as_deref();
     let system_prompt = req.system_prompt.as_deref();
+    let tools = req.tools.as_ref();
+    let tool_choice = req.tool_choice.as_ref();
 
     // 4. Process request
     let result = if let Some(encrypted_image) = req.encrypted_image {
-        // Decrypt (DecryptedImage created)
-        // - DecryptedImage doesn't implement Debug/Clone
-        // - Auto zeroize on Drop
         let decrypted = state.key_manager.decrypt(&encrypted_image).await?;
 
         tracing::debug!("Image decrypted: {} bytes", decrypted.len());
 
-        // OpenAI API call (ownership transfer of decrypted)
-        // - Auto drop → zeroize at function end
         state
             .openai
-            .analyze_image(&req.message, decrypted, system_prompt, history_slice)
+            .analyze_image(&req.message, decrypted, system_prompt, history_slice, tools, tool_choice)
             .await
             .map_err(|e| CapsuleError::OpenAIError(e.to_string()))?
     } else {
-        // Text only
         state
             .openai
-            .chat(&req.message, system_prompt, history_slice)
+            .chat(&req.message, system_prompt, history_slice, tools, tool_choice)
             .await
             .map_err(|e| CapsuleError::OpenAIError(e.to_string()))?
     };
@@ -111,6 +107,7 @@ pub async fn chat_handler(
     tracing::info!(
         user_id = %auth.user_id,
         response_len = result.content.len(),
+        has_tool_calls = result.tool_calls.is_some(),
         input_tokens = result.usage.prompt_tokens,
         output_tokens = result.usage.completion_tokens,
         "Chat response generated"
@@ -127,7 +124,10 @@ pub async fn chat_handler(
         }
     });
 
-    Ok(Json(ChatResponse { response: result.content }))
+    Ok(Json(ChatResponse {
+        response: result.content,
+        tool_calls: result.tool_calls,
+    }))
 }
 
 /// POST /api/chat/stream
@@ -184,6 +184,8 @@ pub async fn chat_stream_handler(
     let is_image_request = req.encrypted_image.is_some();
     let history_slice = req.history.as_deref();
     let system_prompt = req.system_prompt.as_deref();
+    let tools = req.tools.as_ref();
+    let tool_choice = req.tool_choice.as_ref();
 
     // 4. Process request
     let (stream, usage) = if let Some(encrypted_image) = req.encrypted_image {
@@ -192,13 +194,13 @@ pub async fn chat_stream_handler(
 
         state
             .openai
-            .analyze_image_stream(&req.message, decrypted, system_prompt, history_slice)
+            .analyze_image_stream(&req.message, decrypted, system_prompt, history_slice, tools, tool_choice)
             .await
             .map_err(|e| CapsuleError::OpenAIError(e.to_string()))?
     } else {
         state
             .openai
-            .chat_stream(&req.message, system_prompt, history_slice)
+            .chat_stream(&req.message, system_prompt, history_slice, tools, tool_choice)
             .await
             .map_err(|e| CapsuleError::OpenAIError(e.to_string()))?
     };

@@ -52,4 +52,8 @@ export type {
   CapsuleClientOptions,
   AnalyzeImageOptions,
   StreamCallback,
+  Tool,
+  ToolFunction,
+  ToolCallResult,
+  ToolCallCallback,
 } from './types';

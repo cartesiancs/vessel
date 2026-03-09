@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { LoaderCircle } from "lucide-react";
 import type { ChatMessage as ChatMessageType } from "./types";
 
 interface ChatMessageProps {
@@ -6,6 +7,8 @@ interface ChatMessageProps {
 }
 
 export function ChatMessage({ message }: ChatMessageProps) {
+  if (message.role === "tool") return null;
+
   const isUser = message.role === "user";
 
   return (
@@ -27,6 +30,35 @@ export function ChatMessage({ message }: ChatMessageProps) {
             alt={message.image.fileName || "Uploaded image"}
             className="max-w-full rounded mb-2"
           />
+        )}
+
+        {/* Tool call in progress */}
+        {message.isToolCalling && (
+          <div className="mb-2 flex items-center gap-2 text-xs text-muted-foreground px-2 py-1.5 rounded bg-blue-500/10">
+            <LoaderCircle className="h-3.5 w-3.5 animate-spin text-blue-400" />
+            <span className="text-blue-400">Generating flow...</span>
+          </div>
+        )}
+
+        {/* Tool call results */}
+        {!message.isToolCalling && message.toolResults && message.toolResults.length > 0 && (
+          <div className="mb-2 space-y-1">
+            {message.toolResults.map((r, i) => (
+              <div
+                key={i}
+                className={cn(
+                  "flex items-center gap-1.5 text-xs px-2 py-1 rounded",
+                  r.success
+                    ? "bg-green-500/10 text-green-400"
+                    : "bg-red-500/10 text-red-400",
+                )}
+              >
+                <span>{r.success ? "✓" : "✗"}</span>
+                <span className="font-mono">{r.name}</span>
+                <span className="opacity-70">— {r.message}</span>
+              </div>
+            ))}
+          </div>
         )}
 
         {/* Text content */}

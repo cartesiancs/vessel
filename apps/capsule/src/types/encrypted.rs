@@ -9,7 +9,7 @@ const MAX_HISTORY_MESSAGES: usize = 50;
 const MAX_HISTORY_CHARS: usize = 100_000;
 
 /// 허용되는 메시지 역할
-const ALLOWED_ROLES: &[&str] = &["user", "assistant", "system"];
+const ALLOWED_ROLES: &[&str] = &["user", "assistant", "system", "tool"];
 
 /// 클라이언트에서 전송된 암호화된 이미지
 /// 이 타입은 안전하게 로깅 가능 (민감 데이터 없음 - 복호화 불가)
@@ -32,10 +32,16 @@ pub struct EncryptedImage {
 /// 이미지는 텍스트 요약으로만 포함 가능
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HistoryMessage {
-    /// 메시지 역할: "user", "assistant", 또는 "system"
+    /// 메시지 역할: "user", "assistant", "system", 또는 "tool"
     pub role: String,
     /// 텍스트 내용
     pub content: String,
+    /// Tool call ID (role이 "tool"일 때 필수)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tool_call_id: Option<String>,
+    /// Tool calls (role이 "assistant"이고 tool call 응답일 때)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tool_calls: Option<serde_json::Value>,
 }
 
 /// 채팅 요청
@@ -52,6 +58,13 @@ pub struct ChatRequest {
     /// 시스템 프롬프트 (선택사항)
     #[serde(default)]
     pub system_prompt: Option<String>,
+    /// OpenAI tools 정의 (프론트엔드에서 주입, 그대로 passthrough)
+    #[serde(default)]
+    pub tools: Option<serde_json::Value>,
+    /// OpenAI tool_choice (프론트엔드에서 주입, 그대로 passthrough)
+    /// "auto" | "required" | "none" | {"type":"function","function":{"name":"..."}}
+    #[serde(default)]
+    pub tool_choice: Option<serde_json::Value>,
 }
 
 impl ChatRequest {
@@ -92,6 +105,9 @@ impl ChatRequest {
 pub struct ChatResponse {
     /// AI 응답 텍스트
     pub response: String,
+    /// Tool calls (함수 호출 요청, 있을 경우)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tool_calls: Option<serde_json::Value>,
 }
 
 /// Public Key 응답

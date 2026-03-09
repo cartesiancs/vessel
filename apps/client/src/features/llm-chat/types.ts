@@ -1,3 +1,6 @@
+import type { Tool, ToolCallResult } from "@vessel/capsule-client";
+import type { ToolExecutionResult } from "@/features/flow/flow-chat";
+
 export interface ChatMessageImage {
   /** Object URL for local preview (revoke after use) */
   previewUrl?: string;
@@ -9,12 +12,26 @@ export interface ChatMessageImage {
 
 export interface ChatMessage {
   id: string;
-  role: "user" | "assistant";
+  role: "user" | "assistant" | "tool";
   content: string;
   timestamp: Date;
   isStreaming?: boolean;
   /** Attached image (only exists in user messages) */
   image?: ChatMessageImage;
+  /** Tool call is currently being executed */
+  isToolCalling?: boolean;
+  /** Raw tool calls from LLM (for history reconstruction) */
+  toolCalls?: ToolCallResult[];
+  /** Tool call ID (for tool result messages in history) */
+  toolCallId?: string;
+  /** Tool call execution results (UI display only) */
+  toolResults?: ToolExecutionResult[];
+}
+
+export interface FlowChatContext {
+  buildSystemPrompt: () => string;
+  tools: Tool[];
+  executeToolCalls: (toolCalls: ToolCallResult[]) => ToolExecutionResult[];
 }
 
 export interface ChatPanelState {
@@ -24,6 +41,8 @@ export interface ChatPanelState {
   error: string | null;
   /** Selected image (before sending) */
   pendingImage: File | null;
+  /** Flow context for tool calling (set when on flow page) */
+  flowContext: FlowChatContext | null;
 
   openPanel: () => void;
   closePanel: () => void;
@@ -37,4 +56,6 @@ export interface ChatPanelState {
   clearMessages: () => void;
   /** Update the Capsule server URL at runtime */
   updateCapsuleUrl: (url: string) => void;
+  /** Set flow context for tool calling */
+  setFlowContext: (ctx: FlowChatContext | null) => void;
 }

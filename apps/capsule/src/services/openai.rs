@@ -2,6 +2,7 @@ use axum::response::sse::Event;
 use futures_util::{Stream, StreamExt};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::pin::Pin;
 use zeroize::{Zeroize, Zeroizing};
 
@@ -48,16 +49,30 @@ impl OpenAIService {
         if let Some(prompt) = system_prompt {
             messages.push(Message {
                 role: "system".to_string(),
-                content: MessageContent::Text(prompt.to_string()),
+                content: Some(MessageContent::Text(prompt.to_string())),
+                tool_call_id: None,
+                tool_calls: None,
             });
         }
 
         if let Some(history) = history {
             for msg in history {
-                messages.push(Message {
+                let mut m = Message {
                     role: msg.role.clone(),
-                    content: MessageContent::Text(msg.content.clone()),
-                });
+                    content: Some(MessageContent::Text(msg.content.clone())),
+                    tool_call_id: None,
+                    tool_calls: None,
+                };
+                if let Some(ref tc_id) = msg.tool_call_id {
+                    m.tool_call_id = Some(tc_id.clone());
+                }
+                if let Some(ref tc) = msg.tool_calls {
+                    m.tool_calls = Some(tc.clone());
+                    if msg.content.is_empty() {
+                        m.content = None;
+                    }
+                }
+                messages.push(m);
             }
         }
 
@@ -71,10 +86,14 @@ impl OpenAIService {
         message: &str,
         system_prompt: Option<&str>,
         history: Option<&[HistoryMessage]>,
+        tools: Option<&serde_json::Value>,
+        tool_choice: Option<&serde_json::Value>,
     ) -> Result<ChatResult, anyhow::Error> {
         let current = Message {
             role: "user".to_string(),
-            content: MessageContent::Text(message.to_string()),
+            content: Some(MessageContent::Text(message.to_string())),
+            tool_call_id: None,
+            tool_calls: None,
         };
 
         let request_body = ChatRequest {
@@ -83,6 +102,8 @@ impl OpenAIService {
             max_tokens: Some(4096),
             stream: false,
             stream_options: None,
+            tools: tools.cloned(),
+            tool_choice: tool_choice.cloned(),
         };
 
         let response = self
@@ -101,12 +122,12 @@ impl OpenAIService {
 
         let response_body: ChatResponse = response.json().await?;
 
+        let choice = response_body.choices.first();
         Ok(ChatResult {
-            content: response_body
-                .choices
-                .first()
-                .map(|c| c.message.content.clone())
+            content: choice
+                .and_then(|c| c.message.content.clone())
                 .unwrap_or_default(),
+            tool_calls: choice.and_then(|c| c.message.tool_calls.clone()),
             usage: response_body.usage.into(),
         })
     }
@@ -120,20 +141,18 @@ impl OpenAIService {
     pub async fn analyze_image(
         &self,
         message: &str,
-        decrypted_image: DecryptedImage, // 소유권 이전 → 함수 종료 시 자동 drop
+        decrypted_image: DecryptedImage,
         system_prompt: Option<&str>,
         history: Option<&[HistoryMessage]>,
+        tools: Option<&serde_json::Value>,
+        tool_choice: Option<&serde_json::Value>,
     ) -> Result<ChatResult, anyhow::Error> {
-        // base64 인코딩 (임시 변수)
         let mut image_base64 = decrypted_image.to_base64();
-
-        // decrypted_image는 여기서 drop됨 (함수 파라미터로 소유권 이전됨)
-        // to_base64() 호출 후 더 이상 사용하지 않으므로 여기서 drop
         drop(decrypted_image);
 
         let current = Message {
             role: "user".to_string(),
-            content: MessageContent::MultiPart(vec![
+            content: Some(MessageContent::MultiPart(vec![
                 ContentPart::Text {
                     text: message.to_string(),
                 },
@@ -142,7 +161,9 @@ impl OpenAIService {
                         url: format!("data:image/jpeg;base64,{}", image_base64),
                     },
                 },
-            ]),
+            ])),
+            tool_call_id: None,
+            tool_calls: None,
         };
 
         let request_body = ChatRequest {
@@ -151,6 +172,8 @@ impl OpenAIService {
             max_tokens: Some(4096),
             stream: false,
             stream_options: None,
+            tools: tools.cloned(),
+            tool_choice: tool_choice.cloned(),
         };
 
         let response = self
@@ -162,7 +185,6 @@ impl OpenAIService {
             .send()
             .await;
 
-        // 민감 데이터 즉시 클리어 (응답 대기 전에도)
         image_base64.zeroize();
 
         let response = response?;
@@ -174,12 +196,12 @@ impl OpenAIService {
 
         let response_body: ChatResponse = response.json().await?;
 
+        let choice = response_body.choices.first();
         Ok(ChatResult {
-            content: response_body
-                .choices
-                .first()
-                .map(|c| c.message.content.clone())
+            content: choice
+                .and_then(|c| c.message.content.clone())
                 .unwrap_or_default(),
+            tool_calls: choice.and_then(|c| c.message.tool_calls.clone()),
             usage: response_body.usage.into(),
         })
     }
@@ -193,11 +215,15 @@ impl OpenAIService {
         message: &str,
         system_prompt: Option<&str>,
         history: Option<&[HistoryMessage]>,
+        tools: Option<&serde_json::Value>,
+        tool_choice: Option<&serde_json::Value>,
     ) -> Result<(Pin<Box<dyn Stream<Item = Result<Event, CapsuleError>> + Send>>, std::sync::Arc<std::sync::Mutex<TokenUsage>>), anyhow::Error>
     {
         let current = Message {
             role: "user".to_string(),
-            content: MessageContent::Text(message.to_string()),
+            content: Some(MessageContent::Text(message.to_string())),
+            tool_call_id: None,
+            tool_calls: None,
         };
 
         let request_body = ChatRequest {
@@ -206,6 +232,8 @@ impl OpenAIService {
             max_tokens: Some(4096),
             stream: true,
             stream_options: Some(StreamOptions { include_usage: true }),
+            tools: tools.cloned(),
+            tool_choice: tool_choice.cloned(),
         };
 
         let response = self
@@ -237,6 +265,8 @@ impl OpenAIService {
         decrypted_image: DecryptedImage,
         system_prompt: Option<&str>,
         history: Option<&[HistoryMessage]>,
+        tools: Option<&serde_json::Value>,
+        tool_choice: Option<&serde_json::Value>,
     ) -> Result<(Pin<Box<dyn Stream<Item = Result<Event, CapsuleError>> + Send>>, std::sync::Arc<std::sync::Mutex<TokenUsage>>), anyhow::Error>
     {
         let mut image_base64 = decrypted_image.to_base64();
@@ -244,7 +274,7 @@ impl OpenAIService {
 
         let current = Message {
             role: "user".to_string(),
-            content: MessageContent::MultiPart(vec![
+            content: Some(MessageContent::MultiPart(vec![
                 ContentPart::Text {
                     text: message.to_string(),
                 },
@@ -253,7 +283,9 @@ impl OpenAIService {
                         url: format!("data:image/jpeg;base64,{}", image_base64),
                     },
                 },
-            ]),
+            ])),
+            tool_call_id: None,
+            tool_calls: None,
         };
 
         let request_body = ChatRequest {
@@ -262,6 +294,8 @@ impl OpenAIService {
             max_tokens: Some(4096),
             stream: true,
             stream_options: Some(StreamOptions { include_usage: true }),
+            tools: tools.cloned(),
+            tool_choice: tool_choice.cloned(),
         };
 
         let response = self
@@ -273,7 +307,6 @@ impl OpenAIService {
             .send()
             .await;
 
-        // 민감 데이터 즉시 클리어
         image_base64.zeroize();
 
         let response = response?;
@@ -288,13 +321,14 @@ impl OpenAIService {
         Ok((stream, usage))
     }
 
-    /// SSE 스트림 처리 (with usage tracking)
+    /// SSE 스트림 처리 (with usage tracking and tool call accumulation)
     fn process_stream_with_usage(
         response: reqwest::Response,
         usage: std::sync::Arc<std::sync::Mutex<TokenUsage>>,
     ) -> impl Stream<Item = Result<Event, CapsuleError>> {
         async_stream::stream! {
             let mut stream = response.bytes_stream();
+            let mut tool_call_buffer: HashMap<u32, AccumulatedToolCall> = HashMap::new();
 
             while let Some(chunk) = stream.next().await {
                 match chunk {
@@ -306,12 +340,23 @@ impl OpenAIService {
                                 let data = &line[6..];
 
                                 if data == "[DONE]" {
+                                    // Emit accumulated tool calls before [DONE] if any
+                                    if !tool_call_buffer.is_empty() {
+                                        let mut entries: Vec<_> = tool_call_buffer.drain().collect();
+                                        entries.sort_by_key(|(idx, _)| *idx);
+                                        let tool_calls: Vec<serde_json::Value> = entries
+                                            .into_iter()
+                                            .map(|(_, tc)| tc.to_json())
+                                            .collect();
+                                        if let Ok(json) = serde_json::to_string(&tool_calls) {
+                                            yield Ok(Event::default().data(format!("[TOOL_CALLS]{}", json)));
+                                        }
+                                    }
                                     yield Ok(Event::default().data("[DONE]"));
                                     return;
                                 }
 
                                 if let Ok(chunk) = serde_json::from_str::<StreamChunk>(data) {
-                                    // Capture usage from the final chunk (when include_usage is true)
                                     if let Some(u) = chunk.usage {
                                         if let Ok(mut usage_guard) = usage.lock() {
                                             usage_guard.prompt_tokens = u.prompt_tokens;
@@ -321,8 +366,43 @@ impl OpenAIService {
                                     }
 
                                     if let Some(choice) = chunk.choices.first() {
+                                        // Stream text content
                                         if let Some(content) = &choice.delta.content {
                                             yield Ok(Event::default().data(content.clone()));
+                                        }
+
+                                        // Accumulate tool calls by index
+                                        if let Some(ref tcs) = choice.delta.tool_calls {
+                                            for tc in tcs {
+                                                let entry = tool_call_buffer
+                                                    .entry(tc.index)
+                                                    .or_insert_with(AccumulatedToolCall::default);
+
+                                                if let Some(ref id) = tc.id {
+                                                    entry.id = id.clone();
+                                                }
+                                                if let Some(ref func) = tc.function {
+                                                    if let Some(ref name) = func.name {
+                                                        entry.function_name = name.clone();
+                                                    }
+                                                    if let Some(ref args) = func.arguments {
+                                                        entry.arguments.push_str(args);
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                        // Emit tool calls when finish_reason is "tool_calls"
+                                        if choice.finish_reason.as_deref() == Some("tool_calls") && !tool_call_buffer.is_empty() {
+                                            let mut entries: Vec<_> = tool_call_buffer.drain().collect();
+                                            entries.sort_by_key(|(idx, _)| *idx);
+                                            let tool_calls: Vec<serde_json::Value> = entries
+                                                .into_iter()
+                                                .map(|(_, tc)| tc.to_json())
+                                                .collect();
+                                            if let Ok(json) = serde_json::to_string(&tool_calls) {
+                                                yield Ok(Event::default().data(format!("[TOOL_CALLS]{}", json)));
+                                            }
                                         }
                                     }
                                 }
@@ -339,7 +419,29 @@ impl OpenAIService {
     }
 }
 
-// OpenAI API 요청/응답 타입들
+// -- Accumulated tool call buffer --
+
+#[derive(Default)]
+struct AccumulatedToolCall {
+    id: String,
+    function_name: String,
+    arguments: String,
+}
+
+impl AccumulatedToolCall {
+    fn to_json(&self) -> serde_json::Value {
+        serde_json::json!({
+            "id": self.id,
+            "type": "function",
+            "function": {
+                "name": self.function_name,
+                "arguments": self.arguments,
+            }
+        })
+    }
+}
+
+// -- OpenAI API request/response types --
 
 #[derive(Serialize)]
 struct ChatRequest {
@@ -350,6 +452,10 @@ struct ChatRequest {
     stream: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     stream_options: Option<StreamOptions>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    tools: Option<serde_json::Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    tool_choice: Option<serde_json::Value>,
 }
 
 #[derive(Serialize)]
@@ -360,7 +466,12 @@ struct StreamOptions {
 #[derive(Serialize)]
 struct Message {
     role: String,
-    content: MessageContent,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    content: Option<MessageContent>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    tool_call_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    tool_calls: Option<serde_json::Value>,
 }
 
 #[derive(Serialize)]
@@ -396,6 +507,7 @@ pub struct TokenUsage {
 #[derive(Debug, Clone)]
 pub struct ChatResult {
     pub content: String,
+    pub tool_calls: Option<serde_json::Value>,
     pub usage: TokenUsage,
 }
 
@@ -432,7 +544,8 @@ struct Choice {
 
 #[derive(Deserialize)]
 struct ResponseMessage {
-    content: String,
+    content: Option<String>,
+    tool_calls: Option<serde_json::Value>,
 }
 
 #[derive(Deserialize)]
@@ -444,9 +557,27 @@ struct StreamChunk {
 #[derive(Deserialize)]
 struct StreamChoice {
     delta: Delta,
+    #[serde(default)]
+    finish_reason: Option<String>,
 }
 
 #[derive(Deserialize)]
 struct Delta {
     content: Option<String>,
+    #[serde(default)]
+    tool_calls: Option<Vec<StreamToolCall>>,
+}
+
+#[derive(Deserialize)]
+struct StreamToolCall {
+    index: u32,
+    id: Option<String>,
+    #[serde(default)]
+    function: Option<StreamToolCallFunction>,
+}
+
+#[derive(Deserialize, Default)]
+struct StreamToolCallFunction {
+    name: Option<String>,
+    arguments: Option<String>,
 }

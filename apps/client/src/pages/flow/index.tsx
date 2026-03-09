@@ -17,6 +17,12 @@ import Flow, { FlowHeader, FlowSidebar } from "@/features/flow/Flow";
 import { AppSidebar } from "@/features/sidebar";
 import { useBeforeUnload, useBlocker } from "react-router";
 import { useFlowStore } from "@/entities/flow/store";
+import { useChatStore } from "@/features/llm-chat";
+import {
+  buildFlowSystemPrompt,
+  FLOW_TOOLS,
+  executeFlowToolCalls,
+} from "@/features/flow/flow-chat";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -35,6 +41,27 @@ export function FlowPage() {
   const { hasUnsavedChanges } = useFlowStore();
   const blocker = useBlocker(hasUnsavedChanges);
   const [showLeavePrompt, setShowLeavePrompt] = useState(false);
+
+  useEffect(() => {
+    useChatStore.getState().setFlowContext({
+      buildSystemPrompt: () => {
+        const { nodes, edges, flows, currentFlowId } = useFlowStore.getState();
+        const currentFlow = flows.find((f) => f.id === currentFlowId);
+        return buildFlowSystemPrompt(
+          nodes,
+          edges,
+          flows,
+          currentFlow?.name ?? null,
+        );
+      },
+      tools: FLOW_TOOLS,
+      executeToolCalls: (toolCalls) =>
+        executeFlowToolCalls(toolCalls, useFlowStore.getState()),
+    });
+    return () => {
+      useChatStore.getState().setFlowContext(null);
+    };
+  }, []);
 
   const handleBeforeUnload = useCallback(
     (event: BeforeUnloadEvent) => {

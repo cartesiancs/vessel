@@ -1,81 +1,126 @@
 /**
- * 대화 히스토리의 단일 메시지
+ * A single message in conversation history
  *
- * 멀티턴 대화를 위해 사용. 클라이언트가 히스토리를 관리하고
- * 매 요청에 포함시킴.
+ * Used for multi-turn conversations. The client manages history
+ * and includes it in each request.
  */
 export interface HistoryMessage {
-  /** 메시지 역할 */
-  role: 'user' | 'assistant' | 'system';
-  /** 텍스트 내용 */
+  /** Message role */
+  role: 'user' | 'assistant' | 'system' | 'tool';
+  /** Text content */
   content: string;
+  /** Tool call ID (required when role is "tool") */
+  tool_call_id?: string;
+  /** Tool calls (when role is "assistant" and responding with tool calls) */
+  tool_calls?: ToolCallResult[];
 }
 
 /**
- * 대화 히스토리 및 시스템 프롬프트 옵션
+ * OpenAI function calling tool definition
+ */
+export interface ToolFunction {
+  name: string;
+  description: string;
+  parameters: Record<string, unknown>;
+}
+
+/**
+ * OpenAI tool definition
+ */
+export interface Tool {
+  type: 'function';
+  function: ToolFunction;
+}
+
+/**
+ * Tool call result returned by the LLM
+ */
+export interface ToolCallResult {
+  id: string;
+  type: 'function';
+  function: { name: string; arguments: string };
+}
+
+/**
+ * Tool call received callback
+ */
+export type ToolCallCallback = (toolCalls: ToolCallResult[]) => void;
+
+/**
+ * Conversation history and system prompt options
  */
 export interface ChatOptions {
-  /** 시스템 프롬프트 */
+  /** System prompt */
   systemPrompt?: string;
-  /** 대화 히스토리 (오래된 순서) */
+  /** Conversation history (oldest first) */
   history?: HistoryMessage[];
+  /** OpenAI tools definition (function calling) */
+  tools?: Tool[];
+  /** OpenAI tool_choice ("auto" | "required" | "none") */
+  toolChoice?: 'auto' | 'required' | 'none';
+  /** Tool call received callback */
+  onToolCall?: ToolCallCallback;
 }
 
 /**
- * 암호화된 이미지 데이터
+ * Encrypted image data
  */
 export interface EncryptedImage {
-  /** 클라이언트 임시 공개키 (base64) */
+  /** Client ephemeral public key (base64) */
   ephemeral_public_key: string;
   /** Nonce (base64) */
   nonce: string;
-  /** 암호화된 데이터 (base64) */
+  /** Encrypted data (base64) */
   ciphertext: string;
 }
 
 /**
- * 채팅 요청
+ * Chat request
  */
 export interface ChatRequest {
-  /** 사용자 메시지 */
+  /** User message */
   message: string;
-  /** 암호화된 이미지 (선택사항) */
+  /** Encrypted image (optional) */
   encrypted_image?: EncryptedImage;
-  /** 대화 히스토리 (선택사항, 오래된 순서) */
+  /** Conversation history (optional, oldest first) */
   history?: HistoryMessage[];
-  /** 시스템 프롬프트 (선택사항) */
+  /** System prompt (optional) */
   system_prompt?: string;
+  /** OpenAI tools definition (optional, function calling) */
+  tools?: Tool[];
+  /** OpenAI tool_choice (optional) */
+  tool_choice?: string;
 }
 
 /**
- * 채팅 응답
+ * Chat response
  */
 export interface ChatResponse {
-  /** AI 응답 */
+  /** AI response */
   response: string;
 }
 
 /**
- * Public Key 응답
+ * Public Key response
  */
 export interface PublicKeyResponse {
-  /** 서버 공개키 (base64) */
+  /** Server public key (base64) */
   public_key: string;
 }
 
 /**
- * Capsule 클라이언트 옵션
+ * Capsule client options
  */
 export interface CapsuleClientOptions {
-  /** Capsule 서버 URL */
+  /** Capsule server URL */
   baseUrl: string;
-  /** 요청 타임아웃 (ms) */
+  /** Request timeout (ms) */
   timeout?: number;
   /**
    * Access token provider
    *
-   * Supabase 세션 토큰을 제공하는 함수
-   * 인증이 필요한 API 호출 시 자동으로 Authorization 헤더에 추가됨
+   * Function that provides Supabase session tokens.
+   * Automatically added to the Authorization header for authenticated API calls.
    *
    * @example
    * ```typescript
@@ -92,16 +137,16 @@ export interface CapsuleClientOptions {
 }
 
 /**
- * 이미지 분석 요청 옵션
+ * Image analysis request options
  */
 export interface AnalyzeImageOptions {
-  /** 분석할 이미지 (File, Blob, 또는 Uint8Array) */
+  /** Image to analyze (File, Blob, or Uint8Array) */
   image: File | Blob | Uint8Array;
-  /** 분석 요청 메시지 */
+  /** Analysis request message */
   message: string;
 }
 
 /**
- * 스트리밍 이벤트 콜백
+ * Streaming event callback
  */
 export type StreamCallback = (chunk: string, done: boolean) => void;
