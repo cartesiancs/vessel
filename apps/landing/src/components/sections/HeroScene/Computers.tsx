@@ -60,6 +60,21 @@ function ScreenVideo({ frame, panel, ...props }: any) {
     playsInline: true,
   });
 
+  const screen = useMemo(() => {
+    const geo = nodes[panel].geometry;
+    geo.computeBoundingBox();
+    const bb = geo.boundingBox!;
+    return {
+      width: bb.max.x - bb.min.x,
+      height: bb.max.y - bb.min.y,
+      center: [
+        (bb.max.x + bb.min.x) / 2,
+        (bb.max.y + bb.min.y) / 2,
+        bb.max.z + 0.005,
+      ] as [number, number, number],
+    };
+  }, [nodes, panel]);
+
   return (
     <group {...props}>
       <mesh
@@ -68,7 +83,8 @@ function ScreenVideo({ frame, panel, ...props }: any) {
         geometry={nodes[frame].geometry}
         material={materials.Texture}
       />
-      <mesh geometry={nodes[panel].geometry}>
+      <mesh position={screen.center}>
+        <planeGeometry args={[screen.width, screen.height]} />
         <meshBasicMaterial map={texture} toneMapped={false} />
       </mesh>
     </group>
