@@ -55,13 +55,13 @@ function LandingPage() {
         <MidCTASection />
         <IntegrationSection />
         <ThreeCardsSection />
-        <HeroSceneSection />
         <SecurityCTASection />
         <CapsulePromoSection />
         <FAQSection />
         <FooterCtaSection />
       </main>
       <Footer />
+      <HeroSceneSection />
     </>
   );
 }
