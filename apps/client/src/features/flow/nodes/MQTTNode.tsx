@@ -27,7 +27,7 @@ export function renderMQTTNode(
     .attr("dominant-baseline", "middle")
     .attr("font-size", 8)
     .attr("fill", "#fff")
-    .text(`${(d.data as MqttPublishNodeType).topic ?? ""}`);
+    .text(`${(d.data as MqttPublishNodeType)?.topic ?? ""}`);
   group.on("click", (e) => {
     e.stopPropagation();
     onOpen();

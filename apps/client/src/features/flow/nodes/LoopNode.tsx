@@ -27,7 +27,7 @@ export function renderLoopNode(
     .attr("dominant-baseline", "middle")
     .attr("font-size", 8)
     .attr("fill", "#fff")
-    .text(`Edit Loop ${(d.data as LoopNodeType).iterations ?? ""}`);
+    .text(`Edit Loop ${(d.data as LoopNodeType)?.iterations ?? ""}`);
   group.on("click", (e) => {
     e.stopPropagation();
     onOpen();

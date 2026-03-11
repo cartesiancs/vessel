@@ -16,6 +16,7 @@ import { ListCardsSection } from "@/components/sections/ListCards";
 import { CapsulePromoSection } from "@/components/sections/CapsulePromo";
 import { ScrollTextRevealSection } from "@/components/sections/ScrollTextReveal";
 import { HeroSceneSection } from "@/components/sections/HeroScene/HeroScene";
+import { UsecaseAIAssistantSection } from "@/components/sections/UsecaseAI";
 
 function LandingPage() {
   return (
@@ -55,6 +56,7 @@ function LandingPage() {
         <MidCTASection />
         <IntegrationSection />
         <ThreeCardsSection />
+        <UsecaseAIAssistantSection />
         <SecurityCTASection />
         <CapsulePromoSection />
         <FAQSection />

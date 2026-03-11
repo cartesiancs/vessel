@@ -27,7 +27,7 @@ export function renderLogicNode(
     .attr("dominant-baseline", "middle")
     .attr("font-size", 8)
     .attr("fill", "#fff")
-    .text(`${(d.data as LogicOpetatorNodeType).operator ?? ""}`);
+    .text(`${(d.data as LogicOpetatorNodeType)?.operator ?? ""}`);
   group.on("click", (e) => {
     e.stopPropagation();
     onOpen();

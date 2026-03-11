@@ -10,25 +10,32 @@ type Usecase = {
 
 const usecases: Usecase[] = [
   {
-    title: "Realtime Control",
+    title: "Flow Auto-Generation",
     description:
-      "Coordinate sensors, cameras, and automated responses across large sites without relying on cloud connectivity.",
+      "Describe what you want in natural language and the AI agent instantly builds a complete automation flow.",
+    image: "/images/ai1.webp",
+    alt: "AI generating automation flow",
+  },
+  {
+    title: "Home Status Analysis",
+    description:
+      "The AI continuously monitors sensor data, cameras, and device states to understand what is happening at home and surface actionable insights in real time.",
     image: "/images/house.webp",
-    alt: "Perimeter operations map",
+    alt: "AI analyzing home status",
   },
   {
-    title: "Mission Control Watchtower",
+    title: "Flow Integration",
     description:
-      "Fuse live feeds, alerts, and playbooks into a single command layer for faster, safer decisions.",
+      "Seamlessly merge AI-generated suggestions into your existing flows. The agent resolves conflicts, optimizes triggers, and keeps everything in sync.",
     image: "/images/factory.webp",
-    alt: "Mission control dashboard",
+    alt: "AI integrating into existing flows",
   },
   {
-    title: "CCTV Dashboard",
+    title: "Capsule Security",
     description:
-      "RTSP and low-level UDP RTP video stream support. Aggregate multiple media sources for real-time visibility and control.",
-    image: "/images/cctv.webp",
-    alt: "Mission control dashboard",
+      "Every AI action runs inside an isolated capsule with scoped permissions, ensuring that automation never exceeds the boundaries you define.",
+    image: "/images/s1.webp",
+    alt: "Capsule-based security layer",
   },
 ];
 
@@ -36,7 +43,7 @@ function cx(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
 }
 
-export function UsecaseSection() {
+export function UsecaseAIAssistantSection() {
   const { ref: sectionRef, isVisible } = useFadeInOnScroll<HTMLElement>();
   const [activeIndex, setActiveIndex] = useState(0);
 
@@ -53,7 +60,10 @@ export function UsecaseSection() {
       >
         <div className='mb-10 text-left'>
           <h2 className='mt-3 text-3xl font-bold tracking-tight md:text-4xl'>
-            Explore <span className='text-neutral-500'>What You Can Build</span>
+            AI Agent{" "}
+            <span className='text-neutral-500'>
+              for understanding the world
+            </span>
           </h2>
         </div>
 

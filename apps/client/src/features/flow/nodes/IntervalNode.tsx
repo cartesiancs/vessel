@@ -27,7 +27,7 @@ export function renderIntervalNode(
     .attr("dominant-baseline", "middle")
     .attr("font-size", 8)
     .attr("fill", "#fff")
-    .text(`Interval ${(d.data as IntervalNodeType).interval ?? ""}`);
+    .text(`Interval ${(d.data as IntervalNodeType)?.interval ?? ""}`);
   group.on("click", (e) => {
     e.stopPropagation();
     onOpen();
