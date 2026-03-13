@@ -94,7 +94,7 @@ export function FlowPage() {
   };
 
   return (
-    <SidebarProvider className='h-full'>
+    <SidebarProvider className='!h-svh !min-h-0 overflow-hidden'>
       <AppSidebar />
       <SidebarInset className='h-full'>
         <header className='flex h-12 shrink-0 items-center gap-2 border-b px-4 justify-between'>

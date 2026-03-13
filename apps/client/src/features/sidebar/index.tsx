@@ -164,7 +164,7 @@ export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
     setActiveDashboard,
     activeDashboardId,
   } = useDynamicDashboardStore();
-  const { isHaConnected, isRos2Connected, fetchStatus } =
+  const { isHaConnected, isRos2Connected, isSdrConnected, fetchStatus } =
     useIntegrationStore();
 
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -189,6 +189,7 @@ export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
       { id: "main", name: "Dashboard" },
       isHaConnected && { id: "ha", name: "Home Assistant" },
       isRos2Connected && { id: "ros2", name: "ROS2" },
+      isSdrConnected && { id: "sdr", name: "RTL-SDR" },
     ].filter(Boolean) as { id: string; name: string }[];
   }, [isHaConnected, isRos2Connected]);
 

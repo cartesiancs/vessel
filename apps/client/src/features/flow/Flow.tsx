@@ -226,89 +226,92 @@ export function FlowSidebar() {
   };
 
   return (
-    <aside className='w-86 border-r bg-card text-card-foreground p-4 flex flex-col overflow-scroll'>
-      <div className='flex items-center justify-between mb-4'>
-        <h2 className='mb-1 text-md font-semibold tracking-tight'>Flows</h2>
-        <div className='flex items-center'>
-          <Dialog onOpenChange={(open) => !open && setNewFlowName("")}>
-            <DialogTrigger asChild>
-              <Button variant='ghost' size='icon'>
-                <Plus className='h-4 w-4 ' />
-              </Button>
-            </DialogTrigger>
-            <DialogContent className='sm:max-w-[425px]'>
-              <DialogHeader>
-                <DialogTitle>Create New Flow</DialogTitle>
-                <DialogDescription>
-                  Enter a name for your new flow. Click create when you're done.
-                </DialogDescription>
-              </DialogHeader>
-              <div className='grid gap-4 py-4'>
-                <div className='grid grid-cols-4 items-center gap-4'>
-                  <Label htmlFor='name' className='text-right'>
-                    Name
-                  </Label>
-                  <Input
-                    id='name'
-                    value={newFlowName}
-                    onChange={(e) => setNewFlowName(e.target.value)}
-                    className='col-span-3'
-                    placeholder='My Awesome Flow'
-                  />
+    <aside className='w-86 border-r bg-card text-card-foreground p-4 overflow-hidden h-full'>
+      <div className='flex flex-col h-full'>
+        <div className='flex items-center justify-between mb-4 shrink-0'>
+          <h2 className='mb-1 text-md font-semibold tracking-tight'>Flows</h2>
+          <div className='flex items-center'>
+            <Dialog onOpenChange={(open) => !open && setNewFlowName("")}>
+              <DialogTrigger asChild>
+                <Button variant='ghost' size='icon'>
+                  <Plus className='h-4 w-4 ' />
+                </Button>
+              </DialogTrigger>
+              <DialogContent className='sm:max-w-[425px]'>
+                <DialogHeader>
+                  <DialogTitle>Create New Flow</DialogTitle>
+                  <DialogDescription>
+                    Enter a name for your new flow. Click create when you're
+                    done.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className='grid gap-4 py-4'>
+                  <div className='grid grid-cols-4 items-center gap-4'>
+                    <Label htmlFor='name' className='text-right'>
+                      Name
+                    </Label>
+                    <Input
+                      id='name'
+                      value={newFlowName}
+                      onChange={(e) => setNewFlowName(e.target.value)}
+                      className='col-span-3'
+                      placeholder='My Awesome Flow'
+                    />
+                  </div>
                 </div>
-              </div>
-              <DialogFooter>
-                <DialogClose asChild>
-                  <Button type='button' onClick={handleCreateFlow}>
-                    Create
-                  </Button>
-                </DialogClose>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+                <DialogFooter>
+                  <DialogClose asChild>
+                    <Button type='button' onClick={handleCreateFlow}>
+                      Create
+                    </Button>
+                  </DialogClose>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
-      </div>
-      <div className='flex-1 overflow-y-auto -mr-4 pr-4 '>
-        <div className='flex flex-col gap-1'>
-          {flows.map((flow) => (
-            <div
-              key={flow.id}
-              className='flex w-full items-center group rounded-md gap-2'
-            >
-              <Button
-                variant='ghost'
-                onClick={() => handleFlowSelect(flow.id)}
-                className={` justify-start flex-grow hover:bg-transparent ${
-                  currentFlowId === flow.id
-                    ? "bg-accent text-accent-foreground"
-                    : ""
-                }`}
+        <div className='flex-1 overflow-y-auto min-h-0 -mr-4 pr-4'>
+          <div className='flex flex-col gap-1'>
+            {flows.map((flow) => (
+              <div
+                key={flow.id}
+                className='flex w-full items-center group rounded-md gap-2'
               >
-                <File className='mr-0 h-4 w-4' />
-                <span className='truncate'>{flow.name}</span>
-              </Button>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant='ghost'
-                    size='icon'
-                    className='h-8 w-8 opacity-0 group-hover:opacity-100 focus:opacity-100'
-                  >
-                    <MoreHorizontal className='h-4 w-4 ' />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                  <DropdownMenuItem
-                    onSelect={() => setFlowToDelete(flow)}
-                    className='text-red-600 hover:!text-red-600 focus:text-red-600'
-                  >
-                    <Trash2 className='text-red-600 hover:!text-red-600 mr-2 h-4 w-4' />
-                    Delete
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          ))}
+                <Button
+                  variant='ghost'
+                  onClick={() => handleFlowSelect(flow.id)}
+                  className={` justify-start flex-grow hover:bg-transparent ${
+                    currentFlowId === flow.id
+                      ? "bg-accent text-accent-foreground"
+                      : ""
+                  }`}
+                >
+                  <File className='mr-0 h-4 w-4' />
+                  <span className='truncate'>{flow.name}</span>
+                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant='ghost'
+                      size='icon'
+                      className='h-8 w-8 opacity-0 group-hover:opacity-100 focus:opacity-100'
+                    >
+                      <MoreHorizontal className='h-4 w-4 ' />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent>
+                    <DropdownMenuItem
+                      onSelect={() => setFlowToDelete(flow)}
+                      className='text-red-600 hover:!text-red-600 focus:text-red-600'
+                    >
+                      <Trash2 className='text-red-600 hover:!text-red-600 mr-2 h-4 w-4' />
+                      Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 

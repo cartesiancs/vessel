@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { MoreVertical, Radio } from "lucide-react";
+import { MoreVertical } from "lucide-react";
 import { formatSimpleDateTime } from "@/lib/time";
 import { StreamReceiver } from "../rtc/StreamReceiver";
 import { RecordingMenuItem } from "../recording/RecordingButton";
@@ -52,18 +52,17 @@ export function EntityCard({
         <CardHeader className='px-4'>
           <CardDescription>{item.friendly_name}</CardDescription>
           <CardTitle className='text-2xl font-semibold tabular-nums'>
-            <Radio className='h-5 w-5 text-purple-500 inline mr-2' />
             RTL-SDR
           </CardTitle>
         </CardHeader>
         <CardFooter className='flex-row items-center justify-between px-4 text-sm'>
-          <div className='font-medium'>RTL-SDR Server</div>
           <Button
             size='sm'
             variant='outline'
+            className='w-full'
             onClick={() => navigate("/dashboard?view=sdr")}
           >
-            Open Control Panel
+            Open Panel
           </Button>
         </CardFooter>
       </Card>
@@ -108,7 +107,9 @@ export function EntityCard({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align='end'>
-              <RecordingMenuItem topic={item.configuration.state_topic as string} />
+              <RecordingMenuItem
+                topic={item.configuration.state_topic as string}
+              />
             </DropdownMenuContent>
           </DropdownMenu>
         </CardFooter>
@@ -155,7 +156,9 @@ export function EntityCard({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align='end'>
-              <RecordingMenuItem topic={item.configuration.rtsp_url as string} />
+              <RecordingMenuItem
+                topic={item.configuration.rtsp_url as string}
+              />
               <AnalyzeMenuItem topic={item.configuration.rtsp_url as string} />
             </DropdownMenuContent>
           </DropdownMenu>
@@ -203,8 +206,12 @@ export function EntityCard({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align='end'>
-              <RecordingMenuItem topic={item.configuration.state_topic as string} />
-              <AnalyzeMenuItem topic={item.configuration.state_topic as string} />
+              <RecordingMenuItem
+                topic={item.configuration.state_topic as string}
+              />
+              <AnalyzeMenuItem
+                topic={item.configuration.state_topic as string}
+              />
             </DropdownMenuContent>
           </DropdownMenu>
         </CardFooter>

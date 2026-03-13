@@ -98,8 +98,6 @@ const neverCollected = [
 export function PrivacyPage() {
   const { ref: principlesRef, isVisible: principlesVisible } =
     useFadeInOnScroll<HTMLElement>();
-  const { ref: selfHostRef, isVisible: selfHostVisible } =
-    useFadeInOnScroll<HTMLElement>();
   const { ref: cloudRef, isVisible: cloudVisible } =
     useFadeInOnScroll<HTMLElement>();
 
@@ -110,8 +108,8 @@ export function PrivacyPage() {
         {/* Hero Section */}
         <section className='flex min-h-[600px] flex-col items-center justify-center px-8 md:px-10'>
           <div className='flex max-w-3xl flex-col items-center gap-y-6 text-center'>
-            <h1 className='text-4xl font-semibold tracking-tight md:text-6xl md:font-bold md:leading-17 leading-10'>
-              <span className='font-serif font-medium'>Absolute Privacy</span>
+            <h1 className='text-4xl md:text-6xl lg:text-6xl md:leading-17 leading-10 md:font-bold font-semibold tracking-tight text-center'>
+              Absolute Privacy
             </h1>
             <div className='flex items-center gap-x-4 pt-2'>
               <Button
@@ -179,76 +177,6 @@ export function PrivacyPage() {
                   </div>
                 );
               })}
-            </div>
-          </div>
-        </section>
-
-        {/* Self-Host Section */}
-        <section
-          ref={selfHostRef}
-          className='h-full w-full bg-neutral-950 text-white'
-        >
-          <div
-            className={cx(
-              "container mx-auto flex h-full max-w-6xl flex-col gap-12 px-8 py-30 md:flex-row md:items-center md:justify-between md:px-10",
-              "transition-all duration-700 ease-out",
-              selfHostVisible
-                ? "opacity-100 translate-y-0"
-                : "opacity-0 translate-y-6",
-            )}
-          >
-            <div className='w-full md:w-[46%]'>
-              <h2 className='text-4xl font-semibold tracking-tight md:text-5xl'>
-                <span className='font-serif font-medium'>
-                  Self-Host, Self-Own.
-                </span>
-              </h2>
-              <p className='mt-6 text-base leading-relaxed text-white/60'>
-                The Vessel core is fully open source. When you self-host, your
-                data never touches our servers.
-              </p>
-              <div className='mt-8 flex flex-wrap items-center gap-4'>
-                <button
-                  type='button'
-                  className='inline-flex h-11 cursor-pointer items-center justify-center bg-white px-5 text-sm font-medium text-black transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80'
-                  onClick={() =>
-                    window.open("https://github.com/cartesiancs/vessel")
-                  }
-                >
-                  See GitHub
-                </button>
-              </div>
-            </div>
-            <div className='w-full md:w-[54%]'>
-              <div className='space-y-4 border border-white/10 p-8'>
-                <div className='flex items-center gap-3'>
-                  <Server className='h-5 w-5 text-white/60' strokeWidth={1.5} />
-                  <span className='text-sm text-white/80'>
-                    Your server, your rules
-                  </span>
-                </div>
-                <div className='flex items-center gap-3'>
-                  <Wifi className='h-5 w-5 text-white/60' strokeWidth={1.5} />
-                  <span className='text-sm text-white/80'>
-                    Works fully offline
-                  </span>
-                </div>
-                <div className='flex items-center gap-3'>
-                  <Eye className='h-5 w-5 text-white/60' strokeWidth={1.5} />
-                  <span className='text-sm text-white/80'>
-                    Every line of code auditable
-                  </span>
-                </div>
-                <div className='flex items-center gap-3'>
-                  <ShieldCheck
-                    className='h-5 w-5 text-white/60'
-                    strokeWidth={1.5}
-                  />
-                  <span className='text-sm text-white/80'>
-                    No telemetry, no phone-home
-                  </span>
-                </div>
-              </div>
             </div>
           </div>
         </section>
