@@ -9,6 +9,7 @@ import LoginPage from "./pages/Login";
 import DashboardPage from "./pages/Dashboard";
 import CheckoutSuccessPage from "./pages/CheckoutSuccess";
 import CapsulePage from "./pages/Capsule";
+import ContactPage from "./pages/Contact";
 import { Toaster } from "sonner";
 
 const router = createBrowserRouter([
@@ -51,6 +52,10 @@ const router = createBrowserRouter([
   {
     path: "/capsule",
     element: <CapsulePage />,
+  },
+  {
+    path: "/contact",
+    element: <ContactPage />,
   },
 ]);
 

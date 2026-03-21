@@ -3,6 +3,7 @@ const footerNav = {
     { name: "Pricing", href: "/pricing" },
     { name: "Roadmap", href: "/roadmap" },
     { name: "Usecase", href: "/usecase" },
+    { name: "Contact", href: "/contact" },
     { name: "Privacy", href: "/privacy" },
     { name: "Capsule", href: "/capsule" },
   ],
