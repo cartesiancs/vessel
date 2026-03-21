@@ -2,10 +2,12 @@ import {
   createContext,
   useContext,
   useEffect,
+  useRef,
   useState,
   ReactNode,
   useMemo,
 } from "react";
+import { toast } from "sonner";
 import { useWebSocket } from "../ws/WebSocketProvider";
 import { WebRTCManager } from "./rtc";
 import { isDemoMode } from "@/shared/demo";
@@ -13,6 +15,7 @@ import { WebSocketChannel } from "../ws/ws";
 import {
   ensureIceServers,
   onCredentialChange,
+  onTurnCredentialError,
   stopAutoRenewal,
   DEFAULT_ICE_SERVERS,
 } from "./turnService";
@@ -49,6 +52,7 @@ export function WebRTCProvider({ children }: WebRTCProviderProps) {
   const [streams, setStreams] = useState<Map<string, StreamInfo>>(new Map());
   const [demoMode] = useState(isDemoMode);
   const [iceServers, setIceServers] = useState<RTCIceServer[] | null>(null);
+  const lastTurnErrorRef = useRef<string | null>(null);
 
   // Load ICE servers: try localStorage → server DB → Supabase → STUN fallback
   useEffect(() => {
@@ -73,6 +77,35 @@ export function WebRTCProvider({ children }: WebRTCProviderProps) {
       stopAutoRenewal();
     };
   }, [demoMode, isConnected]);
+
+  useEffect(() => {
+    if (demoMode) return;
+
+    return onTurnCredentialError((error) => {
+      const fingerprint = `${error.code}:${error.message}:${error.usage?.periodEnd ?? ""}`;
+      if (lastTurnErrorRef.current === fingerprint) return;
+
+      lastTurnErrorRef.current = fingerprint;
+
+      if (error.code === "TURN_QUOTA_EXCEEDED") {
+        toast.error("TURN relay quota exceeded", {
+          description:
+            error.usage?.periodEnd
+              ? `1 GB monthly limit reached. Quota resets ${new Date(
+                  error.usage.periodEnd,
+                ).toLocaleString()}.`
+              : "1 GB monthly limit reached for TURN relay traffic.",
+        });
+        return;
+      }
+
+      if (error.code === "TURN_USAGE_UNAVAILABLE") {
+        toast.error("TURN usage check unavailable", {
+          description: "TURN relay usage could not be verified, so the app is using STUN only.",
+        });
+      }
+    });
+  }, [demoMode]);
 
   // Create WebRTCManager when connected and ICE servers are ready
   useEffect(() => {

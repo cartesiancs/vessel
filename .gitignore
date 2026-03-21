@@ -16,3 +16,4 @@ database.db-*
 /packages/*/dist
 /packages/*/**/node_modules
 /apps/*/**/node_modules
+/supabase

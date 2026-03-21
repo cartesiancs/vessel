@@ -34,11 +34,27 @@ import {
   clearTurnCache,
   saveTurnConfigToServer,
   getCredentialInfo,
+  isTurnCredentialError,
   notifyListeners,
   type TurnCredentialsResponse,
+  type TurnUsage,
 } from "@/features/rtc/turnService";
 import { useChatStore } from "@/features/llm-chat/store";
 import { storage } from "@/lib/storage";
+
+function formatTurnQuotaUsage(usage: TurnUsage | null): string | null {
+  if (!usage?.quotaBytes) return null;
+
+  const usedGb = (usage.totalBytes / 1024 ** 3).toFixed(2);
+  const quotaGb = (usage.quotaBytes / 1024 ** 3).toFixed(2);
+  const resetsAt = usage.periodEnd
+    ? new Date(usage.periodEnd).toLocaleString()
+    : null;
+
+  return resetsAt
+    ? `${usedGb} GB / ${quotaGb} GB used. Quota resets ${resetsAt}.`
+    : `${usedGb} GB / ${quotaGb} GB used this period.`;
+}
 
 export function SettingsPage() {
   const { status, isLoading, error, refresh, start, stop } = useTunnelStore();
@@ -72,6 +88,7 @@ export function SettingsPage() {
     null,
   );
   const [turnError, setTurnError] = useState<string | null>(null);
+  const [turnErrorUsage, setTurnErrorUsage] = useState<TurnUsage | null>(null);
 
   const existingCred = getCredentialInfo();
   const isIssued = turnResult
@@ -85,6 +102,7 @@ export function SettingsPage() {
   const handleIssueTurn = async () => {
     setTurnLoading(true);
     setTurnError(null);
+    setTurnErrorUsage(null);
     setTurnResult(null);
     try {
       clearTurnCache();
@@ -96,9 +114,14 @@ export function SettingsPage() {
       setTurnResult(result);
       notifyListeners(result.iceServers);
     } catch (err) {
-      setTurnError(
-        err instanceof Error ? err.message : "Failed to issue TURN credentials",
-      );
+      if (isTurnCredentialError(err)) {
+        setTurnError(err.message);
+        setTurnErrorUsage(err.usage ?? null);
+      } else {
+        setTurnError(
+          err instanceof Error ? err.message : "Failed to issue TURN credentials",
+        );
+      }
     } finally {
       setTurnLoading(false);
     }
@@ -291,7 +314,14 @@ export function SettingsPage() {
                     </Badge>
                   )}
                   {turnError && (
-                    <span className='text-sm text-red-500'>{turnError}</span>
+                    <div className='space-y-1'>
+                      <span className='text-sm text-red-500'>{turnError}</span>
+                      {turnErrorUsage && (
+                        <p className='text-xs text-muted-foreground'>
+                          {formatTurnQuotaUsage(turnErrorUsage)}
+                        </p>
+                      )}
+                    </div>
                   )}
                 </div>
                 {isIssued && (
