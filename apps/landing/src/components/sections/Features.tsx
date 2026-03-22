@@ -6,15 +6,17 @@ const features = [
     title: "Flow",
     description:
       "Orchestrate sensors and automations with a flow-based editor that connects devices, AI models, and actions.",
-    image: "/images/flow.png",
+    highlight: "Orchestrate sensors",
+    image: "/images/flow.webp",
     alt: "Flow visual editor",
   },
   {
     number: "02",
     title: "Dashboard",
     description:
-      "Track streams, alerts, and system health in one place with a centralized command view.",
-    image: "/images/dashboard.png",
+      "Track streams and system health in one place with a centralized command view.",
+    highlight: "Track streams",
+    image: "/images/dashboard.webp",
     alt: "Dashboard monitoring",
   },
   {
@@ -22,10 +24,55 @@ const features = [
     title: "Map",
     description:
       "Coordinate devices spatially with a map UI for faster decisions and responses.",
-    image: "/images/map.png",
+    highlight: "Coordinate devices",
+    image: "/images/map.webp",
     alt: "Map based interface",
   },
 ];
+
+function HighlightedText({
+  text,
+  highlight,
+  animate,
+  delay,
+}: {
+  text: string;
+  highlight: string;
+  animate: boolean;
+  delay: number;
+}) {
+  const idx = text.indexOf(highlight);
+  if (idx === -1) return <>{text}</>;
+
+  const before = text.slice(0, idx);
+  const match = text.slice(idx, idx + highlight.length);
+  const after = text.slice(idx + highlight.length);
+
+  return (
+    <>
+      {before}
+      <span className='relative inline'>
+        <span
+          className='absolute inset-0 -mx-0.5 bg-white/90 origin-left transition-transform duration-700 ease-out'
+          style={{
+            transform: animate ? "scaleX(1)" : "scaleX(0)",
+            transitionDelay: `${delay}ms`,
+          }}
+        />
+        <span
+          className='relative transition-colors duration-700'
+          style={{
+            color: animate ? "#171717" : undefined,
+            transitionDelay: `${delay}ms`,
+          }}
+        >
+          {match}
+        </span>
+      </span>
+      {after}
+    </>
+  );
+}
 
 export function FeaturesSection() {
   const { ref: sectionRef, isVisible } = useFadeInOnScroll<HTMLElement>();
@@ -38,7 +85,7 @@ export function FeaturesSection() {
         }`}
       >
         {/* Header */}
-        <div className='mb-16 text-left'>
+        <div className='mb-10 text-left'>
           <h2 className='text-3xl font-bold tracking-tight md:text-4xl leading-tight'>
             Physical AI Platform.{" "}
             <span className='text-neutral-500'>Local-First by Design.</span>
@@ -69,14 +116,19 @@ export function FeaturesSection() {
                 <img
                   src={feature.image}
                   alt={feature.alt}
-                  className='max-h-48 w-auto object-contain opacity-60'
+                  className='h-48 w-full object-cover opacity-60'
                   loading='lazy'
                 />
               </div>
 
               {/* Description */}
               <p className='text-sm leading-relaxed text-neutral-300'>
-                {feature.description}
+                <HighlightedText
+                  text={feature.description}
+                  highlight={feature.highlight}
+                  animate={isVisible}
+                  delay={300 + index * 1500}
+                />
               </p>
             </div>
           ))}

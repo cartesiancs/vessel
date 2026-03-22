@@ -45,8 +45,8 @@ export function SecurityCTASection() {
           </div>
         </div>
 
-        <div className='w-full md:w-[54%]'>
-          <div className='relative h-[260px] w-full md:h-[320px]'></div>
+        <div className='hidden md:block md:w-[54%]'>
+          <div className='relative h-[320px] w-full'></div>
         </div>
       </div>
     </section>

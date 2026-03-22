@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 
 const QUOTE = {
-  text: `"Physical AI that defends, decides, and acts — everyone deserves the right to protect themselves."`,
+  text: `"Physical AI that explores, discovers, and adapts — built for explorers"`,
   author: "H. Jun Huh",
   title: "Founder · cartesiancs",
 };
@@ -18,7 +18,7 @@ function Word({ word, progress }: { word: string; progress: number }) {
         color,
         transition: "color 0.08s ease-out",
       }}
-      className="inline"
+      className='inline'
     >
       {word}{" "}
     </span>
@@ -54,11 +54,11 @@ function QuoteSection() {
     <section
       ref={sectionRef}
       style={{ height: `${Math.max(250, words.length * 18)}vh` }}
-      className="relative"
+      className='relative'
     >
-      <div className="sticky top-0 h-screen flex flex-col items-center justify-center px-[8vw]">
+      <div className='sticky top-0 h-screen flex flex-col items-center justify-center px-[8vw]'>
         <p
-          className="text-center font-bold leading-[1.25] tracking-tight max-w-[820px] m-0"
+          className='text-center font-bold leading-[1.25] tracking-tight max-w-[820px] m-0'
           style={{
             fontSize: "clamp(1.8rem, 4.2vw, 3.6rem)",
             letterSpacing: "-0.02em",
@@ -74,7 +74,7 @@ function QuoteSection() {
         </p>
 
         <div
-          className="mt-8 text-center"
+          className='mt-8 text-center'
           style={{
             opacity:
               scrollProgress > 0.15
@@ -84,10 +84,10 @@ function QuoteSection() {
             transition: "opacity 0.4s ease-out, transform 0.4s ease-out",
           }}
         >
-          <p className="text-sm font-semibold text-foreground m-0 tracking-wide">
+          <p className='text-sm font-semibold text-foreground m-0 tracking-wide'>
             {QUOTE.author}
           </p>
-          <p className="text-xs font-normal text-neutral-500 mt-1 m-0 tracking-wide">
+          <p className='text-xs font-normal text-neutral-500 mt-1 m-0 tracking-wide'>
             {QUOTE.title}
           </p>
         </div>
@@ -98,7 +98,7 @@ function QuoteSection() {
 
 export function ScrollTextRevealSection() {
   return (
-    <section className="w-full">
+    <section className='w-full'>
       <QuoteSection />
     </section>
   );

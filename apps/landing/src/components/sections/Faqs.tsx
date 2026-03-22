@@ -28,6 +28,21 @@ const faqs: FAQItem[] = [
     answer:
       "You can run Vessel locally by starting the Rust-based server and the web client (Node/npm), or use Docker; the repository README provides the step-by-step commands. The project is explicitly described as under active development/POC, and it also states it is intended for academic and research purposes with responsibility for use resting with the user.",
   },
+  {
+    question: "Can I integrate Vessel with my existing smart home setup?",
+    answer:
+      "Yes. Vessel supports integration with popular platforms like Home Assistant through its flow-based automation system. You can connect your existing devices and sensors to Vessel and orchestrate them together in a unified pipeline.",
+  },
+  {
+    question: "Does Vessel support custom sensors or third-party hardware?",
+    answer:
+      "Yes. Vessel is designed to be hardware-agnostic. You can connect custom sensors, microcontrollers, or third-party devices via standard protocols, and the flow editor lets you visually wire them into your automation workflows.",
+  },
+  {
+    question: "Can I self-host Vessel on my own server?",
+    answer:
+      "Yes. Vessel is fully open-source and built for self-hosting. You can deploy it on mac Mini or any machine—whether it's a Raspberry Pi, a local server, or a cloud VM—giving you complete ownership of your data and infrastructure.",
+  },
 ];
 
 function cx(...classes: Array<string | false | null | undefined>) {

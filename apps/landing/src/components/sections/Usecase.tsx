@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import { useFadeInOnScroll } from "@/lib/useFadeInOnScroll";
 
 type Usecase = {
@@ -39,8 +39,14 @@ function cx(...classes: Array<string | false | null | undefined>) {
 export function UsecaseSection() {
   const { ref: sectionRef, isVisible } = useFadeInOnScroll<HTMLElement>();
   const [activeIndex, setActiveIndex] = useState(0);
+  const tabBarRef = useRef<HTMLDivElement>(null);
 
   const active = useMemo(() => usecases[activeIndex], [activeIndex]);
+
+  const handleTabClick = useCallback((idx: number, el: HTMLButtonElement) => {
+    setActiveIndex(idx);
+    el.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+  }, []);
 
   return (
     <section ref={sectionRef} className='w-full'>
@@ -78,16 +84,16 @@ export function UsecaseSection() {
         </div>
 
         {/* Tab bar */}
-        <div className='mt-8 flex justify-center gap-4 md:gap-8'>
+        <div ref={tabBarRef} className='mt-8 flex gap-4 md:gap-8 md:justify-center overflow-x-auto'>
           {usecases.map((u, idx) => {
             const isActive = idx === activeIndex;
             return (
               <button
                 key={u.title}
                 type='button'
-                onClick={() => setActiveIndex(idx)}
+                onClick={(e) => handleTabClick(idx, e.currentTarget)}
                 className={cx(
-                  "pb-2 text-sm md:text-base font-medium transition-all duration-200 cursor-pointer border-b-2",
+                  "pb-2 text-sm md:text-base font-medium transition-all duration-200 cursor-pointer border-b-2 whitespace-nowrap shrink-0",
                   isActive
                     ? "text-white border-white"
                     : "text-neutral-500 border-transparent hover:text-neutral-300",
