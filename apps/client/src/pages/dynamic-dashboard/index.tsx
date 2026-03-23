@@ -50,8 +50,6 @@ export function DynamicDashboardPage() {
     createDashboard,
     deleteDashboard,
     cloneDashboard,
-    addGroup,
-    deleteGroup,
     loadDashboards,
     hasLoaded,
     isLoading,
@@ -149,7 +147,7 @@ export function DynamicDashboardPage() {
     <WebRTCProvider>
       <SidebarProvider>
         <AppSidebar />
-        <SidebarInset>
+        <SidebarInset className='min-h-0'>
           <header className='flex h-12 shrink-0 items-center gap-2 border-b px-4'>
             <SidebarTrigger className='-ml-1' />
             <Separator
@@ -219,41 +217,21 @@ export function DynamicDashboardPage() {
             <div className='ml-auto flex items-center gap-2'>
               <span className='text-xs text-muted-foreground'>Edit mode</span>
               <Switch checked={editMode} onCheckedChange={setEditMode} />
-              <Button
-                size='sm'
-                variant='secondary'
-                onClick={() =>
-                  currentDashboard &&
-                  addGroup(currentDashboard.id, {
-                    title: `Group ${currentDashboard.groups.length + 1}`,
-                    cols: 16,
-                    rows: 12,
-                  })
-                }
-              >
-                Add Group
-              </Button>
             </div>
           </header>
 
-          <div className='flex flex-1 flex-col gap-4 overflow-y-auto'>
-            {currentDashboard ? (
-              <div className='flex flex-col gap-4'>
-                {currentDashboard.groups.map((group) => (
+          <div className='flex min-h-0 flex-1 flex-col overflow-y-auto'>
+            {currentDashboard?.groups[0] ? (
+              <div className='flex min-h-0 flex-1 flex-col'>
+                <div className='flex flex-col md:min-h-0 md:flex-1'>
                   <GroupCanvas
-                    key={group.id}
                     dashboardId={currentDashboard.id}
-                    group={group}
+                    group={currentDashboard.groups[0]}
                     entities={entities}
                     streamsState={streamsState}
                     editMode={editMode}
-                    onDeleteGroup={
-                      currentDashboard.groups.length > 1
-                        ? () => deleteGroup(currentDashboard.id, group.id)
-                        : undefined
-                    }
                   />
-                ))}
+                </div>
               </div>
             ) : (
               <div className='text-sm text-muted-foreground'>

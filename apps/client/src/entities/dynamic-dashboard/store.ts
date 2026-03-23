@@ -79,16 +79,6 @@ export interface DynamicDashboardState {
     dashboardId: string,
     data: Partial<Pick<DynamicDashboard, "name">>,
   ) => void;
-  addGroup: (
-    dashboardId: string,
-    group?: Partial<Pick<DashboardGroup, "cols" | "rows" | "title">>,
-  ) => string | null;
-  updateGroup: (
-    dashboardId: string,
-    groupId: string,
-    payload: Partial<Pick<DashboardGroup, "title" | "cols" | "rows">>,
-  ) => void;
-  deleteGroup: (dashboardId: string, groupId: string) => void;
   addItem: (
     dashboardId: string,
     groupId: string,
@@ -192,6 +182,46 @@ const findOpenSlot = (
   return { x: 0, y: 0 };
 };
 
+/** Merges multiple layout groups into one canvas (first group's grid size; items from other groups re-placed). */
+const mergeGroupsIntoOne = (groups: DashboardGroup[]): DashboardGroup => {
+  if (groups.length === 0) {
+    return createDefaultGroup("Main");
+  }
+  if (groups.length === 1) {
+    return groups[0];
+  }
+
+  const primary: DashboardGroup = {
+    ...groups[0],
+    items: groups[0].items.map((item) => ({ ...item })),
+  };
+
+  const seenIds = new Set(primary.items.map((i) => i.id));
+
+  for (let gi = 1; gi < groups.length; gi++) {
+    for (const item of groups[gi].items) {
+      let id = item.id;
+      if (seenIds.has(id)) {
+        id = createId();
+      }
+      seenIds.add(id);
+
+      const size = clampSizeToGroup(primary, item.size, item.minSize);
+      const position = findOpenSlot(primary, size);
+      const clampedPos = clampPosition(primary, size, position);
+      const nextItem: DashboardItem = {
+        ...item,
+        id,
+        size,
+        position: clampedPos,
+      };
+      primary.items = [...primary.items, nextItem];
+    }
+  }
+
+  return primary;
+};
+
 const createDefaultGroup = (title: string): DashboardGroup => ({
   id: createId(),
   title,
@@ -259,10 +289,20 @@ export const useDynamicDashboardStore = create<DynamicDashboardState>()(
     const mapDtoToDashboard = (
       dto: api.DynamicDashboardDto,
     ): DynamicDashboard => {
+      const raw = parseLayoutGroups(dto.layout);
+      let groups: DashboardGroup[];
+      if (raw.length === 0) {
+        groups = [createDefaultGroup("Main")];
+      } else if (raw.length === 1) {
+        groups = raw;
+      } else {
+        groups = [mergeGroupsIntoOne(raw)];
+      }
+
       return {
         id: dto.id,
         name: dto.name,
-        groups: parseLayoutGroups(dto.layout),
+        groups,
       };
     };
 
@@ -321,11 +361,16 @@ export const useDynamicDashboardStore = create<DynamicDashboardState>()(
           items: g.items.map((i) => ({ ...i, id: createId() })),
         }));
 
+        const merged =
+          clonedGroups.length <= 1
+            ? clonedGroups[0] ?? createDefaultGroup("Main")
+            : mergeGroupsIntoOne(clonedGroups);
+
         const cloned: DynamicDashboard = {
           ...target,
           id: createId(),
           name: `${target.name} (copy)`,
-          groups: clonedGroups,
+          groups: [merged],
         };
 
         try {
@@ -372,73 +417,6 @@ export const useDynamicDashboardStore = create<DynamicDashboardState>()(
           ),
         }));
         scheduleSync(dashboardId, true);
-      },
-      addGroup: (dashboardId, group) => {
-        const id = createId();
-        set((state) => ({
-          dashboards: state.dashboards.map((d) => {
-            if (d.id !== dashboardId) {
-              return d;
-            }
-
-            const newGroup = {
-              ...createDefaultGroup(group?.title || `Group ${d.groups.length + 1}`),
-              cols: group?.cols || 16,
-              rows: group?.rows || 12,
-              id,
-            };
-
-            return { ...d, groups: [...d.groups, newGroup] };
-          }),
-        }));
-        scheduleSync(dashboardId);
-        return id;
-      },
-      updateGroup: (dashboardId, groupId, payload) => {
-        set((state) => ({
-          dashboards: state.dashboards.map((d) => {
-            if (d.id !== dashboardId) {
-              return d;
-            }
-
-            const groups = d.groups.map((g) => {
-              if (g.id !== groupId) {
-                return g;
-              }
-
-              const cols = payload.cols ?? g.cols;
-              const rows = payload.rows ?? g.rows;
-              const adjustedItems = g.items.map((item) => {
-                const size = clampSizeToGroup(
-                  { ...g, cols, rows },
-                  item.size,
-                  item.minSize,
-                );
-                const position = clampPosition(
-                  { ...g, cols, rows },
-                  size,
-                  item.position,
-                );
-                return { ...item, position };
-              });
-
-              return { ...g, ...payload, cols, rows, items: adjustedItems };
-            });
-
-            return { ...d, groups };
-          }),
-        }));
-        scheduleSync(dashboardId);
-      },
-      deleteGroup: (dashboardId, groupId) => {
-        set((state) => ({
-          dashboards: state.dashboards.map((d) =>
-            d.id === dashboardId
-              ? { ...d, groups: d.groups.filter((g) => g.id !== groupId) }
-              : d,
-          ),
-        }));
-        scheduleSync(dashboardId);
       },
       addItem: (dashboardId, groupId, payload) => {
         let createdId: string | null = null;

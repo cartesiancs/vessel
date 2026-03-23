@@ -10,7 +10,6 @@ import { EntityAll } from "@/entities/entity/types";
 import { StreamState } from "@/features/entity/useEntitiesData";
 import { EntityCard } from "@/features/entity/Card";
 import { StreamReceiver } from "@/features/rtc/StreamReceiver";
-import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,7 +19,7 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Trash2, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useSidebar } from "@/components/ui/sidebar";
 import { useFlowStore } from "@/entities/flow/store";
 import { useMapDataStore } from "@/entities/map/store";
@@ -35,7 +34,10 @@ const isFlowItem = (
   candidate: DashboardItem,
 ): candidate is DashboardItem<"flow"> => candidate.type === "flow";
 
+/** Reference unit for layout math; pixel cell size is derived from the container (desktop). */
 const CELL_SIZE = 32;
+
+const MOBILE_ROW_UNIT_PX = 28;
 
 type DragState = {
   itemId: string;
@@ -57,7 +59,6 @@ type GroupCanvasProps = {
   entities: EntityAll[];
   streamsState: StreamState[];
   editMode: boolean;
-  onDeleteGroup?: () => void;
 };
 
 export function GroupCanvas({
@@ -66,9 +67,8 @@ export function GroupCanvas({
   entities,
   streamsState,
   editMode,
-  onDeleteGroup,
 }: GroupCanvasProps) {
-  const { open, isMobile } = useSidebar();
+  const { isMobile } = useSidebar();
   const addItem = useDynamicDashboardStore((state) => state.addItem);
   const updateItemLayout = useDynamicDashboardStore(
     (state) => state.updateItemLayout,
@@ -82,16 +82,10 @@ export function GroupCanvas({
 
   const [dragging, setDragging] = useState<DragState | null>(null);
   const [resizing, setResizing] = useState<ResizeState | null>(null);
-  const [scale, setScale] = useState(1);
+  const [cellSizePx, setCellSizePx] = useState(CELL_SIZE);
   const containerRef = useRef<HTMLDivElement | null>(null);
-  // const videoEntities = useMemo(
-  //   () =>
-  //     entities.filter(
-  //       (e) => e.entity_type === "VIDEO" || e.platform === "RTSP",
-  //     ),
-  //   [entities],
-  // );
-  const cellSize = CELL_SIZE * scale;
+
+  const cellSize = cellSizePx;
   const gridWidth = group.cols * cellSize;
   const gridHeight = group.rows * cellSize;
 
@@ -116,67 +110,33 @@ export function GroupCanvas({
     }
   }, [fetchAllLayers, fetchFlows, flows.length, layers.length]);
 
-
-  const parseSizeToPx = (value: string) => {
-    const trimmed = value.trim();
-    if (!trimmed) return 0;
-
-    const rootFontSize = parseFloat(
-      getComputedStyle(document.documentElement).fontSize,
-    );
-
-    if (trimmed.endsWith("rem")) {
-      return parseFloat(trimmed) * rootFontSize;
-    }
-
-    if (trimmed.endsWith("px")) {
-      return parseFloat(trimmed);
-    }
-
-    const numeric = parseFloat(trimmed);
-    return Number.isFinite(numeric) ? numeric : 0;
-  };
-
   useEffect(() => {
+    if (isMobile) {
+      return;
+    }
+
     const el = containerRef.current;
     if (!el) return;
 
-    const baseWidth = group.cols * CELL_SIZE;
-
-    const measureAvailableWidth = (entry: ResizeObserverEntry) => {
-      const wrapper = el.closest(
-        "[data-slot=sidebar-wrapper]",
-      ) as HTMLElement | null;
-
-      const wrapperWidth = wrapper?.clientWidth || entry.contentRect.width;
-
-      let sidebarWidth = 0;
-      if (wrapper && !isMobile) {
-        const styles = getComputedStyle(wrapper);
-        const widthValue = open
-          ? styles.getPropertyValue("--sidebar-width")
-          : styles.getPropertyValue("--sidebar-width-icon");
-        sidebarWidth = parseSizeToPx(widthValue);
-      }
-
-      return Math.max(0, wrapperWidth - sidebarWidth);
-    };
-
     const resizeObserver = new ResizeObserver((entries) => {
       entries.forEach((entry) => {
-        const availableWidth = measureAvailableWidth(entry);
-        const nextScale = availableWidth / baseWidth;
-        if (nextScale > 0) {
-          setScale((prev) =>
-            Math.abs(prev - nextScale) > 0.01 ? nextScale : prev,
-          );
+        const w = entry.contentRect.width;
+        const h = entry.contentRect.height;
+        if (w < 1 || h < 1 || group.cols < 1 || group.rows < 1) {
+          return;
         }
+
+        const nextCell = Math.floor(Math.min(w / group.cols, h / group.rows));
+        const clamped = Math.max(1, nextCell);
+        setCellSizePx((prev) =>
+          Math.abs(prev - clamped) > 0.5 ? clamped : prev,
+        );
       });
     });
 
     resizeObserver.observe(el);
     return () => resizeObserver.disconnect();
-  }, [group.cols, open, isMobile]);
+  }, [group.cols, group.rows, isMobile]);
 
   useEffect(() => {
     if (!dragging) {
@@ -208,7 +168,7 @@ export function GroupCanvas({
       window.removeEventListener("pointermove", handleMove);
       window.removeEventListener("pointerup", handleUp);
     };
-  }, [dashboardId, dragging, group.id, updateItemLayout]);
+  }, [cellSize, dashboardId, dragging, group.id, updateItemLayout]);
 
   useEffect(() => {
     if (!resizing) {
@@ -240,7 +200,7 @@ export function GroupCanvas({
       window.removeEventListener("pointermove", handleMove);
       window.removeEventListener("pointerup", handleUp);
     };
-  }, [dashboardId, group.id, resizing, updateItemLayout]);
+  }, [cellSize, dashboardId, group.id, resizing, updateItemLayout]);
 
   const handleAddEntityCard = (entityId?: string) => {
     if (!entityId) return;
@@ -385,88 +345,112 @@ export function GroupCanvas({
     return <Placeholder text='Unknown item' />;
   };
 
-  return (
-    <Card className='py-4 border-0'>
-      <div className='mb-3 flex flex-wrap items-center justify-between gap-2'>
-        <div className='flex items-center gap-2 px-4'>
-          <p className='text-sm font-semibold'>{group.title}</p>
-          <Badge variant='outline'>
-            {group.cols}x{group.rows}
-          </Badge>
-        </div>
-        <div className='flex flex-wrap items-center gap-2 px-4'>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant='outline' size='sm'>
-                <Plus className='h-4 w-4 mr-1' />
-                Add Item
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align='end'>
-              <DropdownMenuSub>
-                <DropdownMenuSubTrigger>Add Entity</DropdownMenuSubTrigger>
-                <DropdownMenuSubContent>
-                  {entities.map((entity) => (
-                    <DropdownMenuItem
-                      key={entity.id}
-                      onClick={() => handleAddEntityCard(entity.entity_id)}
-                    >
-                      {entity.friendly_name}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuSubContent>
-              </DropdownMenuSub>
-              <DropdownMenuItem onClick={handleAddButton}>
-                Add Button
-              </DropdownMenuItem>
-              <DropdownMenuSub>
-                <DropdownMenuSubTrigger disabled={layers.length === 0}>
-                  Add Map
-                </DropdownMenuSubTrigger>
-                <DropdownMenuSubContent>
-                  {layers.map((layer) => (
-                    <DropdownMenuItem
-                      key={layer.id}
-                      onClick={() => handleAddMapPanel(layer.id)}
-                    >
-                      {layer.name}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuSubContent>
-              </DropdownMenuSub>
-              <DropdownMenuSub>
-                <DropdownMenuSubTrigger disabled={flows.length === 0}>
-                  Add Flow
-                </DropdownMenuSubTrigger>
-                <DropdownMenuSubContent>
-                  {flows.map((flow) => (
-                    <DropdownMenuItem
-                      key={flow.id}
-                      onClick={() => handleAddFlowPanel(flow.id)}
-                    >
-                      {flow.name}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuSubContent>
-              </DropdownMenuSub>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          {onDeleteGroup && (
-            <Button
-              variant='ghost'
-              size='icon'
-              onClick={onDeleteGroup}
-              title='Delete group'
-            >
-              <Trash2 className='h-4 w-4' />
+  const groupToolbar = (
+    <div className='mb-3 flex flex-wrap items-center justify-between gap-2'>
+      <div className='flex items-center gap-2 px-4'></div>
+      <div className='flex flex-wrap items-center gap-2 px-4'>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant='outline' size='sm'>
+              <Plus className='h-4 w-4 mr-1' />
+              Add Item
             </Button>
-          )}
-        </div>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align='end'>
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger>Add Entity</DropdownMenuSubTrigger>
+              <DropdownMenuSubContent>
+                {entities.map((entity) => (
+                  <DropdownMenuItem
+                    key={entity.id}
+                    onClick={() => handleAddEntityCard(entity.entity_id)}
+                  >
+                    {entity.friendly_name}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
+            <DropdownMenuItem onClick={handleAddButton}>
+              Add Button
+            </DropdownMenuItem>
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger disabled={layers.length === 0}>
+                Add Map
+              </DropdownMenuSubTrigger>
+              <DropdownMenuSubContent>
+                {layers.map((layer) => (
+                  <DropdownMenuItem
+                    key={layer.id}
+                    onClick={() => handleAddMapPanel(layer.id)}
+                  >
+                    {layer.name}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger disabled={flows.length === 0}>
+                Add Flow
+              </DropdownMenuSubTrigger>
+              <DropdownMenuSubContent>
+                {flows.map((flow) => (
+                  <DropdownMenuItem
+                    key={flow.id}
+                    onClick={() => handleAddFlowPanel(flow.id)}
+                  >
+                    {flow.name}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
+    </div>
+  );
 
-      <div className='w-full overflow-auto' ref={containerRef}>
+  if (isMobile) {
+    return (
+      <Card className='flex flex-col border-0 py-4'>
+        {groupToolbar}
+        <div className='flex flex-col gap-3 px-4'>
+          {group.items.map((item) => (
+            <div
+              key={item.id}
+              className='relative overflow-hidden rounded-lg border bg-card shadow-sm'
+              style={{
+                minHeight: Math.max(120, item.size.h * MOBILE_ROW_UNIT_PX),
+              }}
+            >
+              {editMode && (
+                <button
+                  type='button'
+                  className='absolute right-2 top-2 z-30 h-6 w-6 rounded border bg-background/90 text-xs shadow-sm'
+                  onClick={() => deleteItem(dashboardId, group.id, item.id)}
+                >
+                  ×
+                </button>
+              )}
+              <div className='flex h-full min-h-0 flex-col p-2'>
+                {renderItem(item)}
+              </div>
+            </div>
+          ))}
+        </div>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className='flex h-full min-h-0 flex-col border-0 py-4'>
+      {groupToolbar}
+
+      <div
+        className='flex min-h-0 w-full flex-1 items-center justify-center overflow-hidden'
+        ref={containerRef}
+      >
         <div
-          className='relative overflow-hidden bg-muted/40'
+          className='relative shrink-0 overflow-hidden bg-background'
           style={{
             width: gridWidth,
             height: gridHeight,
