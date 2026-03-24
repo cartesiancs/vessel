@@ -74,11 +74,6 @@ const data = {
           url: "/map",
           icon: <Map />,
         },
-        {
-          title: "Config",
-          url: "/servers",
-          icon: <Server />,
-        },
       ],
     },
     {
@@ -146,6 +141,11 @@ const data = {
           title: "Settings",
           url: "/settings",
           icon: <RadioTower />,
+        },
+        {
+          title: "Config",
+          url: "/servers",
+          icon: <Server />,
         },
       ],
     },

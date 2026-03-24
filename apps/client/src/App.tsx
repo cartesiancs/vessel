@@ -1,7 +1,10 @@
 import { AuthPage } from "./pages/auth";
 
 import { createBrowserRouter, RouterProvider } from "react-router";
-import { DashboardPage } from "./pages/dashboard";
+import {
+  DashboardSwipeLayout,
+  DashboardSwipeRoutePlaceholder,
+} from "./features/dashboard-swipe/DashboardSwipeLayout";
 import { ServersPage } from "./pages/servers";
 import { KeyPage } from "./pages/key";
 import { DevicePage } from "./pages/devices";
@@ -19,7 +22,6 @@ import { AuthenticatedLayout } from "./widgets/auth/AuthenticatedLayout";
 import { TopBarWrapper } from "./widgets/auth/TopBarWrapper";
 import { useDesktopSidecar } from "./hooks/useDesktopSidecar";
 import { usePreventBackNavigation } from "./hooks/usePreventBackNavigation";
-import { DynamicDashboardPage } from "./pages/dynamic-dashboard";
 import { SettingsPage } from "./pages/settings";
 import { NetworksPage } from "./pages/networks";
 import { RecordingsPage } from "./pages/recordings";
@@ -41,12 +43,29 @@ const router = createBrowserRouter([
     element: <AuthenticatedLayout />,
     children: [
       {
-        path: "/dashboard",
         element: (
           <AuthInterceptor>
-            <DashboardPage />
+            <DashboardSwipeLayout />
           </AuthInterceptor>
         ),
+        children: [
+          {
+            path: "/dashboard",
+            element: <DashboardSwipeRoutePlaceholder />,
+          },
+          {
+            path: "/dynamic-dashboard/new",
+            element: <DashboardSwipeRoutePlaceholder />,
+          },
+          {
+            path: "/dynamic-dashboard/:dashboardId",
+            element: <DashboardSwipeRoutePlaceholder />,
+          },
+          {
+            path: "/dynamic-dashboard",
+            element: <DashboardSwipeRoutePlaceholder />,
+          },
+        ],
       },
       {
         path: "/servers",
@@ -117,14 +136,6 @@ const router = createBrowserRouter([
         element: (
           <AuthInterceptor>
             <SetupPage />
-          </AuthInterceptor>
-        ),
-      },
-      {
-        path: "/dynamic-dashboard/:dashboardId?",
-        element: (
-          <AuthInterceptor>
-            <DynamicDashboardPage />
           </AuthInterceptor>
         ),
       },
