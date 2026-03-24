@@ -21,7 +21,7 @@ import { useNavigate } from "react-router";
 import { useDynamicDashboardStore } from "@/entities/dynamic-dashboard/store";
 import { GroupCanvas } from "@/features/dynamic-dashboard/GroupCanvas";
 import { useEntitiesData } from "@/features/entity/useEntitiesData";
-import { Plus, Copy, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -45,9 +45,7 @@ export function DynamicDashboardMainPanel({
   const {
     dashboards,
     setActiveDashboard: setActiveDashboardStore,
-    createDashboard,
     deleteDashboard,
-    cloneDashboard,
   } = useDynamicDashboardStore();
   const setActiveDashboard = setActiveDashboardStore;
   const { entities, streamsState } = useEntitiesData();
@@ -59,12 +57,12 @@ export function DynamicDashboardMainPanel({
     [dashboards, dashboardId],
   );
 
-  const handleAddDashboard = async () => {
-    const id = await createDashboard();
-    if (id) {
-      navigate(`/dynamic-dashboard/${id}`);
-    }
-  };
+  // const handleAddDashboard = async () => {
+  //   const id = await createDashboard();
+  //   if (id) {
+  //     navigate(`/dynamic-dashboard/${id}`);
+  //   }
+  // };
 
   const handleSelectDashboard = (id: string) => {
     setActiveDashboard(id);
@@ -109,10 +107,7 @@ export function DynamicDashboardMainPanel({
                   value={dashboardId}
                   onValueChange={handleSelectDashboard}
                 >
-                  <SelectTrigger
-                    size='sm'
-                    className='w-[200px] focus:ring-0'
-                  >
+                  <SelectTrigger size='sm' className='w-[200px] focus:ring-0'>
                     <SelectValue placeholder='Select dashboard' />
                   </SelectTrigger>
                   <SelectContent>
@@ -123,16 +118,16 @@ export function DynamicDashboardMainPanel({
                     ))}
                   </SelectContent>
                 </Select>
-                <Button
+                {/* <Button
                   variant='outline'
                   size='icon'
                   onClick={handleAddDashboard}
                 >
                   <Plus className='h-4 w-4' />
-                </Button>
+                </Button> */}
                 {currentDashboard && (
                   <>
-                    <Button
+                    {/* <Button
                       variant='outline'
                       size='icon'
                       onClick={async () => {
@@ -141,7 +136,7 @@ export function DynamicDashboardMainPanel({
                       }}
                     >
                       <Copy className='h-4 w-4' />
-                    </Button>
+                    </Button> */}
                     <Button
                       variant='ghost'
                       size='icon'
@@ -190,7 +185,8 @@ export function DynamicDashboardMainPanel({
           <AlertDialogHeader>
             <AlertDialogTitle>Delete dashboard?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. The dashboard layout will be removed.
+              This action cannot be undone. The dashboard layout will be
+              removed.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

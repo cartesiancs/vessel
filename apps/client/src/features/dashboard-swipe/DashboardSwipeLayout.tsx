@@ -54,12 +54,16 @@ function panelIndexFromPath(
   return 0;
 }
 
+/** Preserve ?view= when swiping back to /dashboard (matches DashboardMainPanel). */
+const defaultDashboardSearch = "?view=main";
+
 export function DashboardSwipeLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const syncingRef = useRef(false);
   const scrollEndTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastDashboardSearchRef = useRef("");
   const [containerWidth, setContainerWidth] = useState(0);
 
   const dashboards = useDynamicDashboardStore((s) => s.dashboards);
@@ -82,6 +86,12 @@ export function DashboardSwipeLayout() {
       loadDashboards();
     }
   }, [hasLoaded, isLoading, loadDashboards]);
+
+  useEffect(() => {
+    if (location.pathname === "/dashboard") {
+      lastDashboardSearchRef.current = location.search;
+    }
+  }, [location.pathname, location.search]);
 
   useEffect(() => {
     if (!hasLoaded || isLoading) {
@@ -129,12 +139,12 @@ export function DashboardSwipeLayout() {
 
     syncingRef.current = true;
     const target = panelIndex * containerWidth;
-    el.scrollTo({ left: target, behavior: "smooth" });
+    el.scrollTo({ left: target, behavior: "auto" });
 
-    const t = window.setTimeout(() => {
+    const t = window.requestAnimationFrame(() => {
       syncingRef.current = false;
-    }, 420);
-    return () => window.clearTimeout(t);
+    });
+    return () => window.cancelAnimationFrame(t);
   }, [panelIndex, containerWidth, location.pathname]);
 
   const resolveScrollToUrl = useCallback(() => {
@@ -144,8 +154,20 @@ export function DashboardSwipeLayout() {
     const idx = Math.round(el.scrollLeft / containerWidth);
     const clamped = Math.max(0, Math.min(maxPanelIndex, idx));
 
-    if (clamped === 0 && location.pathname !== "/dashboard") {
-      navigate("/dashboard", { replace: true });
+    if (clamped === 0) {
+      if (location.pathname !== "/dashboard") {
+        const targetSearch =
+          lastDashboardSearchRef.current || defaultDashboardSearch;
+        navigate(
+          {
+            pathname: "/dashboard",
+            search: targetSearch.startsWith("?")
+              ? targetSearch.slice(1)
+              : targetSearch,
+          },
+          { replace: true },
+        );
+      }
       return;
     }
     if (clamped === maxPanelIndex) {
@@ -160,13 +182,7 @@ export function DashboardSwipeLayout() {
         navigate(`/dynamic-dashboard/${id}`, { replace: true });
       }
     }
-  }, [
-    containerWidth,
-    dashboards,
-    location.pathname,
-    maxPanelIndex,
-    navigate,
-  ]);
+  }, [containerWidth, dashboards, location.pathname, maxPanelIndex, navigate]);
 
   useEffect(() => {
     const el = scrollRef.current;
@@ -179,7 +195,7 @@ export function DashboardSwipeLayout() {
       }
       scrollEndTimerRef.current = setTimeout(() => {
         resolveScrollToUrl();
-      }, 120);
+      }, 40);
     };
 
     el.addEventListener("scroll", onScroll, { passive: true });
@@ -198,7 +214,7 @@ export function DashboardSwipeLayout() {
         <SidebarInset className='flex min-h-0 min-w-0 flex-1 flex-col overflow-x-hidden'>
           <div
             ref={scrollRef}
-            className='grid min-h-0 w-full max-w-full flex-1 basis-0 grid-flow-col auto-cols-[100%] grid-rows-[minmax(0,1fr)] snap-x snap-mandatory overflow-x-auto overflow-y-hidden scroll-smooth overscroll-x-contain'
+            className='grid min-h-0 w-full max-w-full flex-1 basis-0 grid-flow-col auto-cols-[100%] grid-rows-[minmax(0,1fr)] snap-x snap-mandatory overflow-x-auto overflow-y-hidden overscroll-x-contain [scroll-behavior:auto]'
             style={{ WebkitOverflowScrolling: "touch" }}
           >
             <section
