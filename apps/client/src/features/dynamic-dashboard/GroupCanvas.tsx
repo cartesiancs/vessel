@@ -34,23 +34,19 @@ const isFlowItem = (
   candidate: DashboardItem,
 ): candidate is DashboardItem<"flow"> => candidate.type === "flow";
 
-/** Reference unit for layout math; pixel cell size is derived from the container (desktop). */
-const CELL_SIZE = 32;
-
 const MOBILE_ROW_UNIT_PX = 28;
+
+/** Clamp span so position + span stays within the grid (CSS grid 1×1…N tracks). */
+function clampGridSpan(position: number, span: number, limit: number): number {
+  const maxSpan = Math.max(1, limit - position);
+  return Math.max(1, Math.min(span, maxSpan));
+}
 
 type DragState = {
   itemId: string;
   startX: number;
   startY: number;
   origin: { x: number; y: number };
-};
-
-type ResizeState = {
-  itemId: string;
-  startX: number;
-  startY: number;
-  origin: { w: number; h: number };
 };
 
 type GroupCanvasProps = {
@@ -81,13 +77,10 @@ export function GroupCanvas({
   const { flows, fetchFlows } = useFlowStore();
 
   const [dragging, setDragging] = useState<DragState | null>(null);
-  const [resizing, setResizing] = useState<ResizeState | null>(null);
-  const [cellSizePx, setCellSizePx] = useState(CELL_SIZE);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
-  const cellSize = cellSizePx;
-  const gridWidth = group.cols * cellSize;
-  const gridHeight = group.rows * cellSize;
+  const cols = Math.max(1, group.cols);
+  const rows = Math.max(1, group.rows);
 
   const findEntityByRef = (refId?: string) => {
     if (!refId) return undefined;
@@ -111,41 +104,20 @@ export function GroupCanvas({
   }, [fetchAllLayers, fetchFlows, flows.length, layers.length]);
 
   useEffect(() => {
-    if (isMobile) {
-      return;
-    }
-
-    const el = containerRef.current;
-    if (!el) return;
-
-    const resizeObserver = new ResizeObserver((entries) => {
-      entries.forEach((entry) => {
-        const w = entry.contentRect.width;
-        const h = entry.contentRect.height;
-        if (w < 1 || h < 1 || group.cols < 1 || group.rows < 1) {
-          return;
-        }
-
-        const nextCell = Math.floor(Math.min(w / group.cols, h / group.rows));
-        const clamped = Math.max(1, nextCell);
-        setCellSizePx((prev) =>
-          Math.abs(prev - clamped) > 0.5 ? clamped : prev,
-        );
-      });
-    });
-
-    resizeObserver.observe(el);
-    return () => resizeObserver.disconnect();
-  }, [group.cols, group.rows, isMobile]);
-
-  useEffect(() => {
     if (!dragging) {
       return;
     }
 
     const handleMove = (event: PointerEvent) => {
-      const dx = Math.round((event.clientX - dragging.startX) / cellSize);
-      const dy = Math.round((event.clientY - dragging.startY) / cellSize);
+      const el = containerRef.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const cellW = rect.width / cols;
+      const cellH = rect.height / rows;
+      if (cellW < 1e-6 || cellH < 1e-6) return;
+
+      const dx = Math.round((event.clientX - dragging.startX) / cellW);
+      const dy = Math.round((event.clientY - dragging.startY) / cellH);
 
       const next = {
         x: dragging.origin.x + dx,
@@ -168,39 +140,7 @@ export function GroupCanvas({
       window.removeEventListener("pointermove", handleMove);
       window.removeEventListener("pointerup", handleUp);
     };
-  }, [cellSize, dashboardId, dragging, group.id, updateItemLayout]);
-
-  useEffect(() => {
-    if (!resizing) {
-      return;
-    }
-
-    const handleMove = (event: PointerEvent) => {
-      const dx = Math.round((event.clientX - resizing.startX) / cellSize);
-      const dy = Math.round((event.clientY - resizing.startY) / cellSize);
-
-      const next = {
-        w: Math.max(1, resizing.origin.w + dx),
-        h: Math.max(1, resizing.origin.h + dy),
-      };
-
-      updateItemLayout(dashboardId, group.id, resizing.itemId, {
-        size: next,
-      });
-    };
-
-    const handleUp = () => {
-      setResizing(null);
-    };
-
-    window.addEventListener("pointermove", handleMove);
-    window.addEventListener("pointerup", handleUp);
-
-    return () => {
-      window.removeEventListener("pointermove", handleMove);
-      window.removeEventListener("pointerup", handleUp);
-    };
-  }, [cellSize, dashboardId, group.id, resizing, updateItemLayout]);
+  }, [cols, dashboardId, dragging, group.id, rows, updateItemLayout]);
 
   const handleAddEntityCard = (entityId?: string) => {
     if (!entityId) return;
@@ -445,30 +385,36 @@ export function GroupCanvas({
     <Card className='flex h-full min-h-0 flex-col border-0 py-4'>
       {groupToolbar}
 
-      <div
-        className='flex min-h-0 w-full flex-1 items-center justify-center overflow-hidden'
-        ref={containerRef}
-      >
+      <div className='flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden'>
         <div
-          className='relative shrink-0 overflow-hidden bg-background'
+          ref={containerRef}
+          className='grid h-full min-h-0 w-full min-w-0 flex-1 overflow-hidden bg-background'
           style={{
-            width: gridWidth,
-            height: gridHeight,
+            gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
+            gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))`,
             backgroundImage:
               "linear-gradient(to right, rgba(0,0,0,0.08) 1px, transparent 1px), linear-gradient(to bottom, rgba(0,0,0,0.08) 1px, transparent 1px)",
-            backgroundSize: `${cellSize}px ${cellSize}px`,
+            backgroundSize: `calc(100% / ${cols}) calc(100% / ${rows})`,
           }}
         >
-          {group.items.map((item) => (
+          {group.items.map((item) => {
+            const spanW = clampGridSpan(
+              item.position.x,
+              item.size.w,
+              cols,
+            );
+            const spanH = clampGridSpan(
+              item.position.y,
+              item.size.h,
+              rows,
+            );
+            return (
             <div
               key={item.id}
-              className='group absolute overflow-hidden bg-card shadow-sm'
+              className='group relative min-h-0 min-w-0 overflow-hidden bg-card shadow-sm'
               style={{
-                width: item.size.w * cellSize,
-                height: item.size.h * cellSize,
-                transform: `translate(${item.position.x * cellSize}px, ${
-                  item.position.y * cellSize
-                }px)`,
+                gridColumn: `${item.position.x + 1} / span ${spanW}`,
+                gridRow: `${item.position.y + 1} / span ${spanH}`,
                 cursor: editMode ? "grab" : "default",
               }}
             >
@@ -501,35 +447,23 @@ export function GroupCanvas({
                     <div className='flex h-full items-center justify-between'>
                       <span>{item.label || item.type}</span>
                       <span className='text-[9px] font-medium text-muted-foreground'>
-                        {item.position.x},{item.position.y} • {item.size.w}x
+                        {item.position.x},{item.position.y} • {item.size.w}×
                         {item.size.h}
                       </span>
                     </div>
                   </div>
-                  <div
-                    className='absolute bottom-1 right-1 z-30 h-3 w-3 cursor-nwse-resize bg-primary/50'
-                    onPointerDown={(event) => {
-                      event.preventDefault();
-                      event.stopPropagation();
-                      setResizing({
-                        itemId: item.id,
-                        startX: event.clientX,
-                        startY: event.clientY,
-                        origin: { ...item.size },
-                      });
-                    }}
-                  />
                 </>
               )}
 
               <div
-                className='flex h-full flex-col p-2'
+                className='flex h-full min-h-0 flex-col p-2'
                 style={{ pointerEvents: editMode ? "none" : "auto" }}
               >
                 {renderItem(item)}
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </Card>

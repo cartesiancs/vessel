@@ -2,6 +2,11 @@
   display: none !important;
 } */
 
+.leaflet-div-icon.entity-map-marker-icon {
+  background: transparent !important;
+  border: none !important;
+}
+
 .current-location-ripple {
   animation: current-location-ripple 1000ms ease-out infinite;
   transform-origin: center;
