@@ -38,13 +38,12 @@ export default function LoginPage() {
 
   return (
     <div className='min-h-screen flex items-center justify-center bg-background px-4'>
-      <Card className='w-full max-w-md bg-black'>
+      <Card className='w-full max-w-md bg-black py-10'>
         <CardHeader className='text-center'>
           <div className='flex justify-center mb-4'>
             <img src='/icon.png' alt='Logo' className='w-12 invert' />
           </div>
           <CardTitle className='text-2xl'>Welcome to Vessel</CardTitle>
-          <CardDescription>Sign in to access your dashboard</CardDescription>
         </CardHeader>
         <CardContent>
           <Button
@@ -68,7 +67,10 @@ export default function LoginPage() {
           </Button>
           <p className='text-center text-sm text-muted-foreground mt-6'>
             By signing in, you agree to our{" "}
-            <a href='/privacy-policy' className='underline hover:text-foreground'>
+            <a
+              href='/privacy-policy'
+              className='underline hover:text-foreground'
+            >
               Privacy Policy
             </a>
           </p>

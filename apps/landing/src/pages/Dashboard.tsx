@@ -216,7 +216,8 @@ export default function DashboardPage() {
                     </div>
                     {cancelAtPeriodEnd ? (
                       <p className='text-sm text-amber-500'>
-                        Your subscription will be cancelled at the end of the current billing period.
+                        Your subscription will be cancelled at the end of the
+                        current billing period.
                       </p>
                     ) : (
                       <AlertDialog>
@@ -253,10 +254,10 @@ export default function DashboardPage() {
                             </AlertDialogCancel>
                             <AlertDialogAction
                               onClick={handleCancelSubscription}
-                            className='bg-red-500 text-white hover:bg-destructive/90'
-                          >
-                            Yes, Cancel
-                          </AlertDialogAction>
+                              className='bg-red-500 text-white hover:bg-destructive/90'
+                            >
+                              Yes, Cancel
+                            </AlertDialogAction>
                           </AlertDialogFooter>
                         </AlertDialogContent>
                       </AlertDialog>
@@ -313,9 +314,34 @@ export default function DashboardPage() {
                 </Button>
               </CardContent>
             </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Support & Roadmap</CardTitle>
+                <CardDescription>
+                  Get help and see what's coming next
+                </CardDescription>
+              </CardHeader>
+              <CardContent className='space-y-3'>
+                <Button
+                  variant='outline'
+                  className='w-full justify-start'
+                  onClick={() => navigate("/contact")}
+                >
+                  Contact Support
+                </Button>
+                <Button
+                  variant='outline'
+                  className='w-full justify-start'
+                  onClick={() => navigate("/roadmap")}
+                >
+                  View Product Roadmap
+                </Button>
+              </CardContent>
+            </Card>
           </div>
 
-          <div className='mt-8'>
+          <div className='my-8'>
             <h2 className='text-2xl font-bold mb-6'>Usage</h2>
             <UsageCharts data={usageData} loading={usageLoading} />
           </div>
