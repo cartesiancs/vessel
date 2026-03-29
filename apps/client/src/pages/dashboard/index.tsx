@@ -1,1 +1,4 @@
-export { DashboardMainPanel } from "./DashboardMainPanel";
+export {
+  DashboardMainPanel,
+  type DashboardMainPanelContentView,
+} from "./DashboardMainPanel";
