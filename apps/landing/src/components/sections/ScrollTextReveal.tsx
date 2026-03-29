@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 
 const QUOTE = {
-  text: `"Physical AI that explores, discovers, and adapts — built for explorers"`,
+  text: `"Physical AI that discovers, and adapts — built for explorers"`,
   author: "H. Jun Huh",
   title: "Founder · cartesiancs",
 };

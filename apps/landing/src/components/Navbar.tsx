@@ -66,13 +66,13 @@ export function Navbar() {
             </NavigationMenuItem>
             <NavigationMenuItem>
               {!loading && (
-                <Button
-                  variant='outline'
-                  size='sm'
+                <NavigationMenuLink
+                  className={`${navigationMenuTriggerStyle()} bg-transparent`}
                   onClick={() => navigate(user ? "/dashboard" : "/login")}
+                  style={{ cursor: "pointer" }}
                 >
                   {user ? "Dashboard" : "Sign In"}
-                </Button>
+                </NavigationMenuLink>
               )}
             </NavigationMenuItem>
           </NavigationMenuList>
