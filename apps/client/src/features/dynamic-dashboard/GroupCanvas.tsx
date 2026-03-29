@@ -49,6 +49,15 @@ type DragState = {
   origin: { x: number; y: number };
 };
 
+type ResizeState = {
+  itemId: string;
+  startX: number;
+  startY: number;
+  originSize: { w: number; h: number };
+  originPos: { x: number; y: number };
+  minSize: { w: number; h: number };
+};
+
 type GroupCanvasProps = {
   dashboardId: string;
   group: DashboardGroup;
@@ -77,6 +86,7 @@ export function GroupCanvas({
   const { flows, fetchFlows } = useFlowStore();
 
   const [dragging, setDragging] = useState<DragState | null>(null);
+  const [resizing, setResizing] = useState<ResizeState | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   const cols = Math.max(1, group.cols);
@@ -141,6 +151,51 @@ export function GroupCanvas({
       window.removeEventListener("pointerup", handleUp);
     };
   }, [cols, dashboardId, dragging, group.id, rows, updateItemLayout]);
+
+  useEffect(() => {
+    if (!resizing) {
+      return;
+    }
+
+    const handleMove = (event: PointerEvent) => {
+      const el = containerRef.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const cellW = rect.width / cols;
+      const cellH = rect.height / rows;
+      if (cellW < 1e-6 || cellH < 1e-6) return;
+
+      const dw = Math.round((event.clientX - resizing.startX) / cellW);
+      const dh = Math.round((event.clientY - resizing.startY) / cellH);
+
+      const maxW = cols - resizing.originPos.x;
+      const maxH = rows - resizing.originPos.y;
+      const nextW = Math.max(
+        resizing.minSize.w,
+        Math.min(maxW, resizing.originSize.w + dw),
+      );
+      const nextH = Math.max(
+        resizing.minSize.h,
+        Math.min(maxH, resizing.originSize.h + dh),
+      );
+
+      updateItemLayout(dashboardId, group.id, resizing.itemId, {
+        size: { w: nextW, h: nextH },
+      });
+    };
+
+    const handleUp = () => {
+      setResizing(null);
+    };
+
+    window.addEventListener("pointermove", handleMove);
+    window.addEventListener("pointerup", handleUp);
+
+    return () => {
+      window.removeEventListener("pointermove", handleMove);
+      window.removeEventListener("pointerup", handleUp);
+    };
+  }, [cols, dashboardId, group.id, resizing, rows, updateItemLayout]);
 
   const handleAddEntityCard = (entityId?: string) => {
     if (!entityId) return;
@@ -398,70 +453,87 @@ export function GroupCanvas({
           }}
         >
           {group.items.map((item) => {
-            const spanW = clampGridSpan(
-              item.position.x,
-              item.size.w,
-              cols,
-            );
-            const spanH = clampGridSpan(
-              item.position.y,
-              item.size.h,
-              rows,
-            );
+            const spanW = clampGridSpan(item.position.x, item.size.w, cols);
+            const spanH = clampGridSpan(item.position.y, item.size.h, rows);
             return (
-            <div
-              key={item.id}
-              className='group relative min-h-0 min-w-0 overflow-hidden bg-card shadow-sm'
-              style={{
-                gridColumn: `${item.position.x + 1} / span ${spanW}`,
-                gridRow: `${item.position.y + 1} / span ${spanH}`,
-                cursor: editMode ? "grab" : "default",
-              }}
-            >
-              {editMode && (
-                <>
-                  <div
-                    className='absolute inset-0 z-10'
-                    style={{ pointerEvents: "none" }}
-                  />
-                  <div className='absolute inset-0 z-20 hidden border border-primary/40 group-hover:block' />
-                  <button
-                    className='absolute right-2 top-2 z-30 h-6 w-6 bg-background/80 text-xs shadow-sm'
-                    onPointerDown={(e) => e.stopPropagation()}
-                    onClick={() => deleteItem(dashboardId, group.id, item.id)}
-                  >
-                    ×
-                  </button>
-                  <div
-                    className='absolute left-0 top-0 z-20 h-7 w-full cursor-grab bg-muted/60 px-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground'
-                    onPointerDown={(event) => {
-                      event.preventDefault();
-                      setDragging({
-                        itemId: item.id,
-                        startX: event.clientX,
-                        startY: event.clientY,
-                        origin: { ...item.position },
-                      });
-                    }}
-                  >
-                    <div className='flex h-full items-center justify-between'>
-                      <span>{item.label || item.type}</span>
-                      <span className='text-[9px] font-medium text-muted-foreground'>
-                        {item.position.x},{item.position.y} • {item.size.w}×
-                        {item.size.h}
-                      </span>
-                    </div>
-                  </div>
-                </>
-              )}
-
               <div
-                className='flex h-full min-h-0 flex-col p-2'
-                style={{ pointerEvents: editMode ? "none" : "auto" }}
+                key={item.id}
+                className='group relative min-h-0 min-w-0 overflow-hidden bg-card shadow-sm'
+                style={{
+                  gridColumn: `${item.position.x + 1} / span ${spanW}`,
+                  gridRow: `${item.position.y + 1} / span ${spanH}`,
+                  cursor:
+                    editMode && resizing?.itemId === item.id
+                      ? "se-resize"
+                      : editMode
+                        ? "grab"
+                        : "default",
+                }}
               >
-                {renderItem(item)}
+                {editMode && (
+                  <>
+                    <div
+                      className='absolute inset-0 z-10'
+                      style={{ pointerEvents: "none" }}
+                    />
+                    <div className='absolute inset-0 z-20 hidden border border-primary/40 group-hover:block' />
+                    <button
+                      type='button'
+                      className='absolute right-2 top-2 z-30 h-6 w-6 bg-background/80 text-xs shadow-sm'
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onClick={() => deleteItem(dashboardId, group.id, item.id)}
+                    >
+                      ×
+                    </button>
+                    <div
+                      className='absolute left-0 top-0 z-20 h-7 w-full cursor-grab bg-muted/60 px-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground'
+                      onPointerDown={(event) => {
+                        event.preventDefault();
+                        setResizing(null);
+                        setDragging({
+                          itemId: item.id,
+                          startX: event.clientX,
+                          startY: event.clientY,
+                          origin: { ...item.position },
+                        });
+                      }}
+                    >
+                      <div className='flex h-full items-center justify-between'>
+                        <span>{item.label || item.type}</span>
+                        <span className='text-[9px] font-medium text-muted-foreground'>
+                          {item.position.x},{item.position.y} • {item.size.w}×
+                          {item.size.h}
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      type='button'
+                      aria-label='Resize item'
+                      className='absolute bottom-0.5 right-0.5 z-40 h-3.5 w-3.5 cursor-se-resize border border-primary/20 bg-background p-0 touch-none'
+                      onPointerDown={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        setDragging(null);
+                        setResizing({
+                          itemId: item.id,
+                          startX: event.clientX,
+                          startY: event.clientY,
+                          originSize: { ...item.size },
+                          originPos: { ...item.position },
+                          minSize: { ...item.minSize },
+                        });
+                      }}
+                    />
+                  </>
+                )}
+
+                <div
+                  className='flex h-full min-h-0 flex-col p-2'
+                  style={{ pointerEvents: editMode ? "none" : "auto" }}
+                >
+                  {renderItem(item)}
+                </div>
               </div>
-            </div>
             );
           })}
         </div>

@@ -6,6 +6,21 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import {
@@ -21,7 +36,7 @@ import { useNavigate } from "react-router";
 import { useDynamicDashboardStore } from "@/entities/dynamic-dashboard/store";
 import { GroupCanvas } from "@/features/dynamic-dashboard/GroupCanvas";
 import { useEntitiesData } from "@/features/entity/useEntitiesData";
-import { Trash2 } from "lucide-react";
+import { MoreVertical, Pencil, Trash2 } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -46,11 +61,14 @@ export function DynamicDashboardMainPanel({
     dashboards,
     setActiveDashboard: setActiveDashboardStore,
     deleteDashboard,
+    updateDashboardMeta,
   } = useDynamicDashboardStore();
   const setActiveDashboard = setActiveDashboardStore;
   const { entities, streamsState } = useEntitiesData();
   const [editMode, setEditMode] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [renameOpen, setRenameOpen] = useState(false);
+  const [renameDraft, setRenameDraft] = useState("");
 
   const currentDashboard = useMemo(
     () => dashboards.find((d) => d.id === dashboardId),
@@ -85,6 +103,20 @@ export function DynamicDashboardMainPanel({
     } else {
       navigate("/dynamic-dashboard/new");
     }
+  };
+
+  const openRenameDialog = () => {
+    if (currentDashboard) {
+      setRenameDraft(currentDashboard.name);
+      setRenameOpen(true);
+    }
+  };
+
+  const handleRenameSave = () => {
+    const name = renameDraft.trim();
+    if (!name || !currentDashboard) return;
+    updateDashboardMeta(currentDashboard.id, { name });
+    setRenameOpen(false);
   };
 
   return (
@@ -126,25 +158,30 @@ export function DynamicDashboardMainPanel({
                   <Plus className='h-4 w-4' />
                 </Button> */}
                 {currentDashboard && (
-                  <>
-                    {/* <Button
-                      variant='outline'
-                      size='icon'
-                      onClick={async () => {
-                        const id = await cloneDashboard(currentDashboard.id);
-                        if (id) navigate(`/dynamic-dashboard/${id}`);
-                      }}
-                    >
-                      <Copy className='h-4 w-4' />
-                    </Button> */}
-                    <Button
-                      variant='ghost'
-                      size='icon'
-                      onClick={() => setDeleteConfirmOpen(true)}
-                    >
-                      <Trash2 className='h-4 w-4' />
-                    </Button>
-                  </>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant='ghost'
+                        size='icon'
+                        aria-label='Dashboard actions'
+                      >
+                        <MoreVertical className='h-4 w-4' />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align='start'>
+                      <DropdownMenuItem onSelect={openRenameDialog}>
+                        <Pencil className='h-4 w-4' />
+                        Rename
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        variant='destructive'
+                        onSelect={() => setDeleteConfirmOpen(true)}
+                      >
+                        <Trash2 className='h-4 w-4' />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 )}
               </div>
             </BreadcrumbItem>
@@ -176,6 +213,39 @@ export function DynamicDashboardMainPanel({
           </div>
         )}
       </div>
+
+      <Dialog open={renameOpen} onOpenChange={setRenameOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rename dashboard</DialogTitle>
+          </DialogHeader>
+          <div className='space-y-2 py-2'>
+            <Label htmlFor='dashboard-rename'>Name</Label>
+            <Input
+              id='dashboard-rename'
+              value={renameDraft}
+              onChange={(e) => setRenameDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  handleRenameSave();
+                }
+              }}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant='outline' onClick={() => setRenameOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleRenameSave}
+              disabled={!renameDraft.trim()}
+            >
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog
         open={deleteConfirmOpen}
