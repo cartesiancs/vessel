@@ -18,6 +18,7 @@ import { useDynamicDashboardStore } from "@/entities/dynamic-dashboard/store";
 import { useIntegrationStore } from "@/entities/integrations/store";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router";
+import { DashboardSwipeHeader } from "./DashboardSwipeHeader";
 
 /** Child route element so nested paths match without rendering extra UI. */
 export function DashboardSwipeRoutePlaceholder() {
@@ -85,6 +86,7 @@ export function DashboardSwipeLayout() {
   const syncingRef = useRef(false);
   const scrollEndTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [containerWidth, setContainerWidth] = useState(0);
+  const [editMode, setEditMode] = useState(false);
 
   const dashboards = useDynamicDashboardStore((s) => s.dashboards);
   const setActiveDashboard = useDynamicDashboardStore(
@@ -286,6 +288,10 @@ export function DashboardSwipeLayout() {
       <SidebarProvider>
         <AppSidebar />
         <SidebarInset className='flex min-h-0 min-w-0 flex-1 flex-col overflow-x-hidden'>
+          <DashboardSwipeHeader
+            editMode={editMode}
+            onEditModeChange={setEditMode}
+          />
           <div
             ref={scrollRef}
             className='grid min-h-0 w-full max-w-full flex-1 basis-0 grid-flow-col auto-cols-[100%] grid-rows-[minmax(0,1fr)] snap-x snap-mandatory overflow-x-auto overflow-y-hidden overscroll-x-contain [scroll-behavior:auto]'
@@ -312,7 +318,10 @@ export function DashboardSwipeLayout() {
                 className='box-border flex min-h-0 max-w-full min-w-0 snap-center snap-always flex-col overflow-hidden'
                 aria-label={`Dynamic dashboard ${d.name}`}
               >
-                <DynamicDashboardMainPanel dashboardId={d.id} />
+                <DynamicDashboardMainPanel
+                  dashboardId={d.id}
+                  editMode={editMode}
+                />
               </section>
             ))}
             <section
