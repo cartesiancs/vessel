@@ -64,7 +64,7 @@ export function LoginForm({
         data.id === "vessel-server" &&
         data.status === "success"
       ) {
-        toast.success("Connected to server successfully. Please authenticate.");
+        toast.success("Connected to server successfully.");
 
         const updatedUrls = [
           processedUrl,
