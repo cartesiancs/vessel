@@ -2,7 +2,7 @@ use crate::{
     db::{self, models::SystemConfiguration},
     flow::{
         engine::{FlowController, FlowEngine},
-        types::Graph,
+        types::{FlowRunContext, Graph},
         BinaryStore,
     },
     state::{DbPool, MqttMessage, StreamManager},
@@ -22,6 +22,7 @@ pub enum FlowManagerCommand {
         flow_id: i32,
         graph: Graph,
         broadcast_tx: broadcast::Sender<String>,
+        run_context: Option<FlowRunContext>,
     },
     StopFlow {
         flow_id: i32,
@@ -77,6 +78,7 @@ impl FlowManagerActor {
                     flow_id,
                     graph,
                     broadcast_tx,
+                    run_context,
                 } => {
                     if self.active_flows.contains_key(&flow_id) {
                         error!("Flow with ID {} is already running.", flow_id);
@@ -100,7 +102,12 @@ impl FlowManagerActor {
                             let source_node_ids = engine.get_source_node_ids();
                             let (controller, handle, trigger_tx) = engine
                                 .clone()
-                                .start(broadcast_tx, self.mqtt_client.clone())
+                                .start(
+                                    broadcast_tx,
+                                    self.mqtt_client.clone(),
+                                    flow_id,
+                                    run_context,
+                                )
                                 .await;
                             let mut trigger_tasks = Vec::new();
                             for node_id in engine.nodes.keys() {

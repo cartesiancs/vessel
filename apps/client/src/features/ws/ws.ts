@@ -1,3 +1,21 @@
+/** Flow-driven UI events (toast, etc.); client should filter by `target.session_id`. */
+export type FlowUiEventPayload = {
+  target: { session_id: string };
+  event: { kind: string; data: unknown };
+  meta?: {
+    flow_id?: number;
+    node_id?: string;
+    node_type?: string;
+  };
+};
+
+export type FlowUiEventToastData = {
+  level: string;
+  title?: string | null;
+  message: string;
+  duration_ms?: number;
+};
+
 export type WebSocketMessage = {
   type?:
     | "offer"
@@ -8,6 +26,7 @@ export type WebSocketMessage = {
     | "health_check_response"
     | "compute_flow"
     | "log_message"
+    | "flow_ui_event"
     | "ping"
     | "pong"
     | "get_all_flows"
@@ -29,8 +48,28 @@ export type WebSocketMessage = {
     | { flow_id: number }
     | { timestamp: number }
     | { id: number; name: string; is_running: boolean }[]
-    | { cpu_usage: number; memory_usage: number };
+    | { cpu_usage: number; memory_usage: number }
+    | FlowUiEventPayload;
 };
+
+const FLOW_RUN_SESSION_STORAGE_KEY = "vessel_flow_run_session_id";
+
+/** Per browser tab; include in `compute_flow` so server UI events target the initiating session. */
+export function getFlowRunSessionId(): string {
+  try {
+    let id = sessionStorage.getItem(FLOW_RUN_SESSION_STORAGE_KEY);
+    if (!id) {
+      id =
+        typeof crypto !== "undefined" && "randomUUID" in crypto
+          ? crypto.randomUUID()
+          : `sess_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+      sessionStorage.setItem(FLOW_RUN_SESSION_STORAGE_KEY, id);
+    }
+    return id;
+  } catch {
+    return `sess_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+  }
+}
 
 export class WebSocketChannel {
   private ws: WebSocket | null = null;

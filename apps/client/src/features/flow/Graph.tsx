@@ -99,7 +99,7 @@ export function Graph({
     const baseGroups: NodeGroup[] = [
       {
         label: "Default",
-        nodes: ["START", "LOG_MESSAGE"],
+        nodes: ["START", "LOG_MESSAGE", "SHOW_TOAST"],
       },
       {
         label: "Data",
@@ -181,6 +181,8 @@ export function Graph({
         renderVarNode(g, d, () => handleClickOption(d)),
       CONDITION: (g, d) => renderProcessingNode(g, d),
       LOG_MESSAGE: (g, d) => renderProcessingNode(g, d),
+      SHOW_TOAST: (g, d) =>
+        renderButtonNode(g, d, () => handleClickOption(d)),
       CALCULATION: (g, d) => renderCalcNode(g, d, () => handleClickOption(d)),
       HTTP_REQUEST: (g, d) => renderHttpNode(g, d, () => handleClickOption(d)),
       INTERVAL: (g, d) => renderIntervalNode(g, d, () => handleClickOption(d)),

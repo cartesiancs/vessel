@@ -13,7 +13,7 @@ import {
   useWebSocket,
   useWebSocketMessage,
 } from "@/features/ws/WebSocketProvider";
-import { WebSocketMessage } from "@/features/ws/ws";
+import { getFlowRunSessionId, WebSocketMessage } from "@/features/ws/ws";
 import { DashboardItemDataMap } from "@/entities/dynamic-dashboard/store";
 import { Play, Square } from "lucide-react";
 
@@ -93,7 +93,10 @@ export function FlowPanel({ data, onFlowChange }: FlowPanelProps) {
     }
     wsManager.send({
       type: "compute_flow",
-      payload: { flow_id: selectedFlowId },
+      payload: {
+        flow_id: selectedFlowId,
+        run_context: { session_id: getFlowRunSessionId() },
+      },
     });
     requestStatus(selectedFlowId);
   };

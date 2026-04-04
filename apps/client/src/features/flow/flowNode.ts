@@ -67,6 +67,25 @@ export const DEFINITION_NODE = {
     data: undefined,
     dataType: undefined,
   },
+  SHOW_TOAST: {
+    connectors: [
+      { id: `id`, name: "exec", type: "in" },
+      { id: `id`, name: "out", type: "out" },
+    ],
+    nodeType: "SHOW_TOAST",
+    data: {
+      level: "info",
+      title: "",
+      message: "",
+      durationMs: 4000,
+    },
+    dataType: {
+      level: "SELECT[info,success,warning,error]",
+      title: "STRING",
+      message: "STRING",
+      durationMs: "NUMBER",
+    },
+  },
   CALCULATION: {
     connectors: [
       { id: `id`, name: "a", type: "in" },

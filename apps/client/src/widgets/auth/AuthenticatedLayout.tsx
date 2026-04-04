@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Outlet, useNavigate } from "react-router";
 import { WebSocketProvider } from "@/features/ws/WebSocketProvider";
+import { FlowUiEventBridge } from "@/features/ws/FlowUiEventBridge";
 import { TopBarWrapper } from "./TopBarWrapper";
 import { isDemoMode } from "@/shared/demo";
 import { storage } from "@/lib/storage";
@@ -49,6 +50,7 @@ export function AuthenticatedLayout() {
 
   return (
     <WebSocketProvider url={wsUrl}>
+      <FlowUiEventBridge />
       <div
         style={
           {

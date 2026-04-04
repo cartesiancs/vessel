@@ -28,7 +28,10 @@ use crate::handler::ws::WsMessageOut;
 
 use crate::{
     db,
-    flow::manager_state::FlowManagerCommand,
+    flow::{
+        manager_state::FlowManagerCommand,
+        types::FlowRunContext,
+    },
     handler::ws::webrtc::create_peer_connection,
     state::{AppState, MediaType},
 };
@@ -360,10 +363,20 @@ impl WSActor {
 
         println!("Start Flow");
 
+        let run_context = payload
+            .get("run_context")
+            .and_then(|rc| rc.get("session_id"))
+            .and_then(|v| v.as_str())
+            .filter(|s| !s.is_empty())
+            .map(|s| FlowRunContext {
+                session_id: s.to_string(),
+            });
+
         let cmd = FlowManagerCommand::StartFlow {
             flow_id,
             graph,
             broadcast_tx: self.state.broadcast_tx.clone(),
+            run_context,
         };
 
         if self.state.flow_manager_tx.send(cmd).await.is_err() {

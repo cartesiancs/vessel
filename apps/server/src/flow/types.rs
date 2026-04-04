@@ -2,6 +2,12 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
 
+/// Identifies the browser tab / client session that started a flow run (WebSocket UX targeting).
+#[derive(Debug, Clone)]
+pub struct FlowRunContext {
+    pub session_id: String,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Trigger {
     pub node_id: String,

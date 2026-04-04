@@ -50,6 +50,7 @@ pub mod mqtt_subscribe;
 pub mod rtp_stream_in;
 pub mod set_variable;
 pub mod set_variable_with_exec;
+pub mod show_toast;
 pub mod start;
 pub mod type_converter;
 pub mod websocket_on;
