@@ -447,6 +447,20 @@ pub fn get_all_system_configs(pool: &DbPool) -> Result<Vec<SystemConfiguration>,
     Ok(configs)
 }
 
+/// `system_configurations` key for the Code workspace (file browser / storage API).
+pub const CODE_SERVICE_CONFIG_KEY: &str = "code_service_enabled";
+
+pub fn is_code_service_enabled(pool: &DbPool) -> Result<bool, anyhow::Error> {
+    use crate::db::schema::system_configurations::dsl::{key as key_col, system_configurations};
+    let mut conn = pool.get()?;
+    let config = system_configurations
+        .filter(key_col.eq(CODE_SERVICE_CONFIG_KEY))
+        .select(SystemConfiguration::as_select())
+        .first::<SystemConfiguration>(&mut conn)
+        .optional()?;
+    Ok(config.is_some_and(|c| c.enabled == 1))
+}
+
 pub fn update_system_config(
     pool: &DbPool,
     target_id: i32,

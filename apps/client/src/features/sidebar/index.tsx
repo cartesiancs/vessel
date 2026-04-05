@@ -1,5 +1,3 @@
-import * as React from "react";
-
 import {
   Sidebar,
   SidebarContent,
@@ -40,6 +38,8 @@ import { NavFooter } from "./footer";
 import { isElectron } from "@/lib/electron";
 import { useDynamicDashboardStore } from "@/entities/dynamic-dashboard/store";
 import { useIntegrationStore } from "@/entities/integrations/store";
+import { useConfigStore } from "@/entities/configurations/store";
+import { getCodeServiceEnabled } from "@/entities/configurations/codeService";
 import {
   ComponentProps,
   useCallback,
@@ -166,8 +166,27 @@ export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
   } = useDynamicDashboardStore();
   const { isHaConnected, isRos2Connected, isSdrConnected, fetchStatus } =
     useIntegrationStore();
+  const { configurations, fetchConfigs } = useConfigStore();
 
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const navMain = useMemo(() => {
+    const codeOn = getCodeServiceEnabled(configurations);
+    return data.navMain
+      .map((group) => {
+        if (group.title !== "Services") {
+          return group;
+        }
+        const items = group.items.filter(
+          (item) => item.title !== "Code" || codeOn,
+        );
+        if (items.length === 0) {
+          return null;
+        }
+        return { ...group, items };
+      })
+      .filter((g): g is (typeof data.navMain)[number] => g !== null);
+  }, [configurations]);
 
   const [controlsOpen, setControlsOpen] = useState<boolean>(() => {
     if (typeof window === "undefined") return true;
@@ -191,7 +210,7 @@ export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
       isRos2Connected && { id: "ros2", name: "ROS2" },
       isSdrConnected && { id: "sdr", name: "RTL-SDR" },
     ].filter(Boolean) as { id: string; name: string }[];
-  }, [isHaConnected, isRos2Connected]);
+  }, [isHaConnected, isRos2Connected, isSdrConnected]);
 
   const handleScroll = useCallback(() => {
     const el = scrollRef.current;
@@ -229,6 +248,10 @@ export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
     fetchStatus();
   }, [fetchStatus]);
 
+  useEffect(() => {
+    void fetchConfigs();
+  }, [fetchConfigs]);
+
   return (
     <Sidebar
       {...props}
@@ -244,7 +267,7 @@ export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
         />
       </SidebarHeader>
       <SidebarContent ref={scrollRef} onScroll={handleScroll}>
-        {data.navMain.map((group) => (
+        {navMain.map((group) => (
           <SidebarGroup key={group.title}>
             <SidebarGroupLabel>{group.title}</SidebarGroupLabel>
             <SidebarGroupContent>

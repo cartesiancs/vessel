@@ -7,6 +7,7 @@ import { isDemoMode } from "@/shared/demo";
 import { storage } from "@/lib/storage";
 import { ChatPanelContainer, useChatStore, PANEL_WIDTH } from "@/features/llm-chat";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useConfigStore } from "@/entities/configurations/store";
 
 export function AuthenticatedLayout() {
   const [wsUrl, setWsUrl] = useState<string | null>(null);
@@ -37,6 +38,11 @@ export function AuthenticatedLayout() {
       navigate("/auth", { replace: true });
     }
   }, [navigate]);
+
+  useEffect(() => {
+    if (!wsUrl) return;
+    void useConfigStore.getState().fetchConfigs();
+  }, [wsUrl]);
 
   const isOpen = useChatStore((s) => s.isOpen);
   const isMobile = useIsMobile();

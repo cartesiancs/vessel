@@ -12,6 +12,7 @@ import {
   SystemConfiguration,
   SystemConfigurationPayload,
 } from "@/entities/configurations/types";
+import { CODE_SERVICE_CONFIG_KEY } from "@/entities/configurations/codeService";
 import { Device, DevicePayload } from "@/entities/device/types";
 import { EntityAll, EntityPayload } from "@/entities/entity/types";
 import { Role, CreateRolePayload } from "@/entities/role/types";
@@ -48,6 +49,11 @@ const normalizePath = (url?: string) => {
 
 export const createMockAdapter = (): AxiosAdapter => {
   const db: MockDatabase = createMockDb();
+
+  const isMockCodeServiceEnabled = () =>
+    db.configs.some(
+      (c) => c.key === CODE_SERVICE_CONFIG_KEY && c.enabled === 1,
+    );
 
   const counters = {
     device: db.devices.length + 1,
@@ -677,6 +683,11 @@ export const createMockAdapter = (): AxiosAdapter => {
 
     // Storage
     if (path.startsWith("/storage")) {
+      if (!isMockCodeServiceEnabled()) {
+        return buildResponse(config, 403, {
+          error: "Code workspace is disabled",
+        });
+      }
       const relPath = path.replace(/^\/storage\/?/, "");
       if (method === "get") {
         if (relPath === "" || db.storage[relPath]?.type === "dir") {

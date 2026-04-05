@@ -62,6 +62,11 @@ pub fn create_initial_configurations(conn: &mut SqliteConnection) {
             r#"{ "urls": "turn:turn.example.com:3478", "username": "user", "credential": "pass" }"#,
             "Default WebRTC TURN Server configuration (JSON format)",
         ),
+        (
+            "code_service_enabled",
+            "1",
+            "Enable the Code workspace (file browser and editor). Toggle via Settings or set enabled to 1.",
+        ),
     ];
 
     for (k, v, d) in default_configs {

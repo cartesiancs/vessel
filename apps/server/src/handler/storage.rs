@@ -13,7 +13,9 @@ use std::{
     sync::Arc,
 };
 
+use crate::db::repository;
 use crate::handler::auth::AuthUser;
+use crate::state::{AppState, DbPool};
 
 #[derive(Serialize)]
 struct ErrorResponse {
@@ -86,7 +88,37 @@ fn map_io_error(e: io::Error, path_str: &str) -> Response {
     (status, Json(ErrorResponse { error: msg })).into_response()
 }
 
-pub async fn read_handler(AuthUser(_user): AuthUser, path: Option<Path<String>>) -> Response {
+fn guard_code_service(pool: &DbPool) -> Result<(), Response> {
+    match repository::is_code_service_enabled(pool) {
+        Ok(true) => Ok(()),
+        Ok(false) => Err((
+            StatusCode::FORBIDDEN,
+            Json(ErrorResponse {
+                error: "Code workspace is disabled".to_string(),
+            }),
+        )
+            .into_response()),
+        Err(e) => {
+            tracing::error!("code service enabled check failed: {e}");
+            Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse {
+                    error: "Failed to read configuration".to_string(),
+                }),
+            )
+                .into_response())
+        }
+    }
+}
+
+pub async fn read_handler(
+    State(state): State<Arc<AppState>>,
+    AuthUser(_user): AuthUser,
+    path: Option<Path<String>>,
+) -> Response {
+    if let Err(resp) = guard_code_service(&state.pool) {
+        return resp;
+    }
     let path_str = path.map_or(String::new(), |p| p.0);
 
     let storage_root = match get_storage_root() {
@@ -138,10 +170,14 @@ async fn read_file_content(path: &PathBuf, user_path: &str) -> Response {
 }
 
 pub async fn create_or_update_file_handler(
+    State(state): State<Arc<AppState>>,
     AuthUser(_user): AuthUser,
     Path(path): Path<String>,
     Json(payload): Json<UpdateContentRequest>,
 ) -> Response {
+    if let Err(resp) = guard_code_service(&state.pool) {
+        return resp;
+    }
     let storage_root = match get_storage_root() {
         Ok(r) => r,
         Err(e) => return map_io_error(e, &path),
@@ -176,7 +212,14 @@ pub async fn create_or_update_file_handler(
     }
 }
 
-pub async fn create_dir_handler(AuthUser(_user): AuthUser, Path(path): Path<String>) -> Response {
+pub async fn create_dir_handler(
+    State(state): State<Arc<AppState>>,
+    AuthUser(_user): AuthUser,
+    Path(path): Path<String>,
+) -> Response {
+    if let Err(resp) = guard_code_service(&state.pool) {
+        return resp;
+    }
     let storage_root = match get_storage_root() {
         Ok(r) => r,
         Err(e) => return map_io_error(e, &path),
@@ -198,7 +241,14 @@ pub async fn create_dir_handler(AuthUser(_user): AuthUser, Path(path): Path<Stri
     }
 }
 
-pub async fn delete_handler(AuthUser(_user): AuthUser, Path(path): Path<String>) -> Response {
+pub async fn delete_handler(
+    State(state): State<Arc<AppState>>,
+    AuthUser(_user): AuthUser,
+    Path(path): Path<String>,
+) -> Response {
+    if let Err(resp) = guard_code_service(&state.pool) {
+        return resp;
+    }
     let storage_root = match get_storage_root() {
         Ok(r) => r,
         Err(e) => return map_io_error(e, &path),
@@ -227,10 +277,14 @@ pub async fn delete_handler(AuthUser(_user): AuthUser, Path(path): Path<String>)
 }
 
 pub async fn rename_handler(
+    State(state): State<Arc<AppState>>,
     AuthUser(_user): AuthUser,
     Path(from_path): Path<String>,
     Json(payload): Json<RenameRequest>,
 ) -> Response {
+    if let Err(resp) = guard_code_service(&state.pool) {
+        return resp;
+    }
     let storage_root = match get_storage_root() {
         Ok(r) => r,
         Err(e) => return map_io_error(e, &from_path),

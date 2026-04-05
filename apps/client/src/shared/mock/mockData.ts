@@ -175,6 +175,15 @@ export const createMockDb = (): MockDatabase => ({
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     },
+    {
+      id: 4,
+      key: "code_service_enabled",
+      value: "1",
+      enabled: 0,
+      description: "Code workspace (demo: off by default)",
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
   ],
   logs: {
     files: ["server.log", "app.log"],

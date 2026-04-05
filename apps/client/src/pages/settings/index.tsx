@@ -41,6 +41,11 @@ import {
 } from "@/features/rtc/turnService";
 import { useChatStore } from "@/features/llm-chat/store";
 import { storage } from "@/lib/storage";
+import { useConfigStore } from "@/entities/configurations/store";
+import {
+  CODE_SERVICE_CONFIG_KEY,
+  getCodeServiceEnabled,
+} from "@/entities/configurations/codeService";
 
 function formatTurnQuotaUsage(usage: TurnUsage | null): string | null {
   if (!usage?.quotaBytes) return null;
@@ -72,9 +77,50 @@ export function SettingsPage() {
 
   const { updateCapsuleUrl } = useChatStore();
   const [capsuleUrl, setCapsuleUrl] = useState(
-    storage.getCapsuleUrl() || import.meta.env.VITE_CAPSULE_URL || "http://localhost:3000",
+    storage.getCapsuleUrl() ||
+      import.meta.env.VITE_CAPSULE_URL ||
+      "http://localhost:3000",
   );
   const [capsuleSaved, setCapsuleSaved] = useState(false);
+
+  const {
+    configurations,
+    fetchConfigs,
+    createConfig,
+    updateConfig,
+    isLoading: configsLoading,
+  } = useConfigStore();
+  const codeConfigRow = configurations.find(
+    (c) => c.key === CODE_SERVICE_CONFIG_KEY,
+  );
+  const codeServiceEnabled = getCodeServiceEnabled(configurations);
+
+  useEffect(() => {
+    void fetchConfigs();
+  }, [fetchConfigs]);
+
+  const handleCodeServiceToggle = async (on: boolean) => {
+    try {
+      if (codeConfigRow) {
+        await updateConfig(codeConfigRow.id, {
+          key: codeConfigRow.key,
+          value: codeConfigRow.value,
+          enabled: on ? 1 : 0,
+          description: codeConfigRow.description,
+        });
+      } else if (on) {
+        await createConfig({
+          key: CODE_SERVICE_CONFIG_KEY,
+          value: "1",
+          enabled: 1,
+          description: "Enable the Code workspace (file browser and editor).",
+        });
+      }
+      toast.success(on ? "Code workspace enabled" : "Code workspace disabled");
+    } catch {
+      toast.error("Failed to update Code workspace setting");
+    }
+  };
 
   const handleSaveCapsuleUrl = () => {
     updateCapsuleUrl(capsuleUrl);
@@ -119,7 +165,9 @@ export function SettingsPage() {
         setTurnErrorUsage(err.usage ?? null);
       } else {
         setTurnError(
-          err instanceof Error ? err.message : "Failed to issue TURN credentials",
+          err instanceof Error
+            ? err.message
+            : "Failed to issue TURN credentials",
         );
       }
     } finally {
@@ -267,7 +315,8 @@ export function SettingsPage() {
                 </div>
               </div>
               <p className='text-xs text-muted-foreground'>
-                Default: {import.meta.env.VITE_CAPSULE_URL || "http://localhost:3000"}
+                Default:{" "}
+                {import.meta.env.VITE_CAPSULE_URL || "http://localhost:3000"}
               </p>
             </CardContent>
           </Card>
@@ -338,11 +387,30 @@ export function SettingsPage() {
 
           <Card>
             <CardHeader>
+              <CardTitle>Code workspace</CardTitle>
+              <CardDescription></CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className='flex items-center justify-between border px-3 py-2'>
+                <div className='flex flex-col gap-0.5'>
+                  <span className='font-medium'>Code service</span>
+                </div>
+                <Switch
+                  checked={codeServiceEnabled}
+                  disabled={configsLoading}
+                  onCheckedChange={(v) => void handleCodeServiceToggle(v)}
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
               <CardTitle>Tunnel</CardTitle>
               <CardDescription></CardDescription>
             </CardHeader>
             <CardContent className='space-y-4'>
-              <div className='flex items-center justify-between rounded-lg border px-3 py-2'>
+              <div className='flex items-center justify-between border px-3 py-2'>
                 <div className='flex flex-col'>
                   <span className='font-medium'>Tunnel Connection</span>
                 </div>
