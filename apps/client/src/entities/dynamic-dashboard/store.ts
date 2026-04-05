@@ -13,7 +13,14 @@ export type DashboardItemDataMap = {
   "entity-card": Record<string, never>;
   "entity-text": Record<string, never>;
   media: Record<string, never>;
-  button: { action?: string };
+  button: {
+    /** Matches `listenerId` on flow `DASHBOARD_EVENT_LISTENER` node. */
+    listener_id?: string;
+    debounce_ms?: number;
+    cooldown_ms?: number;
+    /** @deprecated Ignored; use `listener_id`. */
+    action?: string;
+  };
   map: {
     layerId?: number;
     center?: [number, number];

@@ -178,6 +178,16 @@ export const DEFINITION_NODE = {
       topic: "STRING",
     },
   },
+  DASHBOARD_EVENT_LISTENER: {
+    connectors: [{ id: `id`, name: "payload", type: "out" }],
+    nodeType: "DASHBOARD_EVENT_LISTENER",
+    data: {
+      listenerId: "my-listener",
+    },
+    dataType: {
+      listenerId: "STRING",
+    },
+  },
   TYPE_CONVERTER: {
     connectors: [
       { id: `id`, name: "in", type: "in" },

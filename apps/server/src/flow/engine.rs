@@ -14,6 +14,7 @@ use tracing::{error, info};
 use crate::db::models::SystemConfiguration;
 use crate::flow::nodes::branch::BranchNode;
 use crate::flow::nodes::custom_node::CustomNode;
+use crate::flow::nodes::dashboard_event_listener::DashboardEventListenerNode;
 use crate::flow::nodes::decode_h264::DecodeH264Node;
 use crate::flow::nodes::decode_opus::DecodeOpusNode;
 use crate::flow::nodes::gst_decoder::GstDecoderNode;
@@ -34,8 +35,7 @@ use crate::flow::nodes::{
 };
 use crate::flow::types::{FlowRunContext, Graph, Node};
 use crate::flow::BinaryStore;
-use crate::state::MqttMessage;
-use crate::state::StreamManager;
+use crate::state::{DashboardUiEvent, MqttMessage, StreamManager};
 
 pub struct ExecutionContext {
     variables: HashMap<String, Value>,
@@ -129,6 +129,7 @@ pub struct FlowEngine {
     data_flow_graph: HashMap<String, Vec<(String, String, String)>>,
     expected_input_counts: HashMap<String, usize>,
     mqtt_tx: Option<broadcast::Sender<MqttMessage>>,
+    dashboard_ui_tx: Option<broadcast::Sender<DashboardUiEvent>>,
     stream_manager: StreamManager,
     binary_store: BinaryStore,
     system_configs: Vec<SystemConfiguration>,
@@ -138,6 +139,7 @@ impl FlowEngine {
     pub fn new(
         graph: Graph,
         mqtt_tx: Option<broadcast::Sender<MqttMessage>>,
+        dashboard_ui_tx: Option<broadcast::Sender<DashboardUiEvent>>,
         stream_manager: StreamManager,
         binary_store: BinaryStore,
         system_configs: Vec<SystemConfiguration>,
@@ -191,6 +193,7 @@ impl FlowEngine {
             data_flow_graph,
             expected_input_counts,
             mqtt_tx,
+            dashboard_ui_tx,
             stream_manager,
             binary_store,
             system_configs,
@@ -249,6 +252,19 @@ impl FlowEngine {
                     &node.data,
                     rx,
                     source_node_ids,
+                )?))
+            }
+            "DASHBOARD_EVENT_LISTENER" => {
+                let rx = self
+                    .dashboard_ui_tx
+                    .as_ref()
+                    .ok_or_else(|| {
+                        anyhow!("Dashboard UI bus is not configured for DASHBOARD_EVENT_LISTENER")
+                    })?
+                    .subscribe();
+                Ok(Box::new(DashboardEventListenerNode::new(
+                    &node.data,
+                    rx,
                 )?))
             }
             "TYPE_CONVERTER" => Ok(Box::new(TypeConverterNode::new(&node.data)?)),

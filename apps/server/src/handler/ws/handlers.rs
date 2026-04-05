@@ -2,7 +2,7 @@ use anyhow::{anyhow, Result};
 use axum::extract::ws::{Message, WebSocket};
 use futures_util::{future::join_all, stream::SplitSink, FutureExt, SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, sync::Arc, time::Instant};
 use sysinfo::System;
 use tokio::sync::{mpsc, oneshot, Mutex};
 use tracing::{error, info, warn};
@@ -32,6 +32,7 @@ use crate::{
         manager_state::FlowManagerCommand,
         types::FlowRunContext,
     },
+    handler::ws::dashboard_component_event,
     handler::ws::webrtc::create_peer_connection,
     state::{AppState, MediaType},
 };
@@ -107,6 +108,10 @@ enum ActorCommand {
     GetServer {
         responder: oneshot::Sender<Result<ServerStats>>,
     },
+    /// Dynamic dashboard widget → flow (see `dashboard_component_event` WS type).
+    DashboardComponentEvent {
+        payload: serde_json::Value,
+    },
     Hangup,
 }
 
@@ -116,6 +121,8 @@ struct WSActor {
     receiver: mpsc::Receiver<ActorCommand>,
     state: Arc<AppState>,
     active_tracks: HashMap<String, Arc<dyn TrackLocal + Send + Sync>>,
+    /// Per-connection rate limit for `dashboard_component_event` keys.
+    dashboard_event_rate: HashMap<String, Instant>,
 }
 
 impl WSActor {
@@ -148,6 +155,13 @@ impl WSActor {
                 }
                 ActorCommand::ComputeFlow { payload } => {
                     self.handle_compute_flow(payload).await;
+                }
+                ActorCommand::DashboardComponentEvent { payload } => {
+                    dashboard_component_event::apply_dashboard_component_event(
+                        payload,
+                        &self.state,
+                        &mut self.dashboard_event_rate,
+                    );
                 }
                 ActorCommand::StopFlow { flow_id } => {
                     self.handle_stop_flow(flow_id).await;
@@ -837,6 +851,7 @@ pub async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                 receiver: cmd_rx,
                 state: Arc::clone(&state),
                 active_tracks: HashMap::new(),
+                dashboard_event_rate: HashMap::new(),
             };
             actor.run().await;
         }
@@ -923,6 +938,14 @@ pub async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                 }
                 "compute_flow" => {
                     let cmd = ActorCommand::ComputeFlow {
+                        payload: ws_msg.payload,
+                    };
+                    if cmd_tx.send(cmd).await.is_err() {
+                        break;
+                    }
+                }
+                "dashboard_component_event" => {
+                    let cmd = ActorCommand::DashboardComponentEvent {
                         payload: ws_msg.payload,
                     };
                     if cmd_tx.send(cmd).await.is_err() {

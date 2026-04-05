@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -25,6 +26,11 @@ import { useFlowStore } from "@/entities/flow/store";
 import { useMapDataStore } from "@/entities/map/store";
 import { MapPanel } from "./panels/MapPanel";
 import { FlowPanel } from "./panels/FlowPanel";
+import { ButtonPanel } from "./panels/ButtonPanel";
+import { useWebSocket } from "@/features/ws/WebSocketProvider";
+import { getFlowRunSessionId } from "@/features/ws/ws";
+import { createDashboardEventDispatcher } from "./events/dispatcher";
+import { isValidListenerId } from "@/entities/dynamic-dashboard/interaction";
 
 const isMapItem = (
   candidate: DashboardItem,
@@ -33,6 +39,10 @@ const isMapItem = (
 const isFlowItem = (
   candidate: DashboardItem,
 ): candidate is DashboardItem<"flow"> => candidate.type === "flow";
+
+const isButtonItem = (
+  candidate: DashboardItem,
+): candidate is DashboardItem<"button"> => candidate.type === "button";
 
 const MOBILE_ROW_UNIT_PX = 28;
 
@@ -84,6 +94,16 @@ export function GroupCanvas({
   const deleteItem = useDynamicDashboardStore((state) => state.deleteItem);
   const { layers, fetchAllLayers } = useMapDataStore();
   const { flows, fetchFlows } = useFlowStore();
+  const { wsManager } = useWebSocket();
+
+  const dashboardDispatcher = useMemo(
+    () =>
+      createDashboardEventDispatcher({
+        send: (msg) => wsManager?.send(msg),
+        isConnected: () => wsManager?.isConnected() ?? false,
+      }),
+    [wsManager],
+  );
 
   const [dragging, setDragging] = useState<DragState | null>(null);
   const [resizing, setResizing] = useState<ResizeState | null>(null);
@@ -294,25 +314,59 @@ export function GroupCanvas({
       );
     }
 
-    if (item.type === "button") {
+    if (isButtonItem(item)) {
+      const listenerId = item.data?.listener_id?.trim() ?? "";
+      const handleButtonClick = () => {
+        if (!listenerId || !isValidListenerId(listenerId)) {
+          toast.message("Configure the button", {
+            description:
+              "Set a listener id in edit mode (letters, numbers, _ and - only).",
+          });
+          return;
+        }
+        dashboardDispatcher.dispatch({
+          dashboard_id: dashboardId,
+          group_id: group.id,
+          item_id: item.id,
+          listener_id: listenerId,
+          component_type: "button",
+          action: "click",
+          source_session_id: getFlowRunSessionId(),
+          debounce_ms: item.data?.debounce_ms,
+          cooldown_ms: item.data?.cooldown_ms,
+        });
+      };
+
       return (
-        <div className='flex h-full w-full items-center justify-center'>
-          <Button
-            className='w-full h-full'
-            variant={"outline"}
-            onClick={() => {
-              // Placeholder client-side action until server hooks exist
-              console.log("Button clicked", item.label);
-            }}
-          >
-            {item.label || "Action"}
-          </Button>
+        <div className='pointer-events-auto flex h-full min-h-0 w-full flex-col gap-2'>
+          {editMode && (
+            <ButtonPanel
+              data={item.data}
+              onDataChange={(next) =>
+                updateItemData(dashboardId, group.id, item.id, {
+                  data: { ...(item.data ?? {}), ...next },
+                })
+              }
+            />
+          )}
+          <div className='flex min-h-0 flex-1 items-stretch justify-center'>
+            <Button
+              className='h-full w-full'
+              variant='outline'
+              type='button'
+              disabled={editMode}
+              onClick={handleButtonClick}
+            >
+              {item.label || "Action"}
+            </Button>
+          </div>
         </div>
       );
     }
 
     if (isMapItem(item)) {
       return (
+        <div className='pointer-events-auto flex h-full min-h-0 w-full flex-col'>
         <MapPanel
           data={item.data}
           onLayerChange={(layerId) =>
@@ -321,11 +375,13 @@ export function GroupCanvas({
             })
           }
         />
+        </div>
       );
     }
 
     if (isFlowItem(item)) {
       return (
+        <div className='pointer-events-auto flex h-full min-h-0 w-full flex-col'>
         <FlowPanel
           data={item.data}
           onFlowChange={(flowId) =>
@@ -334,6 +390,7 @@ export function GroupCanvas({
             })
           }
         />
+        </div>
       );
     }
 
@@ -476,7 +533,10 @@ export function GroupCanvas({
                       className='absolute inset-0 z-10'
                       style={{ pointerEvents: "none" }}
                     />
-                    <div className='absolute inset-0 z-20 hidden border border-primary/40 group-hover:block' />
+                    <div
+                      className='pointer-events-none absolute inset-0 z-20 hidden border border-primary/40 group-hover:block'
+                      aria-hidden
+                    />
                     <button
                       type='button'
                       className='absolute right-2 top-2 z-30 h-6 w-6 bg-background/80 text-xs shadow-sm'

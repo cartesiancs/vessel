@@ -1,3 +1,5 @@
+import type { DashboardComponentEventPayload } from "@/entities/dynamic-dashboard/interaction";
+
 /** Flow-driven UI events (toast, etc.); client should filter by `target.session_id`. */
 export type FlowUiEventPayload = {
   target: { session_id: string };
@@ -6,6 +8,8 @@ export type FlowUiEventPayload = {
     flow_id?: number;
     node_id?: string;
     node_type?: string;
+    /** Optional routing hint for dashboard widgets (set by flow nodes). */
+    dashboard_item_id?: string;
   };
 };
 
@@ -32,6 +36,7 @@ export type WebSocketMessage = {
     | "get_all_flows"
     | "get_all_flows_response"
     | "stop_flow"
+    | "dashboard_component_event"
     | "get_all_stream_state"
     | "stream_state"
     | "change_state"
@@ -49,7 +54,8 @@ export type WebSocketMessage = {
     | { timestamp: number }
     | { id: number; name: string; is_running: boolean }[]
     | { cpu_usage: number; memory_usage: number }
-    | FlowUiEventPayload;
+    | FlowUiEventPayload
+    | DashboardComponentEventPayload;
 };
 
 const FLOW_RUN_SESSION_STORAGE_KEY = "vessel_flow_run_session_id";

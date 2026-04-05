@@ -5,7 +5,7 @@ use crate::{
         types::{FlowRunContext, Graph},
         BinaryStore,
     },
-    state::{DbPool, MqttMessage, StreamManager},
+    state::{DashboardUiEvent, DbPool, MqttMessage, StreamManager},
 };
 use anyhow::Result;
 use chrono::Utc;
@@ -44,6 +44,7 @@ pub struct FlowManagerActor {
     active_flows: HashMap<i32, ActiveFlow>,
     mqtt_client: Option<AsyncClient>,
     mqtt_tx: broadcast::Sender<MqttMessage>,
+    dashboard_ui_tx: broadcast::Sender<DashboardUiEvent>,
     stream_manager: StreamManager,
     binary_store: BinaryStore,
     system_configs: Vec<SystemConfiguration>,
@@ -55,6 +56,7 @@ impl FlowManagerActor {
         receiver: mpsc::Receiver<FlowManagerCommand>,
         mqtt_client: Option<AsyncClient>,
         mqtt_tx: broadcast::Sender<MqttMessage>,
+        dashboard_ui_tx: broadcast::Sender<DashboardUiEvent>,
         stream_manager: StreamManager,
         system_configs: Vec<SystemConfiguration>,
         pool: DbPool,
@@ -64,6 +66,7 @@ impl FlowManagerActor {
             active_flows: HashMap::new(),
             mqtt_client,
             mqtt_tx,
+            dashboard_ui_tx,
             stream_manager,
             binary_store: BinaryStore::new(),
             system_configs,
@@ -93,6 +96,7 @@ impl FlowManagerActor {
                     match FlowEngine::new(
                         graph,
                         Some(self.mqtt_tx.clone()),
+                        Some(self.dashboard_ui_tx.clone()),
                         self.stream_manager.clone(),
                         self.binary_store.clone(),
                         enriched_configs,

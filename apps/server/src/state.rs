@@ -1,5 +1,6 @@
 use bytes::Bytes;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use std::sync::Arc;
 use tokio::sync::{broadcast, mpsc, watch, RwLock};
 use tokio::time::Instant;
@@ -148,6 +149,26 @@ pub struct TopicMapping {
     pub entity_id: String,
 }
 
+/// Dynamic dashboard widgets → running flows (via `DASHBOARD_EVENT_LISTENER` nodes).
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct DashboardUiEvent {
+    pub listener_id: String,
+    pub event_id: String,
+    #[serde(default)]
+    pub occurred_at: Option<String>,
+    #[serde(default)]
+    pub dashboard_id: Option<String>,
+    #[serde(default)]
+    pub group_id: Option<String>,
+    #[serde(default)]
+    pub item_id: Option<String>,
+    pub component_type: String,
+    pub action: String,
+    #[serde(default)]
+    pub value: Option<Value>,
+    pub source_session_id: String,
+}
+
 pub struct AppState {
     pub streams: StreamManager,
     pub mqtt_tx: broadcast::Sender<MqttMessage>,
@@ -157,6 +178,7 @@ pub struct AppState {
     /// Notifies subscribers when topic_map has been updated
     pub topic_map_notify: watch::Sender<()>,
     pub flow_manager_tx: mpsc::Sender<FlowManagerCommand>,
+    pub dashboard_ui_tx: broadcast::Sender<DashboardUiEvent>,
     pub broadcast_tx: broadcast::Sender<String>,
     pub system_configs: Vec<SystemConfiguration>,
     pub tunnel_manager: Arc<TunnelManager>,

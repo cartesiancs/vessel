@@ -1,5 +1,13 @@
 import { MqttPublishNodeType, Node } from "../flowTypes";
 
+function mqttLikeCenterLabel(d: Node): string {
+  if (d.nodeType === "DASHBOARD_EVENT_LISTENER") {
+    const id = (d.data as { listenerId?: string } | undefined)?.listenerId;
+    return id?.trim() ?? "";
+  }
+  return (d.data as MqttPublishNodeType)?.topic ?? "";
+}
+
 export function renderMQTTNode(
   g: d3.Selection<SVGGElement, Node, null, undefined>,
   d: Node,
@@ -27,7 +35,7 @@ export function renderMQTTNode(
     .attr("dominant-baseline", "middle")
     .attr("font-size", 8)
     .attr("fill", "#fff")
-    .text(`${(d.data as MqttPublishNodeType)?.topic ?? ""}`);
+    .text(mqttLikeCenterLabel(d));
   group.on("click", (e) => {
     e.stopPropagation();
     onOpen();

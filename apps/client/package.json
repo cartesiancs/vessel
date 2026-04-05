@@ -12,7 +12,9 @@
     "build:vite": "tsc -b && vite build",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@vessel/capsule-client": "file:../../packages/capsule-client",
@@ -61,6 +63,7 @@
     "zustand": "^5.0.5"
   },
   "devDependencies": {
+    "vitest": "^3.0.0",
     "@eslint/js": "^9.21.0",
     "@types/d3": "^7.4.3",
     "@types/js-cookie": "^3.0.6",

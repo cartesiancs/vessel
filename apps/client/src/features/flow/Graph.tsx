@@ -129,6 +129,7 @@ export function Graph({
           "HTTP_REQUEST",
           "MQTT_PUBLISH",
           "MQTT_SUBSCRIBE",
+          "DASHBOARD_EVENT_LISTENER",
           "WEBSOCKET_SEND",
           "WEBSOCKET_ON",
         ],
@@ -190,6 +191,8 @@ export function Graph({
         renderLogicNode(g, d, () => handleClickOption(d)),
       MQTT_PUBLISH: (g, d) => renderMQTTNode(g, d, () => handleClickOption(d)),
       MQTT_SUBSCRIBE: (g, d) =>
+        renderMQTTNode(g, d, () => handleClickOption(d)),
+      DASHBOARD_EVENT_LISTENER: (g, d) =>
         renderMQTTNode(g, d, () => handleClickOption(d)),
       TYPE_CONVERTER: (g, d) =>
         renderButtonNode(g, d, () => handleClickOption(d)),
@@ -431,7 +434,12 @@ export function Graph({
       .attr("fill", nodeLightColor)
       .attr("font-size", 8)
       .attr("font-weight", 800)
-      .text((d) => d.nodeType || "");
+      .text((d) => {
+        if (d.nodeType === "DASHBOARD_EVENT_LISTENER") {
+          return "Dashboard";
+        }
+        return d.nodeType || "";
+      });
 
     const nodesMerged = nodeEnter.merge(nodeSel);
 

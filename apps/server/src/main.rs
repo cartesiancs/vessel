@@ -97,6 +97,7 @@ async fn main() -> Result<()> {
     let (mqtt_tx, _) = broadcast::channel::<MqttMessage>(1024);
     let (flow_manager_tx, flow_manager_rx) = mpsc::channel(100);
     let (broadcast_tx, _) = broadcast::channel(1024);
+    let (dashboard_ui_tx, _) = broadcast::channel::<crate::state::DashboardUiEvent>(1024);
     let (shutdown_tx, shutdown_rx) = watch::channel(());
     let (topic_map_notify_tx, topic_map_notify_rx) = watch::channel(());
     let tunnel_manager = Arc::new(TunnelManager::new());
@@ -117,6 +118,7 @@ async fn main() -> Result<()> {
         topic_map: Arc::new(RwLock::new(Vec::new())),
         topic_map_notify: topic_map_notify_tx,
         flow_manager_tx,
+        dashboard_ui_tx: dashboard_ui_tx.clone(),
         broadcast_tx,
         system_configs: configs.clone(),
         tunnel_manager: tunnel_manager.clone(),
@@ -215,6 +217,7 @@ async fn main() -> Result<()> {
         flow_manager_rx,
         mqtt_client_for_flow,
         mqtt_tx.clone(),
+        dashboard_ui_tx,
         streams.clone(),
         configs.clone(),
         pool.clone(),
