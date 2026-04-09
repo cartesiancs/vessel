@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useNavigate } from "react-router";
-import { Badge } from "@/components/ui/badge";
+import { Trash2 } from "lucide-react";
 import { DEMO_SERVER_URL, DEMO_TOKEN, isDemoMode } from "@/shared/demo";
 import { DefaultAdminPasswordDialog } from "./DefaultAdminPasswordDialog";
 import { authenticateWithPassword } from "./api";
@@ -88,6 +88,16 @@ export function LoginForm({
       );
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const removeRecentUrl = (toRemove: string) => {
+    const updated = recentUrls.filter((u) => u !== toRemove);
+    setRecentUrls(updated);
+    storage.setRecentUrls(updated);
+    const normalized = url.replace(/\/$/, "");
+    if (normalized === toRemove) {
+      setUrl("");
     }
   };
 
@@ -180,15 +190,15 @@ export function LoginForm({
                 <img src='/icon.png' />
               </div>
             </a>
-            <h1 className='text-xl font-bold'>Vessel</h1>
+            {/* <h1 className='text-xl font-bold'>Vessel</h1>
             <div className='text-center text-sm'>
               Physical Device Orchestration Platform
-            </div>
+            </div> */}
           </div>
           <div className='flex flex-col gap-6'>
             {!showAuthFields ? (
               <div className='grid gap-3'>
-                <Label htmlFor='server-url'>Server</Label>
+                {/* <Label htmlFor='server-url'>Server</Label> */}
                 <Input
                   id='server-url'
                   type='text'
@@ -198,26 +208,6 @@ export function LoginForm({
                   onChange={(e) => setUrl(e.target.value)}
                   disabled={isLoading}
                 />
-                {recentUrls.length > 0 && (
-                  <div className='flex flex-wrap items-center gap-2'>
-                    <span className='text-muted-foreground text-xs'>
-                      Recent:
-                    </span>
-                    {recentUrls.map((recentUrl) => (
-                      <Badge
-                        key={recentUrl}
-                        variant='outline'
-                        className='cursor-pointer'
-                        onClick={async () => {
-                          setUrl(recentUrl);
-                          await connectToServer(recentUrl);
-                        }}
-                      >
-                        {recentUrl}
-                      </Badge>
-                    ))}
-                  </div>
-                )}
               </div>
             ) : (
               <>
@@ -250,13 +240,44 @@ export function LoginForm({
               {isLoading
                 ? "Processing..."
                 : showAuthFields
-                  ? "Connect (Auth)"
+                  ? "Auth"
                   : "Connect"}
             </Button>
           </div>
+
+          {recentUrls.length > 0 && !showAuthFields && (
+            <div className='flex w-full flex-col gap-2 pt-4'>
+              {recentUrls.map((recentUrl) => (
+                <div key={recentUrl} className='flex w-full gap-2'>
+                  <Button
+                    type='button'
+                    variant='outline'
+                    onClick={async () => {
+                      setUrl(recentUrl);
+                      await connectToServer(recentUrl);
+                    }}
+                    className='min-w-0 flex-1 justify-start truncate text-left text-xs'
+                    size='sm'
+                  >
+                    {recentUrl}
+                  </Button>
+                  <Button
+                    type='button'
+                    variant='link'
+                    size='icon'
+                    className='size-8 shrink-0 text-muted-foreground'
+                    onClick={() => removeRecentUrl(recentUrl)}
+                    aria-label={`Remove ${recentUrl} from recent servers`}
+                  >
+                    <Trash2 className='size-4' />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </form>
-      <div className='text-muted-foreground *:[a]:hover:text-primary text-center text-xs text-balance *:[a]:underline *:[a]:underline-offset-4'>
+      {/* <div className='text-muted-foreground *:[a]:hover:text-primary text-center text-xs text-balance *:[a]:underline *:[a]:underline-offset-4'>
         This software is managed as an open source and can be found on this{" "}
         <a
           href='https://github.com/cartesiancs/vessel'
@@ -266,7 +287,7 @@ export function LoginForm({
           GitHub
         </a>
         .
-      </div>
+      </div> */}
       <DefaultAdminPasswordDialog
         open={isPasswordDialogOpen}
         serverUrl={serverUrlForDialog}

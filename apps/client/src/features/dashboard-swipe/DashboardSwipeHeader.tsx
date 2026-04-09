@@ -40,7 +40,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { useDynamicDashboardStore } from "@/entities/dynamic-dashboard/store";
 import { useIntegrationStore } from "@/entities/integrations/store";
 import { MoreVertical, Pencil, Plus, Trash2 } from "lucide-react";
@@ -51,15 +50,7 @@ import {
   useSearchParams,
 } from "react-router";
 
-type DashboardSwipeHeaderProps = {
-  editMode: boolean;
-  onEditModeChange: (value: boolean) => void;
-};
-
-export function DashboardSwipeHeader({
-  editMode,
-  onEditModeChange,
-}: DashboardSwipeHeaderProps) {
+export function DashboardSwipeHeader() {
   const location = useLocation();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -282,10 +273,6 @@ export function DashboardSwipeHeader({
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>
-            <div className='ml-auto flex items-center gap-2'>
-              <span className='text-xs text-muted-foreground'>Edit mode</span>
-              <Switch checked={editMode} onCheckedChange={onEditModeChange} />
-            </div>
           </>
         )}
       </header>

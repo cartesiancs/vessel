@@ -6,12 +6,10 @@ import { useEntitiesData } from "@/features/entity/useEntitiesData";
 type DynamicDashboardMainPanelProps = {
   /** Which dashboard this column renders (store order / swipe order). */
   dashboardId: string;
-  editMode: boolean;
 };
 
 export function DynamicDashboardMainPanel({
   dashboardId,
-  editMode,
 }: DynamicDashboardMainPanelProps) {
   const { dashboards } = useDynamicDashboardStore();
   const { entities, streamsState } = useEntitiesData();
@@ -31,7 +29,6 @@ export function DynamicDashboardMainPanel({
               group={currentDashboard.groups[0]}
               entities={entities}
               streamsState={streamsState}
-              editMode={editMode}
             />
           </div>
         </div>
