@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import * as api from "./api";
+import { clampItemPosition, itemsCollide } from "./layoutResolve";
 
 export type DashboardItemType =
   | "entity-card"
@@ -134,26 +135,6 @@ const createId = () =>
     ? crypto.randomUUID()
     : Math.random().toString(36).slice(2);
 
-const isColliding = (a: DashboardItem, b: DashboardItem) => {
-  return (
-    a.position.x < b.position.x + b.size.w &&
-    a.position.x + a.size.w > b.position.x &&
-    a.position.y < b.position.y + b.size.h &&
-    a.position.y + a.size.h > b.position.y
-  );
-};
-
-const clampPosition = (
-  group: DashboardGroup,
-  size: { w: number; h: number },
-  position: { x: number; y: number },
-) => {
-  return {
-    x: Math.min(Math.max(0, position.x), Math.max(0, group.cols - size.w)),
-    y: Math.min(Math.max(0, position.y), Math.max(0, group.rows - size.h)),
-  };
-};
-
 const clampSizeToGroup = (
   group: DashboardGroup,
   size: { w: number; h: number },
@@ -179,7 +160,7 @@ const findOpenSlot = (
         minSize: size,
       };
 
-      const collides = group.items.some((item) => isColliding(candidate, item));
+      const collides = group.items.some((item) => itemsCollide(candidate, item));
       if (!collides) {
         return { x, y };
       }
@@ -215,7 +196,7 @@ const mergeGroupsIntoOne = (groups: DashboardGroup[]): DashboardGroup => {
 
       const size = clampSizeToGroup(primary, item.size, item.minSize);
       const position = findOpenSlot(primary, size);
-      const clampedPos = clampPosition(primary, size, position);
+      const clampedPos = clampItemPosition(primary, size, position);
       const nextItem: DashboardItem = {
         ...item,
         id,
@@ -492,7 +473,7 @@ export const useDynamicDashboardStore = create<DynamicDashboardState>()(
                 const nextSize = payload.size
                   ? clampSizeToGroup(g, payload.size, item.minSize)
                   : item.size;
-                const nextPos = clampPosition(
+                const nextPos = clampItemPosition(
                   g,
                   nextSize,
                   payload.position || item.position,
@@ -500,7 +481,8 @@ export const useDynamicDashboardStore = create<DynamicDashboardState>()(
 
                 const candidate = { ...item, size: nextSize, position: nextPos };
                 const collision = g.items.some(
-                  (other) => other.id !== itemId && isColliding(candidate, other),
+                  (other) =>
+                    other.id !== itemId && itemsCollide(candidate, other),
                 );
 
                 if (collision) {

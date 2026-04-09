@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { resolveItemPositionOrNull } from "@/entities/dynamic-dashboard/layoutResolve";
 import {
   DashboardGroup,
   DashboardItem,
@@ -52,13 +53,27 @@ const DRAG_DELETE_SHOW_MAX_CLIENT_Y = 100;
 /** Fixed delete chip below app header (~h-12). */
 const DRAG_DELETE_TARGET_TOP = "3.5rem";
 
+/** Spring for smooth magnet-snap motion — near-critical damping for minimal overshoot. */
+const DRAG_SPRING_STIFFNESS = 400;
+const DRAG_SPRING_DAMPING = 40;
+
+type Vec2 = { x: number; y: number };
+
+type DragSpringSim = {
+  px: number;
+  py: number;
+  vx: number;
+  vy: number;
+};
+
 /** Clamp span so position + span stays within the grid (CSS grid 1×1…N tracks). */
 function clampGridSpan(position: number, span: number, limit: number): number {
   const maxSpan = Math.max(1, limit - position);
   return Math.max(1, Math.min(span, maxSpan));
 }
 
-type DragState = {
+/** Session data for an active drag (stable across preview updates → effect does not rebind on each cell). */
+type DragSessionState = {
   itemId: string;
   startX: number;
   startY: number;
@@ -104,12 +119,12 @@ function startResize(
   event: ReactPointerEvent<Element>,
   item: DashboardItem,
   edge: ResizeEdge,
-  setDragging: (v: DragState | null) => void,
+  clearDrag: () => void,
   setResizing: (v: ResizeState | null) => void,
 ) {
   event.preventDefault();
   event.stopPropagation();
-  setDragging(null);
+  clearDrag();
   setResizing({
     itemId: item.id,
     startX: event.clientX,
@@ -156,12 +171,99 @@ export function GroupCanvas({
     [wsManager],
   );
 
-  const [dragging, setDragging] = useState<DragState | null>(null);
+  const [dragSession, setDragSession] = useState<DragSessionState | null>(null);
+  const dragPreviewRef = useRef<{ x: number; y: number } | null>(null);
+  const dragSpringTargetRef = useRef<Vec2>({ x: 0, y: 0 });
   const [resizing, setResizing] = useState<ResizeState | null>(null);
   const [dragNearTopForDelete, setDragNearTopForDelete] = useState(false);
   const [dragOverDeleteTarget, setDragOverDeleteTarget] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const deleteDropTargetRef = useRef<HTMLDivElement | null>(null);
+
+  const dragSpringSimRef = useRef<DragSpringSim>({
+    px: 0,
+    py: 0,
+    vx: 0,
+    vy: 0,
+  });
+  const dragSpringRafRef = useRef<number | null>(null);
+  const dragSpringLastTRef = useRef<number | null>(null);
+  const [dragSpringVisual, setDragSpringVisual] = useState<Vec2>({
+    x: 0,
+    y: 0,
+  });
+  const resetDragSpring = useCallback(() => {
+    if (dragSpringRafRef.current != null) {
+      cancelAnimationFrame(dragSpringRafRef.current);
+      dragSpringRafRef.current = null;
+    }
+    dragSpringLastTRef.current = null;
+    dragSpringSimRef.current = { px: 0, py: 0, vx: 0, vy: 0 };
+    setDragSpringVisual({ x: 0, y: 0 });
+  }, []);
+
+  const ensureDragSpringLoop = useCallback(() => {
+    if (dragSpringRafRef.current != null) return;
+    dragSpringLastTRef.current = performance.now();
+
+    const tick = (now: number) => {
+      const last = dragSpringLastTRef.current ?? now;
+      const dt = Math.min((now - last) / 1000, 0.064);
+      dragSpringLastTRef.current = now;
+
+      const s = dragSpringSimRef.current;
+      const t = dragSpringTargetRef.current;
+      const k = DRAG_SPRING_STIFFNESS;
+      const c = DRAG_SPRING_DAMPING;
+      const errX = s.px - t.x;
+      const errY = s.py - t.y;
+      const ax = -k * errX - c * s.vx;
+      const ay = -k * errY - c * s.vy;
+      s.vx += ax * dt;
+      s.vy += ay * dt;
+      s.px += s.vx * dt;
+      s.py += s.vy * dt;
+
+      setDragSpringVisual({ x: s.px, y: s.py });
+
+      const settled =
+        Math.abs(errX) < 0.4 &&
+        Math.abs(errY) < 0.4 &&
+        Math.abs(s.vx) < 8 &&
+        Math.abs(s.vy) < 8;
+
+      if (settled) {
+        s.px = t.x;
+        s.py = t.y;
+        s.vx = s.vy = 0;
+        setDragSpringVisual({ x: t.x, y: t.y });
+        dragSpringRafRef.current = null;
+        dragSpringLastTRef.current = null;
+        return;
+      }
+
+      dragSpringRafRef.current = requestAnimationFrame(tick);
+    };
+
+    dragSpringRafRef.current = requestAnimationFrame(tick);
+  }, []);
+
+  const clearDrag = useCallback(() => {
+    resetDragSpring();
+    dragSpringTargetRef.current = { x: 0, y: 0 };
+    setDragSession(null);
+    dragPreviewRef.current = null;
+    setDragNearTopForDelete(false);
+    setDragOverDeleteTarget(false);
+  }, [resetDragSpring]);
+
+  useEffect(() => {
+    return () => {
+      if (dragSpringRafRef.current != null) {
+        cancelAnimationFrame(dragSpringRafRef.current);
+      }
+    };
+  }, []);
 
   const cols = Math.max(1, group.cols);
   const rows = Math.max(1, group.rows);
@@ -175,11 +277,11 @@ export function GroupCanvas({
   };
 
   useEffect(() => {
-    if (!dragging) {
+    if (!dragSession) {
       setDragNearTopForDelete(false);
       setDragOverDeleteTarget(false);
     }
-  }, [dragging]);
+  }, [dragSession]);
 
   useEffect(() => {
     if (layers.length === 0) {
@@ -195,7 +297,7 @@ export function GroupCanvas({
   }, [fetchAllLayers, fetchFlows, flows.length, layers.length]);
 
   useEffect(() => {
-    if (!dragging) {
+    if (!dragSession) {
       return;
     }
 
@@ -228,35 +330,78 @@ export function GroupCanvas({
       const cellH = rect.height / rows;
       if (cellW < 1e-6 || cellH < 1e-6) return;
 
-      const dx = Math.round((event.clientX - dragging.startX) / cellW);
-      const dy = Math.round((event.clientY - dragging.startY) / cellH);
+      const dx = Math.round((event.clientX - dragSession.startX) / cellW);
+      const dy = Math.round((event.clientY - dragSession.startY) / cellH);
 
-      const next = {
-        x: dragging.origin.x + dx,
-        y: dragging.origin.y + dy,
+      const desired = {
+        x: dragSession.origin.x + dx,
+        y: dragSession.origin.y + dy,
       };
 
-      updateItemLayout(dashboardId, group.id, dragging.itemId, {
-        position: next,
-      });
+      const dash = useDynamicDashboardStore
+        .getState()
+        .dashboards.find((d) => d.id === dashboardId);
+      const g = dash?.groups.find((gr) => gr.id === group.id);
+      const movingItem = g?.items.find((it) => it.id === dragSession.itemId);
+      if (!g || !movingItem) return;
+
+      const resolved = resolveItemPositionOrNull(g, movingItem, desired);
+      if (!resolved) {
+        return;
+      }
+
+      const prev = dragPreviewRef.current ?? dragSession.origin;
+      if (prev.x === resolved.x && prev.y === resolved.y) {
+        return;
+      }
+
+      dragPreviewRef.current = resolved;
+      dragSpringTargetRef.current = {
+        x: (resolved.x - dragSession.origin.x) * cellW,
+        y: (resolved.y - dragSession.origin.y) * cellH,
+      };
+      ensureDragSpringLoop();
     };
 
     const handleUp = (event: PointerEvent) => {
+      const session = dragSession;
+      const finalPreview = dragPreviewRef.current;
+
       const targetEl = deleteDropTargetRef.current;
-      if (targetEl && dragging) {
+      let droppedOnDelete = false;
+      if (targetEl && session) {
         const tr = targetEl.getBoundingClientRect();
-        const inside =
+        droppedOnDelete =
           event.clientX >= tr.left &&
           event.clientX <= tr.right &&
           event.clientY >= tr.top &&
           event.clientY <= tr.bottom;
-        if (inside) {
-          deleteItem(dashboardId, group.id, dragging.itemId);
+      }
+
+      if (droppedOnDelete && session) {
+        deleteItem(dashboardId, group.id, session.itemId);
+        clearDrag();
+        return;
+      }
+
+      if (session && finalPreview) {
+        const stored = useDynamicDashboardStore
+          .getState()
+          .dashboards.find((d) => d.id === dashboardId)
+          ?.groups.find((gr) => gr.id === group.id)
+          ?.items.find((it) => it.id === session.itemId);
+        if (
+          stored &&
+          (stored.position.x !== finalPreview.x ||
+            stored.position.y !== finalPreview.y)
+        ) {
+          updateItemLayout(dashboardId, group.id, session.itemId, {
+            position: finalPreview,
+          });
         }
       }
-      setDragNearTopForDelete(false);
-      setDragOverDeleteTarget(false);
-      setDragging(null);
+
+      clearDrag();
     };
 
     window.addEventListener("pointermove", handleMove);
@@ -269,10 +414,12 @@ export function GroupCanvas({
       window.removeEventListener("pointercancel", handleUp);
     };
   }, [
+    clearDrag,
     cols,
     dashboardId,
     deleteItem,
-    dragging,
+    dragSession,
+    ensureDragSpringLoop,
     group.id,
     rows,
     updateItemLayout,
@@ -663,38 +810,52 @@ export function GroupCanvas({
           }}
         >
           {group.items.map((item) => {
-            const spanW = clampGridSpan(item.position.x, item.size.w, cols);
-            const spanH = clampGridSpan(item.position.y, item.size.h, rows);
+            const isMoveDragging = dragSession?.itemId === item.id;
+            const displayPos = isMoveDragging
+              ? dragSession.origin
+              : item.position;
+            const spanW = clampGridSpan(displayPos.x, item.size.w, cols);
+            const spanH = clampGridSpan(displayPos.y, item.size.h, rows);
             const activeResizeEdge =
               resizing?.itemId === item.id ? resizing.edge : null;
+            const springFollows = isMoveDragging;
             return (
               <div
                 key={item.id}
                 className='relative min-h-0 min-w-0 overflow-hidden bg-card shadow-sm'
                 style={{
-                  gridColumn: `${item.position.x + 1} / span ${spanW}`,
-                  gridRow: `${item.position.y + 1} / span ${spanH}`,
+                  gridColumn: `${displayPos.x + 1} / span ${spanW}`,
+                  gridRow: `${displayPos.y + 1} / span ${spanH}`,
                   cursor: activeResizeEdge
                     ? resizeCursorForEdge(activeResizeEdge)
                     : "default",
+                  transform: springFollows
+                    ? `translate3d(${dragSpringVisual.x}px, ${dragSpringVisual.y}px, 0)`
+                    : undefined,
+                  zIndex: springFollows ? 80 : undefined,
+                  willChange: springFollows ? "transform" : undefined,
                 }}
               >
                 <div className='group/movehit pointer-events-auto absolute inset-x-0 top-2 z-[36] h-12'>
                   <button
                     type='button'
                     aria-label={`Move ${item.label || item.type}`}
-                    className='pointer-events-none absolute left-1/2 top-1 z-[37] h-2 w-14 shrink-0 -translate-x-1/2 cursor-grab rounded-full bg-white opacity-0 shadow-sm transition-opacity duration-200 group-hover/movehit:pointer-events-auto group-hover/movehit:opacity-100 active:cursor-grabbing'
+                    className='pointer-events-none absolute left-1/2 top-1 z-[37] h-2 w-14 shrink-0 -translate-x-1/2 cursor-grab touch-none rounded-full bg-white opacity-0 shadow-sm transition-opacity duration-200 group-hover/movehit:pointer-events-auto group-hover/movehit:opacity-100 active:cursor-grabbing'
                     onPointerDown={(event) => {
                       event.preventDefault();
                       event.stopPropagation();
                       setResizing(null);
+                      resetDragSpring();
                       setDragNearTopForDelete(false);
                       setDragOverDeleteTarget(false);
-                      setDragging({
+                      const origin = { ...item.position };
+                      dragPreviewRef.current = origin;
+                      dragSpringTargetRef.current = { x: 0, y: 0 };
+                      setDragSession({
                         itemId: item.id,
                         startX: event.clientX,
                         startY: event.clientY,
-                        origin: { ...item.position },
+                        origin,
                       });
                     }}
                   />
@@ -705,7 +866,7 @@ export function GroupCanvas({
                   aria-label='Resize from top edge'
                   className={`${FRAME_STRIP_CLASS} left-2 right-2 top-0 h-2 cursor-ns-resize`}
                   onPointerDown={(e) =>
-                    startResize(e, item, "n", setDragging, setResizing)
+                    startResize(e, item, "n", clearDrag, setResizing)
                   }
                 />
                 <button
@@ -713,7 +874,7 @@ export function GroupCanvas({
                   aria-label='Resize from bottom edge'
                   className={`${FRAME_STRIP_CLASS} bottom-0 left-2 right-2 h-2 cursor-ns-resize`}
                   onPointerDown={(e) =>
-                    startResize(e, item, "s", setDragging, setResizing)
+                    startResize(e, item, "s", clearDrag, setResizing)
                   }
                 />
                 <button
@@ -721,7 +882,7 @@ export function GroupCanvas({
                   aria-label='Resize from left edge'
                   className={`${FRAME_STRIP_CLASS} bottom-2 left-0 top-2 w-2 cursor-ew-resize`}
                   onPointerDown={(e) =>
-                    startResize(e, item, "w", setDragging, setResizing)
+                    startResize(e, item, "w", clearDrag, setResizing)
                   }
                 />
                 <button
@@ -729,7 +890,7 @@ export function GroupCanvas({
                   aria-label='Resize from right edge'
                   className={`${FRAME_STRIP_CLASS} bottom-2 right-0 top-2 w-2 cursor-ew-resize`}
                   onPointerDown={(e) =>
-                    startResize(e, item, "e", setDragging, setResizing)
+                    startResize(e, item, "e", clearDrag, setResizing)
                   }
                 />
                 <button
@@ -737,7 +898,7 @@ export function GroupCanvas({
                   aria-label='Resize from top-left'
                   className={`${FRAME_STRIP_CLASS} left-0 top-0 h-3 w-3 cursor-nwse-resize`}
                   onPointerDown={(e) =>
-                    startResize(e, item, "nw", setDragging, setResizing)
+                    startResize(e, item, "nw", clearDrag, setResizing)
                   }
                 />
                 <button
@@ -745,7 +906,7 @@ export function GroupCanvas({
                   aria-label='Resize from top-right'
                   className={`${FRAME_STRIP_CLASS} right-0 top-0 h-3 w-3 cursor-nesw-resize`}
                   onPointerDown={(e) =>
-                    startResize(e, item, "ne", setDragging, setResizing)
+                    startResize(e, item, "ne", clearDrag, setResizing)
                   }
                 />
                 <button
@@ -753,7 +914,7 @@ export function GroupCanvas({
                   aria-label='Resize from bottom-left'
                   className={`${FRAME_STRIP_CLASS} bottom-0 left-0 h-3 w-3 cursor-nesw-resize`}
                   onPointerDown={(e) =>
-                    startResize(e, item, "sw", setDragging, setResizing)
+                    startResize(e, item, "sw", clearDrag, setResizing)
                   }
                 />
                 <button
@@ -761,7 +922,7 @@ export function GroupCanvas({
                   aria-label='Resize from bottom-right'
                   className={`${FRAME_STRIP_CLASS} bottom-0 right-0 h-3 w-3 cursor-nwse-resize`}
                   onPointerDown={(e) =>
-                    startResize(e, item, "se", setDragging, setResizing)
+                    startResize(e, item, "se", clearDrag, setResizing)
                   }
                 />
 
@@ -774,7 +935,7 @@ export function GroupCanvas({
         </div>
       </div>
 
-      {dragging && dragNearTopForDelete ? (
+      {dragSession && dragNearTopForDelete ? (
         <div
           ref={deleteDropTargetRef}
           className={`pointer-events-none fixed left-1/2 z-[300] flex h-14 w-14 -translate-x-1/2 items-center justify-center rounded-full bg-dark transition-[transform,box-shadow] ${
