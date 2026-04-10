@@ -75,5 +75,16 @@ export const getRecordingStreamUrl = (
   serverUrl: string,
   token: string
 ): string => {
-  return `${serverUrl}/api/recordings/${id}/stream?token=${token}`;
+  try {
+    const baseUrl = new URL(serverUrl);
+    if (baseUrl.protocol !== "http:" && baseUrl.protocol !== "https:") {
+      return "";
+    }
+
+    const streamUrl = new URL(`/api/recordings/${id}/stream`, baseUrl.origin);
+    streamUrl.searchParams.set("token", token);
+    return streamUrl.toString();
+  } catch {
+    return "";
+  }
 };
