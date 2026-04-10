@@ -14,6 +14,12 @@ import { StreamState } from "@/features/entity/useEntitiesData";
 import { EntityCard } from "@/features/entity/Card";
 import { StreamReceiver } from "@/features/rtc/StreamReceiver";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -22,6 +28,8 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Plus, X } from "lucide-react";
 import { useSidebar } from "@/components/ui/sidebar";
 import { useFlowStore } from "@/entities/flow/store";
@@ -179,6 +187,8 @@ export function GroupCanvas({
   const [dragOverDeleteTarget, setDragOverDeleteTarget] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const deleteDropTargetRef = useRef<HTMLDivElement | null>(null);
+  const [editingButtonItem, setEditingButtonItem] =
+    useState<DashboardItem<"button"> | null>(null);
 
   const dragSpringSimRef = useRef<DragSpringSim>({
     px: 0,
@@ -841,6 +851,13 @@ export function GroupCanvas({
                     type='button'
                     aria-label={`Move ${item.label || item.type}`}
                     className='pointer-events-none absolute left-1/2 top-1 z-[37] h-2 w-14 shrink-0 -translate-x-1/2 cursor-grab touch-none rounded-full bg-white opacity-0 shadow-sm transition-opacity duration-200 group-hover/movehit:pointer-events-auto group-hover/movehit:opacity-100 active:cursor-grabbing'
+                    onDoubleClick={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      if (isButtonItem(item)) {
+                        setEditingButtonItem(item);
+                      }
+                    }}
                     onPointerDown={(event) => {
                       event.preventDefault();
                       event.stopPropagation();
@@ -947,7 +964,81 @@ export function GroupCanvas({
           <X className='h-7 w-7 text-white' strokeWidth={2.25} />
         </div>
       ) : null}
+
+      <Dialog
+        open={editingButtonItem !== null}
+        onOpenChange={(open) => {
+          if (!open) setEditingButtonItem(null);
+        }}
+      >
+        <DialogContent className='sm:max-w-md'>
+          <DialogHeader>
+            <DialogTitle>Edit Button</DialogTitle>
+          </DialogHeader>
+          {editingButtonItem && (
+            <ButtonConfigEditor
+              item={editingButtonItem}
+              onSave={(data) => {
+                updateItemData(dashboardId, group.id, editingButtonItem.id, {
+                  data,
+                  label: data.label,
+                });
+                setEditingButtonItem(null);
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </Card>
+  );
+}
+
+type ButtonConfigEditorProps = {
+  item: DashboardItem<"button">;
+  onSave: (data: { listener_id?: string; label?: string }) => void;
+};
+
+function ButtonConfigEditor({ item, onSave }: ButtonConfigEditorProps) {
+  const [listenerId, setListenerId] = useState(item.data?.listener_id ?? "");
+  const [label, setLabel] = useState(item.label ?? "");
+
+  const handleSave = () => {
+    const trimmedId = listenerId.trim();
+    if (trimmedId && !isValidListenerId(trimmedId)) {
+      toast.error("Invalid listener ID", {
+        description: "Use only letters, numbers, _ and -",
+      });
+      return;
+    }
+    onSave({
+      listener_id: trimmedId || undefined,
+      label: label.trim() || undefined,
+    });
+  };
+
+  return (
+    <div className='flex flex-col gap-4'>
+      <div className='grid gap-2'>
+        <Label htmlFor='button-label'>Label</Label>
+        <Input
+          id='button-label'
+          value={label}
+          placeholder='Button text'
+          onChange={(e) => setLabel(e.target.value)}
+        />
+      </div>
+      <div className='grid gap-2'>
+        <Label htmlFor='listener-id'>Listener ID</Label>
+        <Input
+          id='listener-id'
+          className='font-mono'
+          value={listenerId}
+          placeholder='e.g. lights-toggle'
+          onChange={(e) => setListenerId(e.target.value)}
+        />
+      </div>
+      <Button onClick={handleSave}>Save</Button>
+    </div>
   );
 }
 
