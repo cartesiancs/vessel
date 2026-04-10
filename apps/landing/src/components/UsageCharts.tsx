@@ -1,8 +1,6 @@
 import {
   Bar,
   BarChart,
-  Area,
-  AreaChart,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -60,16 +58,6 @@ const capsuleRequestsConfig = {
   },
 } satisfies ChartConfig;
 
-const capsuleTokensConfig = {
-  capsuleInputTokens: {
-    label: "Input Tokens",
-    color: "var(--color-chart-1)",
-  },
-  capsuleOutputTokens: {
-    label: "Output Tokens",
-    color: "var(--color-chart-5)",
-  },
-} satisfies ChartConfig;
 
 function EmptyState() {
   return (
@@ -87,11 +75,6 @@ function hasCapsuleRequestData(data: DailyUsage[]): boolean {
   return data.some((d) => d.capsuleRequests > 0 || d.capsuleImageRequests > 0);
 }
 
-function hasCapsuleTokenData(data: DailyUsage[]): boolean {
-  return data.some(
-    (d) => d.capsuleInputTokens > 0 || d.capsuleOutputTokens > 0,
-  );
-}
 
 export function UsageCharts({
   data,

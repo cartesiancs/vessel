@@ -1,5 +1,6 @@
 import { useFrame } from "@react-three/fiber";
-import { scrollState } from "./HeroScene";
+
+const scrollState = { progress: 0 };
 
 function smoothstep(t: number): number {
   return t * t * (3 - 2 * t);

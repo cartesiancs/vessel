@@ -1,4 +1,3 @@
-import React from "react";
 import { useFadeInOnScroll } from "@/lib/useFadeInOnScroll";
 
 function cx(...classes: Array<string | false | null | undefined>) {

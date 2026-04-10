@@ -1,5 +1,4 @@
 import { Button } from "@/components/ui/button";
-import { Shield } from "lucide-react";
 
 export function CapsuleHero() {
   return (

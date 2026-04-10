@@ -10,11 +10,6 @@ import {
   Lock,
   UserCheck,
   BookOpen,
-  Server,
-  Wifi,
-  Eye,
-  ShieldCheck,
-  Globe,
   Check,
   X,
 } from "lucide-react";
