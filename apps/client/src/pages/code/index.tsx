@@ -1,3 +1,5 @@
+import { useEffect } from "react";
+import { Navigate } from "react-router";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -20,8 +22,33 @@ import {
 import { FileEditor } from "@/features/code/FileEditor";
 import { FileTree } from "@/features/code/FileTree";
 import { AppSidebar } from "@/features/sidebar";
+import { useConfigStore } from "@/entities/configurations/store";
+import { getCodeServiceEnabled } from "@/entities/configurations/codeService";
 
 export function CodePage() {
+  const { configurations, fetchConfigs, isLoading } = useConfigStore();
+
+  useEffect(() => {
+    void fetchConfigs();
+  }, [fetchConfigs]);
+
+  if (isLoading) {
+    return (
+      <SidebarProvider>
+        <AppSidebar />
+        <SidebarInset>
+          <div className='flex h-full items-center justify-center text-sm text-muted-foreground'>
+            Loading…
+          </div>
+        </SidebarInset>
+      </SidebarProvider>
+    );
+  }
+
+  if (!getCodeServiceEnabled(configurations)) {
+    return <Navigate to='/dashboard' replace />;
+  }
+
   return (
     <SidebarProvider>
       <AppSidebar />
@@ -46,7 +73,7 @@ export function CodePage() {
         </header>
         <main className='flex-1 overflow-y-auto'>
           <ResizablePanelGroup direction='horizontal' className='w-full h-full'>
-            <ResizablePanel defaultSize={30} minSize={15}>
+            <ResizablePanel defaultSize={20} minSize={15}>
               <div className='h-full overflow-y-auto'>
                 <FileTree />
               </div>

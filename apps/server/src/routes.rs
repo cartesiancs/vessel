@@ -14,9 +14,9 @@ use tracing::info;
 
 use crate::{
     handler::{
-        auth::auth_with_password, configurations, custom_nodes, device_tokens, devices, entities,
-        flows, ha, log, map, permissions, roles, stat, state, storage, streams, users,
-        ws::ws_handler,
+        auth::auth_with_password, configurations, custom_nodes, dashboards, device_tokens, devices,
+        entities, flows, ha, integration, log, map, permissions, recordings, roles, sdr, stat,
+        state, storage, streams, tunnel, users, ws::ws_handler,
     },
     state::AppState,
 };
@@ -146,6 +146,9 @@ pub async fn web_server(
             post(flows::create_flow_version).get(flows::get_flow_versions),
         )
         .route("/stat", get(stat::get_stats))
+        .route("/tunnel/start", post(tunnel::start_tunnel))
+        .route("/tunnel/stop", post(tunnel::stop_tunnel))
+        .route("/tunnel/status", get(tunnel::status_tunnel))
         .route("/logs", get(log::list_log_files_handler))
         .route("/logs/:filename", get(log::get_log_by_filename_handler))
         .route("/logs/latest", get(log::get_latest_log_handler))
@@ -165,6 +168,14 @@ pub async fn web_server(
         )
         .route("/ha/states", get(ha::get_all_states))
         .route("/ha/states/:entity_id", post(ha::post_state))
+        .route("/sdr/frequency", post(sdr::set_frequency))
+        .route("/sdr/samplerate", get(sdr::get_samplerate))
+        .route("/sdr/start", post(sdr::start_stream))
+        .route("/sdr/stop", post(sdr::stop_stream))
+        .route("/sdr/audio", get(sdr::sdr_audio_ws))
+        .route("/integrations/register", post(integration::register_integration))
+        .route("/integrations/status", get(integration::get_integration_status))
+        .route("/integrations/:integration_id", delete(integration::delete_integration))
         .route(
             "/custom-nodes",
             post(custom_nodes::create_custom_node_handler)
@@ -175,6 +186,16 @@ pub async fn web_server(
             get(custom_nodes::get_custom_node_handler)
                 .put(custom_nodes::update_custom_node_handler)
                 .delete(custom_nodes::delete_custom_node_handler),
+        )
+        .route(
+            "/dynamic-dashboards",
+            get(dashboards::list_dashboards).post(dashboards::create_dashboard),
+        )
+        .route(
+            "/dynamic-dashboards/:id",
+            get(dashboards::get_dashboard)
+                .put(dashboards::update_dashboard)
+                .delete(dashboards::delete_dashboard),
         )
         .route(
             "/storage/",
@@ -190,7 +211,22 @@ pub async fn web_server(
         )
         .route("/storage/mkdir/*path", post(storage::create_dir_handler))
         .route("/storage/rename/*from_path", post(storage::rename_handler))
-        .route("/states/:entity_id", post(state::set_state));
+        .route("/states/*topic", post(state::set_state))
+        .route(
+            "/recordings",
+            post(recordings::start_recording).get(recordings::list_recordings),
+        )
+        .route("/recordings/active", get(recordings::get_active_recordings))
+        .route(
+            "/recordings/active/:topic",
+            get(recordings::is_topic_recording),
+        )
+        .route(
+            "/recordings/:id",
+            get(recordings::get_recording).delete(recordings::delete_recording),
+        )
+        .route("/recordings/:id/stop", post(recordings::stop_recording))
+        .route("/recordings/:id/stream", get(recordings::stream_recording));
 
     let app = Router::new()
         .route("/info", get(get_server_info))

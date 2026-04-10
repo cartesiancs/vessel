@@ -135,7 +135,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({ entry, onDeleteRequest }) => {
       <ContextMenu>
         <ContextMenuTrigger>
           <div
-            className='flex items-center p-1 rounded-md cursor-pointer hover:bg-muted'
+            className='flex items-center p-1 cursor-pointer hover:bg-muted'
             onClick={handleToggle}
           >
             {entry.isDir ? (

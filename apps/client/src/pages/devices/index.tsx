@@ -1,3 +1,5 @@
+import { useEffect, useRef } from "react";
+import { useSearchParams } from "react-router";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -13,10 +15,65 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/features/sidebar";
+import {
+  INTEGRATION_DEVICE_ID,
+  INTEGRATION_ENTITY_ID,
+} from "@/features/integration/constants";
+import { useDeviceStore } from "@/entities/device/store";
+import { useEntityStore } from "@/entities/entity/store";
 import { DeviceList } from "@/widgets/device-list/DeviceList";
 import { EntityList } from "@/widgets/entity-list/EntityList";
 
 export function DevicePage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const configureParam = searchParams.get("configure");
+
+  const { devices, isLoading: devicesLoading, selectDevice } = useDeviceStore();
+  const { entities, isLoading: entitiesLoading, setAutoOpenEntityId } =
+    useEntityStore();
+  const hasAutoConfigured = useRef(false);
+
+  useEffect(() => {
+    if (!configureParam || hasAutoConfigured.current) return;
+    if (devicesLoading || entitiesLoading) return;
+    if (devices.length === 0 || entities.length === 0) return;
+
+    const targetDeviceId = INTEGRATION_DEVICE_ID[configureParam];
+    const targetEntityId = INTEGRATION_ENTITY_ID[configureParam];
+    if (!targetDeviceId) {
+      setSearchParams({}, { replace: true });
+      return;
+    }
+
+    const targetDevice = devices.find((d) => d.device_id === targetDeviceId);
+    if (!targetDevice) {
+      setSearchParams({}, { replace: true });
+      return;
+    }
+
+    selectDevice(targetDevice);
+
+    const targetEntity = targetEntityId
+      ? entities.find((e) => e.entity_id === targetEntityId && e.device_id === targetDevice.id)
+      : entities.find((e) => e.device_id === targetDevice.id);
+    const firstEntity = targetEntity;
+    if (firstEntity) {
+      setAutoOpenEntityId(firstEntity.id);
+    }
+
+    hasAutoConfigured.current = true;
+    setSearchParams({}, { replace: true });
+  }, [
+    configureParam,
+    devices,
+    entities,
+    devicesLoading,
+    entitiesLoading,
+    selectDevice,
+    setAutoOpenEntityId,
+    setSearchParams,
+  ]);
+
   return (
     <SidebarProvider>
       <AppSidebar />

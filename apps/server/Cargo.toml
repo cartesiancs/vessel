@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 tokio = { version = "1", features = ["full"] }
+tokio-util = { version = "0.7", features = ["io"] }
 axum = { version = "0.7", features = ["ws"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
@@ -18,6 +19,7 @@ rumqttd = "0.19.0"
 toml = "0.9.5"
 rumqttc = "0.24.0"
 webrtc = "0.13.0"
+interceptor = "0.14.0"
 clap = { version = "4.5.4", features = ["derive"] } 
 tower-http = { version = "0.5.2", features = ["fs", "cors"] }
 bytes = "1.10.1"
@@ -27,6 +29,7 @@ chrono = { version = "0.4.41", features = ["serde"] }
 async-trait = "0.1.88"
 dotenvy = "0.15.7"
 diesel = { version = "2.2.0", features = ["sqlite", "chrono", "r2d2", "returning_clauses_for_sqlite_3_35"] }
+libsqlite3-sys = { version = "*", features = ["bundled"] }
 diesel_migrations = "2.2.0"
 bcrypt = "0.17.0"
 r2d2 = "0.8"
@@ -52,9 +55,13 @@ lazy_static = "1.5.0"
 colored = "3.0.0"
 local-ip-address = "0.6.5"
 uuid = "1.18.1"
-pyo3 = "0.26.0"
+rhai = { version = "1", features = ["serde"] }
+rhai-rand = "0.1"
 config = { version =  "0.15.15", features = ["toml"] }
-tokio-tungstenite = "0.27.0"
+tokio-tungstenite = { version = "0.27", features = ["rustls-tls-native-roots"] }
+tungstenite = { version = "0.27", features = ["rustls-tls-native-roots"] }
+httparse = "1.9"
+http = "1"
 
 
 [[bin]]
@@ -62,6 +69,10 @@ name = "server"
 path = "src/main.rs"
 
 
+
+[dev-dependencies]
+tokio-test = "0.4"
+tempfile = "3"
 
 [target.x86_64-unknown-linux-musl]
 linker = "musl-gcc"

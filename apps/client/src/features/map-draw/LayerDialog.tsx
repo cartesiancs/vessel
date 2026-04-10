@@ -11,15 +11,31 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useMapDataStore } from "@/entities/map/store";
 import { MapLayer, LayerPayload } from "@/entities/map/types";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 interface LayerDialogProps {
-  children: React.ReactNode;
+  children?: React.ReactNode;
   layer?: MapLayer;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-export function LayerDialog({ children, layer }: LayerDialogProps) {
-  const [open, setOpen] = useState(false);
+export function LayerDialog({
+  children,
+  layer,
+  open: openProp,
+  onOpenChange: onOpenChangeProp,
+}: LayerDialogProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isControlled = openProp !== undefined;
+  const open = isControlled ? openProp : internalOpen;
+  const setOpen = useCallback(
+    (next: boolean) => {
+      if (!isControlled) setInternalOpen(next);
+      onOpenChangeProp?.(next);
+    },
+    [isControlled, onOpenChangeProp],
+  );
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const { addLayer, editLayer } = useMapDataStore();
@@ -46,7 +62,7 @@ export function LayerDialog({ children, layer }: LayerDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>{children}</DialogTrigger>
+      {children ? <DialogTrigger asChild>{children}</DialogTrigger> : null}
       <DialogContent className='sm:max-w-[425px] z-[999999]'>
         <DialogHeader>
           <DialogTitle>{layer ? "Edit Layer" : "Create New Layer"}</DialogTitle>

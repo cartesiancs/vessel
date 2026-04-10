@@ -5,17 +5,19 @@
   "type": "module",
   "main": "maindist/main.js",
   "scripts": {
-    "dev": "npm run build:main && concurrently \"npm run dev:vite\" \"npm run dev:electron\"",
+    "dev": "concurrently \"npm run dev:vite\"",
     "dev:vite": "vite --host",
-    "dev:electron": "wait-on tcp:5173 && electron .",
     "build:main": "tsc -p ./configs/electron",
     "build:app": "tsc -b && vite build",
     "build:vite": "tsc -b && vite build",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
+    "@vessel/capsule-client": "file:../../packages/capsule-client",
     "@codemirror/lang-json": "^6.0.2",
     "@emotion/react": "^11.14.0",
     "@monaco-editor/react": "^4.7.0",
@@ -35,7 +37,10 @@
     "@radix-ui/react-tabs": "^1.1.13",
     "@radix-ui/react-tooltip": "^1.2.7",
     "@shadcn/ui": "^0.0.4",
+    "@supabase/supabase-js": "^2.49.4",
     "@tailwindcss/postcss": "^4.1.8",
+    "@tauri-apps/api": "^2.2.0",
+    "@tauri-apps/plugin-shell": "^2.3.4",
     "@uiw/react-codemirror": "^4.24.2",
     "autoprefixer": "^10.4.21",
     "axios": "^1.11.0",
@@ -58,6 +63,7 @@
     "zustand": "^5.0.5"
   },
   "devDependencies": {
+    "vitest": "^3.0.0",
     "@eslint/js": "^9.21.0",
     "@types/d3": "^7.4.3",
     "@types/js-cookie": "^3.0.6",

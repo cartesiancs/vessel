@@ -1,15 +1,18 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import Cookies from "js-cookie";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useNavigate } from "react-router";
-import { Badge } from "@/components/ui/badge";
+import { Trash2 } from "lucide-react";
+import { DEMO_SERVER_URL, DEMO_TOKEN, isDemoMode } from "@/shared/demo";
+import { DefaultAdminPasswordDialog } from "./DefaultAdminPasswordDialog";
+import { authenticateWithPassword } from "./api";
+import { storage } from "@/lib/storage";
+import { parseJwt } from "@/lib/jwt";
 
-const RECENT_URLS_COOKIE = "recent_server_urls";
 const MAX_RECENT_URLS = 5;
 
 export function LoginForm({
@@ -22,9 +25,19 @@ export function LoginForm({
   const [showAuthFields, setShowAuthFields] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [recentUrls, setRecentUrls] = useState<string[]>([]);
+  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
+  const [serverUrlForDialog, setServerUrlForDialog] = useState("");
   const navigate = useNavigate();
 
   const connectToServer = async (targetUrl: string) => {
+    if (isDemoMode) {
+      storage.setServerUrl(DEMO_SERVER_URL);
+      storage.setToken(DEMO_TOKEN);
+      toast.success("Demo mode enabled. Loading demo dashboard...");
+      navigate("/dashboard");
+      return;
+    }
+
     if (!targetUrl) {
       toast.error("Server URL cannot be empty.");
       return;
@@ -51,7 +64,7 @@ export function LoginForm({
         data.id === "vessel-server" &&
         data.status === "success"
       ) {
-        toast.success("Connected to server successfully. Please authenticate.");
+        toast.success("Connected to server successfully.");
 
         const updatedUrls = [
           processedUrl,
@@ -59,11 +72,10 @@ export function LoginForm({
         ].slice(0, MAX_RECENT_URLS);
 
         setRecentUrls(updatedUrls);
-        Cookies.set(RECENT_URLS_COOKIE, JSON.stringify(updatedUrls), {
-          expires: 365,
-        });
-        Cookies.set("server_url", processedUrl, { expires: 1 });
+        storage.setRecentUrls(updatedUrls);
+        storage.setServerUrl(processedUrl);
 
+        setServerUrlForDialog(processedUrl);
         setShowAuthFields(true);
       } else {
         throw new Error("Failed to connect to the server.");
@@ -79,6 +91,16 @@ export function LoginForm({
     }
   };
 
+  const removeRecentUrl = (toRemove: string) => {
+    const updated = recentUrls.filter((u) => u !== toRemove);
+    setRecentUrls(updated);
+    storage.setRecentUrls(updated);
+    const normalized = url.replace(/\/$/, "");
+    if (normalized === toRemove) {
+      setUrl("");
+    }
+  };
+
   const handleConnect = async (e: React.FormEvent) => {
     e.preventDefault();
     await connectToServer(url);
@@ -90,34 +112,26 @@ export function LoginForm({
     const processedUrl = url.replace(/\/$/, "");
 
     try {
-      const response = await fetch(`${processedUrl}/api/auth`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ id, password }),
+      const token = await authenticateWithPassword(processedUrl, {
+        id,
+        password,
       });
 
-      if (!response.ok) {
-        throw new Error("Wrong ID or password.");
+      storage.setToken(token);
+      storage.setServerUrl(processedUrl);
+
+      setServerUrlForDialog(processedUrl);
+
+      if (id === "admin" && password === "admin") {
+        setIsPasswordDialogOpen(true);
+        toast.message("Default admin password detected", {
+          description: "Please change the password before continuing.",
+        });
+        return;
       }
 
-      const data = await response.json();
-
-      if (data.token === "none") {
-        throw new Error(
-          "Authentication failed. Please check your credentials.",
-        );
-      }
-
-      if (data.token) {
-        Cookies.set("token", data.token, { expires: 1 / 24 });
-        Cookies.set("server_url", processedUrl, { expires: 1 / 24 });
-        toast.success("Successfully authenticated.");
-        navigate("/dashboard");
-      } else {
-        throw new Error("Failed to authenticate.");
-      }
+      toast.success("Successfully authenticated.");
+      navigate("/dashboard");
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Failed to authenticate.",
@@ -128,23 +142,38 @@ export function LoginForm({
   };
 
   useEffect(() => {
-    const token = Cookies.get("token");
-    if (token) {
+    if (isDemoMode) {
+      storage.setServerUrl(DEMO_SERVER_URL);
+      storage.setToken(DEMO_TOKEN);
+      toast.message("Demo mode active", {
+        description: "Using mock data without a backend.",
+      });
       navigate("/dashboard");
       return;
     }
 
-    const storedUrls = Cookies.get(RECENT_URLS_COOKIE);
-    if (storedUrls) {
-      try {
-        const parsedUrls = JSON.parse(storedUrls);
-        if (Array.isArray(parsedUrls)) {
-          setRecentUrls(parsedUrls);
+    const token = storage.getToken();
+    const serverUrl = storage.getServerUrl();
+
+    if (token && serverUrl) {
+      const parsed = parseJwt(token);
+      if (!parsed?.exp) {
+        storage.removeToken();
+      } else {
+        const now = new Date();
+        const exp = new Date(parsed.exp * 1000);
+        if (now.getTime() >= exp.getTime()) {
+          storage.removeToken();
+        } else {
+          navigate("/dashboard");
+          return;
         }
-      } catch (error) {
-        console.error("Failed to parse recent URLs from cookies.", error);
-        Cookies.remove(RECENT_URLS_COOKIE);
       }
+    }
+
+    const storedUrls = storage.getRecentUrls();
+    if (storedUrls.length > 0) {
+      setRecentUrls(storedUrls);
     }
   }, [navigate]);
 
@@ -161,15 +190,15 @@ export function LoginForm({
                 <img src='/icon.png' />
               </div>
             </a>
-            <h1 className='text-xl font-bold'>Vessel</h1>
+            {/* <h1 className='text-xl font-bold'>Vessel</h1>
             <div className='text-center text-sm'>
               Physical Device Orchestration Platform
-            </div>
+            </div> */}
           </div>
           <div className='flex flex-col gap-6'>
             {!showAuthFields ? (
               <div className='grid gap-3'>
-                <Label htmlFor='server-url'>Server</Label>
+                {/* <Label htmlFor='server-url'>Server</Label> */}
                 <Input
                   id='server-url'
                   type='text'
@@ -179,26 +208,6 @@ export function LoginForm({
                   onChange={(e) => setUrl(e.target.value)}
                   disabled={isLoading}
                 />
-                {recentUrls.length > 0 && (
-                  <div className='flex flex-wrap items-center gap-2'>
-                    <span className='text-muted-foreground text-xs'>
-                      Recent:
-                    </span>
-                    {recentUrls.map((recentUrl) => (
-                      <Badge
-                        key={recentUrl}
-                        variant='outline'
-                        className='cursor-pointer'
-                        onClick={async () => {
-                          setUrl(recentUrl);
-                          await connectToServer(recentUrl);
-                        }}
-                      >
-                        {recentUrl}
-                      </Badge>
-                    ))}
-                  </div>
-                )}
               </div>
             ) : (
               <>
@@ -231,13 +240,44 @@ export function LoginForm({
               {isLoading
                 ? "Processing..."
                 : showAuthFields
-                ? "Connect (Auth)"
-                : "Connect"}
+                  ? "Auth"
+                  : "Connect"}
             </Button>
           </div>
+
+          {recentUrls.length > 0 && !showAuthFields && (
+            <div className='flex w-full flex-col gap-2 pt-4'>
+              {recentUrls.map((recentUrl) => (
+                <div key={recentUrl} className='flex w-full gap-2'>
+                  <Button
+                    type='button'
+                    variant='outline'
+                    onClick={async () => {
+                      setUrl(recentUrl);
+                      await connectToServer(recentUrl);
+                    }}
+                    className='min-w-0 flex-1 justify-start truncate text-left text-xs'
+                    size='sm'
+                  >
+                    {recentUrl}
+                  </Button>
+                  <Button
+                    type='button'
+                    variant='link'
+                    size='icon'
+                    className='size-8 shrink-0 text-muted-foreground'
+                    onClick={() => removeRecentUrl(recentUrl)}
+                    aria-label={`Remove ${recentUrl} from recent servers`}
+                  >
+                    <Trash2 className='size-4' />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </form>
-      <div className='text-muted-foreground *:[a]:hover:text-primary text-center text-xs text-balance *:[a]:underline *:[a]:underline-offset-4'>
+      {/* <div className='text-muted-foreground *:[a]:hover:text-primary text-center text-xs text-balance *:[a]:underline *:[a]:underline-offset-4'>
         This software is managed as an open source and can be found on this{" "}
         <a
           href='https://github.com/cartesiancs/vessel'
@@ -247,7 +287,22 @@ export function LoginForm({
           GitHub
         </a>
         .
-      </div>
+      </div> */}
+      <DefaultAdminPasswordDialog
+        open={isPasswordDialogOpen}
+        serverUrl={serverUrlForDialog}
+        onSuccess={(refreshedToken) => {
+          storage.setToken(refreshedToken);
+          if (serverUrlForDialog) {
+            storage.setServerUrl(serverUrlForDialog);
+          }
+          setIsPasswordDialogOpen(false);
+          toast.success(
+            "Password updated. Logging you in with the new password.",
+          );
+          navigate("/dashboard");
+        }}
+      />
     </div>
   );
 }

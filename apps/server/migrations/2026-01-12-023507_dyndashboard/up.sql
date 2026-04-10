@@ -1,0 +1,8 @@
+-- Your SQL goes here
+CREATE TABLE dynamic_dashboards (
+    id TEXT PRIMARY KEY NOT NULL,
+    name TEXT NOT NULL,
+    layout TEXT NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

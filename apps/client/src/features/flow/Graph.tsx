@@ -37,8 +37,8 @@ import { renderButtonNode } from "./nodes/ButtonNode";
 import { zoomIdentity } from "d3-zoom";
 import { AddCustomNode } from "./AddCustomNode";
 import { useCustomNodeStore } from "@/entities/custom-nodes/store";
-import { useConfigStore } from "@/entities/configurations/store";
-import { isValidConfig } from "../integration/validate";
+import { useIntegrationStore } from "@/entities/integrations/store";
+import { SelectedItemActions } from "./SelectedItemActions";
 
 type NodeGroup = {
   label: string;
@@ -80,16 +80,16 @@ export function Graph({
   const svgRef = useRef<SVGSVGElement>(null);
   const gRef = useRef<SVGGElement>(null);
   const zoomRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null);
-  const transformRef = useRef(zoomIdentity);
+  const transformRef = useRef<d3.ZoomTransform>(zoomIdentity);
 
   const edgesRef = useRef(edges);
   const nodesRef = useRef(nodes);
 
-  const { configurations, fetchConfigs } = useConfigStore();
+  const { isRos2Connected, fetchStatus } = useIntegrationStore();
 
   useEffect(() => {
-    fetchConfigs();
-  }, [fetchConfigs]);
+    fetchStatus();
+  }, [fetchStatus]);
 
   const [nodeRenderers, setNodeRenderers] = useState<
     Record<string, NodeRenderer>
@@ -99,7 +99,7 @@ export function Graph({
     const baseGroups: NodeGroup[] = [
       {
         label: "Default",
-        nodes: ["START", "LOG_MESSAGE"],
+        nodes: ["START", "LOG_MESSAGE", "SHOW_TOAST"],
       },
       {
         label: "Data",
@@ -129,6 +129,7 @@ export function Graph({
           "HTTP_REQUEST",
           "MQTT_PUBLISH",
           "MQTT_SUBSCRIBE",
+          "DASHBOARD_EVENT_LISTENER",
           "WEBSOCKET_SEND",
           "WEBSOCKET_ON",
         ],
@@ -138,8 +139,6 @@ export function Graph({
         nodes: ["YOLO_DETECT"],
       },
     ];
-
-    const isRos2Connected = isValidConfig(configurations, "ROS");
 
     if (isRos2Connected) {
       baseGroups.push({
@@ -164,7 +163,7 @@ export function Graph({
     }
 
     return baseGroups;
-  }, [customNodes, configurations]);
+  }, [customNodes, isRos2Connected]);
 
   const handleClickOption = (node: Node) => {
     setOpenedNode(node);
@@ -183,6 +182,8 @@ export function Graph({
         renderVarNode(g, d, () => handleClickOption(d)),
       CONDITION: (g, d) => renderProcessingNode(g, d),
       LOG_MESSAGE: (g, d) => renderProcessingNode(g, d),
+      SHOW_TOAST: (g, d) =>
+        renderButtonNode(g, d, () => handleClickOption(d)),
       CALCULATION: (g, d) => renderCalcNode(g, d, () => handleClickOption(d)),
       HTTP_REQUEST: (g, d) => renderHttpNode(g, d, () => handleClickOption(d)),
       INTERVAL: (g, d) => renderIntervalNode(g, d, () => handleClickOption(d)),
@@ -190,6 +191,8 @@ export function Graph({
         renderLogicNode(g, d, () => handleClickOption(d)),
       MQTT_PUBLISH: (g, d) => renderMQTTNode(g, d, () => handleClickOption(d)),
       MQTT_SUBSCRIBE: (g, d) =>
+        renderMQTTNode(g, d, () => handleClickOption(d)),
+      DASHBOARD_EVENT_LISTENER: (g, d) =>
         renderMQTTNode(g, d, () => handleClickOption(d)),
       TYPE_CONVERTER: (g, d) =>
         renderButtonNode(g, d, () => handleClickOption(d)),
@@ -209,8 +212,6 @@ export function Graph({
         renderButtonNode(g, d, () => handleClickOption(d)),
     };
 
-    const isRos2Connected = isValidConfig(configurations, "ROS");
-
     if (isRos2Connected) {
       ros2NodeKey.forEach((element) => {
         baseRenderers[element] = (g, d) =>
@@ -228,7 +229,7 @@ export function Graph({
       ...baseRenderers,
       ...customNodeRenderers,
     });
-  }, [customNodes, configurations]);
+  }, [customNodes, isRos2Connected]);
 
   useEffect(() => {
     edgesRef.current = edges;
@@ -339,42 +340,48 @@ export function Graph({
     };
   }, [gridSize, gridColor, locked]);
 
+  const deleteSelectedNode = useCallback(() => {
+    if (!selectedElement || selectedElement.type !== "node") return;
+
+    const removedNode = nodesRef.current.find(
+      (n) => n.id === selectedElement.id,
+    );
+    const removedConnIds = removedNode
+      ? removedNode.connectors.map((c) => c.id)
+      : [];
+
+    onNodesChange?.(
+      nodesRef.current.filter((n) => n.id !== selectedElement.id),
+    );
+    onEdgesChange?.(
+      edgesRef.current.filter(
+        (ed) =>
+          !removedConnIds.includes(ed.source) &&
+          !removedConnIds.includes(ed.target),
+      ),
+    );
+
+    setSelectedElement(null);
+  }, [selectedElement, onNodesChange, onEdgesChange]);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key !== "Backspace" || !selectedElement) return;
-
-      if (selectedElement.type === "node") {
-        const removedNode = nodesRef.current.find(
-          (n) => n.id === selectedElement.id,
-        );
-        const removedConnIds = removedNode
-          ? removedNode.connectors.map((c) => c.id)
-          : [];
-
-        onNodesChange?.(
-          nodesRef.current.filter((n) => n.id !== selectedElement.id),
-        );
-        onEdgesChange?.(
-          edgesRef.current.filter(
-            (ed) =>
-              !removedConnIds.includes(ed.source) &&
-              !removedConnIds.includes(ed.target),
-          ),
-        );
-      } else {
+      if (e.key !== "Backspace") return;
+      if (selectedElement?.type === "node") {
+        deleteSelectedNode();
+      } else if (selectedElement?.type === "edge") {
         onEdgesChange?.(
           edgesRef.current.filter((ed) => ed.id !== selectedElement.id),
         );
+        setSelectedElement(null);
       }
-
-      setSelectedElement(null);
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [selectedElement, onNodesChange, onEdgesChange]);
+  }, [selectedElement, onEdgesChange, deleteSelectedNode]);
 
   useEffect(() => {
     const g = d3.select(gRef.current);
@@ -427,7 +434,12 @@ export function Graph({
       .attr("fill", nodeLightColor)
       .attr("font-size", 8)
       .attr("font-weight", 800)
-      .text((d) => d.nodeType || "");
+      .text((d) => {
+        if (d.nodeType === "DASHBOARD_EVENT_LISTENER") {
+          return "Dashboard";
+        }
+        return d.nodeType || "";
+      });
 
     const nodesMerged = nodeEnter.merge(nodeSel);
 
@@ -785,6 +797,10 @@ export function Graph({
       <svg ref={svgRef} width='100%' height='100%'>
         <g ref={gRef} />
       </svg>
+      <SelectedItemActions
+        selectedElement={selectedElement}
+        onDeleteNode={deleteSelectedNode}
+      />
       <div
         style={{
           position: "absolute",

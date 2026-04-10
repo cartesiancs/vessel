@@ -66,6 +66,32 @@ export interface UpdateFeaturePayload {
 
 export type DrawingMode = "POINT" | "LINE" | "POLYGON" | null;
 
+// 타일맵 타입 정의
+export type TileMapType = "dark" | "satellite";
+
+export interface TileMapConfig {
+  type: TileMapType;
+  url: string;
+  attribution: string;
+  maxNativeZoom: number;
+}
+
+export const TILE_MAPS: Record<TileMapType, TileMapConfig> = {
+  dark: {
+    type: "dark",
+    url: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+    attribution:
+      '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors',
+    maxNativeZoom: 20,
+  },
+  satellite: {
+    type: "satellite",
+    url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+    attribution: "&copy; Esri",
+    maxNativeZoom: 18,
+  },
+};
+
 export interface MapInteractionState {
   selectedFeature: FeatureWithVertices | null;
   setSelectedFeature: (feature: FeatureWithVertices | null) => void;
@@ -74,6 +100,8 @@ export interface MapInteractionState {
   setDrawingMode: (mode: DrawingMode) => void;
   addVertex: (vertex: LatLng) => void;
   clearDrawing: () => void;
+  tileMapType: TileMapType;
+  setTileMapType: (type: TileMapType) => void;
 }
 
 export interface MapDataState {

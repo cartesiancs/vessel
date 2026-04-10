@@ -42,7 +42,7 @@ impl Settings {
 
                 let default_settings = Settings {
                     jwt_secret: secret,
-                    listen_address: "0.0.0.0:8080".to_string(),
+                    listen_address: "0.0.0.0:6174".to_string(),
                     database_url: "database.db".to_string(),
                 };
 

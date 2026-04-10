@@ -50,39 +50,19 @@ export function Footer() {
   );
 }
 
-import Cookies from "js-cookie";
 import { WebSocketStatusIndicator } from "../ws/IsConnected";
-
-interface DecodedToken {
-  exp: number;
-  [key: string]: string | number;
-}
-
-const parseJwt = (token: string): DecodedToken | null => {
-  try {
-    const base64Url = token.split(".")[1];
-    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-    const jsonPayload = decodeURIComponent(
-      atob(base64)
-        .split("")
-        .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
-        .join(""),
-    );
-    return JSON.parse(jsonPayload);
-  } catch (error) {
-    console.log(error);
-    return null;
-  }
-};
+import { parseJwt } from "@/lib/jwt";
+import { isDemoMode } from "@/shared/demo";
+import { storage } from "@/lib/storage";
 
 const TokenExpiration: React.FC = () => {
   const [timeLeft, setTimeLeft] = useState<string>("");
 
   useEffect(() => {
     const calculateTimeLeft = () => {
-      const token = Cookies.get("token");
+      const token = storage.getToken();
 
-      if (!token) {
+      if (!token || isDemoMode) {
         setTimeLeft("");
         return;
       }

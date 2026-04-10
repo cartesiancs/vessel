@@ -29,6 +29,16 @@ diesel::table! {
 }
 
 diesel::table! {
+    dynamic_dashboards (id) {
+        id -> Text,
+        name -> Text,
+        layout -> Text,
+        created_at -> Timestamp,
+        updated_at -> Timestamp,
+    }
+}
+
+diesel::table! {
     entities (id) {
         id -> Integer,
         entity_id -> Text,
@@ -170,6 +180,24 @@ diesel::table! {
 }
 
 diesel::table! {
+    recordings (id) {
+        id -> Integer,
+        stream_ssrc -> Integer,
+        topic -> Text,
+        device_id -> Text,
+        media_type -> Text,
+        filename -> Text,
+        file_path -> Text,
+        file_size -> Integer,
+        duration_ms -> Integer,
+        status -> Text,
+        started_at -> Timestamp,
+        ended_at -> Nullable<Timestamp>,
+        created_by_user_id -> Nullable<Integer>,
+    }
+}
+
+diesel::table! {
     system_configurations (id) {
         id -> Integer,
         key -> Text,
@@ -217,6 +245,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     custom_nodes,
     device_tokens,
     devices,
+    dynamic_dashboards,
     entities,
     entities_configurations,
     events,
@@ -226,6 +255,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     map_layers,
     map_vertices,
     permissions,
+    recordings,
     role_permissions,
     roles,
     states,

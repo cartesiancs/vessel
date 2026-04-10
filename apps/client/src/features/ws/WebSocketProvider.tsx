@@ -5,13 +5,16 @@ import React, {
   useState,
   useCallback,
   ReactNode,
+  useRef,
 } from "react";
 import { WebSocketChannel, WebSocketMessage } from "../ws/ws";
+import { isDemoMode } from "@/shared/demo";
+import { MockWebSocketChannel } from "./wsMock";
 
-export const wsManager = new WebSocketChannel();
+type WebSocketManager = WebSocketChannel | MockWebSocketChannel;
 
 interface WebSocketContextState {
-  wsManager: WebSocketChannel;
+  wsManager: WebSocketManager;
   isConnected: boolean;
   sendMessage: (message: WebSocketMessage) => void;
 }
@@ -24,9 +27,16 @@ export const WebSocketProvider: React.FC<{
   url: string;
   children: ReactNode;
 }> = ({ url, children }) => {
-  const [isConnected, setIsConnected] = useState(wsManager.isConnected());
+  const managerRef = useRef<WebSocketManager>(
+    isDemoMode ? new MockWebSocketChannel() : new WebSocketChannel(),
+  );
+  const [isConnected, setIsConnected] = useState(
+    managerRef.current.isConnected(),
+  );
 
   useEffect(() => {
+    const wsManager = managerRef.current;
+
     wsManager.onopen = () => {
       console.log("Connected to WebSocket server");
       setIsConnected(true);
@@ -49,11 +59,11 @@ export const WebSocketProvider: React.FC<{
   }, [url]);
 
   const sendMessage = useCallback((message: WebSocketMessage) => {
-    wsManager.send(message);
+    managerRef.current.send(message);
   }, []);
 
   const value = {
-    wsManager,
+    wsManager: managerRef.current,
     isConnected,
     sendMessage,
   };

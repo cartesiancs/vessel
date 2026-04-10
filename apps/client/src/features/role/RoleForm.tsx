@@ -46,6 +46,7 @@ export const RoleForm: FC<RoleFormProps> = ({
   );
   const [error, setError] = useState("");
   const [isPermissionsPopoverOpen, setPermissionsPopoverOpen] = useState(false);
+  const [popoverContainer, setPopoverContainer] = useState<HTMLDivElement | null>(null);
 
   const { permissions, fetchPermissions } = usePermissionStore();
 
@@ -95,58 +96,59 @@ export const RoleForm: FC<RoleFormProps> = ({
         </div>
         <div className='grid grid-cols-4 items-center gap-4'>
           <Label className='text-right'>Permissions</Label>
-          <Popover
-            open={isPermissionsPopoverOpen}
-            onOpenChange={setPermissionsPopoverOpen}
-          >
-            <PopoverTrigger asChild>
-              <Button
-                variant='outline'
-                role='combobox'
-                className='w-full justify-between col-span-3'
+          <div className='col-span-3' ref={(node) => setPopoverContainer(node)}>
+            <Popover
+              open={isPermissionsPopoverOpen}
+              onOpenChange={setPermissionsPopoverOpen}
+            >
+              <PopoverTrigger asChild>
+                <Button variant='outline' role='combobox' className='w-full justify-between'>
+                  {selectedPermissions.length > 0
+                    ? `${selectedPermissions.length} selected`
+                    : "Select permissions..."}
+                  <ChevronsUpDown className='ml-2 h-4 w-4 shrink-0 opacity-50' />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent
+                container={popoverContainer}
+                className='w-[--radix-popover-trigger-width] p-0'
               >
-                {selectedPermissions.length > 0
-                  ? `${selectedPermissions.length} selected`
-                  : "Select permissions..."}
-                <ChevronsUpDown className='ml-2 h-4 w-4 shrink-0 opacity-50' />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className='w-[--radix-popover-trigger-width] p-0'>
-              <Command>
-                <CommandInput placeholder='Search permissions...' />
-                <CommandList>
-                  <CommandEmpty>No permissions found.</CommandEmpty>
-                  <CommandGroup>
-                    {permissions.map((permission) => (
-                      <CommandItem
-                        key={permission.id}
-                        value={permission.name}
-                        onSelect={() => {
-                          setSelectedPermissions((current) =>
-                            current.some((p) => p.id === permission.id)
-                              ? current.filter((p) => p.id !== permission.id)
-                              : [...current, permission],
-                          );
-                        }}
-                      >
-                        <Check
-                          className={cn(
-                            "mr-2 h-4 w-4",
-                            selectedPermissions.some(
-                              (p) => p.id === permission.id,
-                            )
-                              ? "opacity-100"
-                              : "opacity-0",
-                          )}
-                        />
-                        {permission.name}
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                </CommandList>
-              </Command>
-            </PopoverContent>
-          </Popover>
+                <Command>
+                  <CommandInput placeholder='Search permissions...' />
+                  <CommandList>
+                    <CommandEmpty>No permissions found.</CommandEmpty>
+                    <CommandGroup>
+                      {permissions.map((permission) => (
+                        <CommandItem
+                          key={permission.id}
+                          value={permission.name}
+                          onSelect={() => {
+                            setSelectedPermissions((current) =>
+                              current.some((p) => p.id === permission.id)
+                                ? current.filter((p) => p.id !== permission.id)
+                                : [...current, permission],
+                            );
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              selectedPermissions.some(
+                                (p) => p.id === permission.id,
+                              )
+                                ? "opacity-100"
+                                : "opacity-0",
+                            )}
+                          />
+                          {permission.name}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+          </div>
         </div>
         {error && (
           <p className='text-sm text-destructive col-span-4 text-center'>

@@ -1,7 +1,9 @@
 export interface CustomNodeFromApi {
   node_type: string;
-  data: string;
+  data: CustomNodeDynamicData;
 }
+
+export type CustomNodeDynamicData = Record<string, unknown>;
 
 export interface CustomNodeData {
   name: string;
@@ -12,9 +14,7 @@ export interface CustomNodeData {
   dataType?: Record<string, string>;
 }
 
-export interface CustomNode extends Omit<CustomNodeFromApi, "data"> {
-  data: string;
-}
+export type CustomNode = CustomNodeFromApi;
 
 export interface Connector {
   type: "in" | "out";
@@ -27,7 +27,10 @@ export interface CustomNodeState {
   isLoading: boolean;
   error: string | null;
   fetchAllNodes: () => Promise<void>;
-  createNode: (node: { node_type: string; data: string }) => Promise<void>;
-  updateNode: (node_type: string, data: string) => Promise<void>;
+  createNode: (node: {
+    node_type: string;
+    data: CustomNodeDynamicData;
+  }) => Promise<void>;
+  updateNode: (node_type: string, data: CustomNodeDynamicData) => Promise<void>;
   deleteNode: (node_type: string) => Promise<void>;
 }

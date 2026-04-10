@@ -68,7 +68,7 @@ export function Logs() {
   return (
     <ResizablePanelGroup
       direction='horizontal'
-      className='w-full h-[85vh] rounded-lg border'
+      className='w-full h-[85vh] border'
     >
       <ResizablePanel defaultSize={20} minSize={15}>
         <div className='flex h-full flex-col p-4'>

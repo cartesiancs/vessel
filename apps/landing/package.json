@@ -4,14 +4,29 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --host",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
   },
   "dependencies": {
+    "@radix-ui/react-alert-dialog": "^1.1.14",
     "@radix-ui/react-navigation-menu": "^1.2.14",
-    "@radix-ui/react-slot": "^1.2.3"
+    "@radix-ui/react-slot": "^1.2.3",
+    "@react-three/drei": "^10.7.7",
+    "@react-three/fiber": "^9.5.0",
+    "@react-three/postprocessing": "^3.0.4",
+    "@supabase/supabase-js": "^2.90.1",
+    "@theatre/core": "^0.7.2",
+    "lucide-react": "^0.564.0",
+    "maath": "^0.10.8",
+    "next-themes": "^0.4.6",
+    "recharts": "^2.15.4",
+    "sonner": "^2.0.7",
+    "three": "^0.183.2"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "@theatre/studio": "^0.7.2",
+    "@types/three": "^0.183.1"
+  }
 }

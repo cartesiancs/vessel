@@ -67,6 +67,25 @@ export const DEFINITION_NODE = {
     data: undefined,
     dataType: undefined,
   },
+  SHOW_TOAST: {
+    connectors: [
+      { id: `id`, name: "exec", type: "in" },
+      { id: `id`, name: "out", type: "out" },
+    ],
+    nodeType: "SHOW_TOAST",
+    data: {
+      level: "info",
+      title: "",
+      message: "",
+      durationMs: 4000,
+    },
+    dataType: {
+      level: "SELECT[info,success,warning,error]",
+      title: "STRING",
+      message: "STRING",
+      durationMs: "NUMBER",
+    },
+  },
   CALCULATION: {
     connectors: [
       { id: `id`, name: "a", type: "in" },
@@ -157,6 +176,16 @@ export const DEFINITION_NODE = {
     },
     dataType: {
       topic: "STRING",
+    },
+  },
+  DASHBOARD_EVENT_LISTENER: {
+    connectors: [{ id: `id`, name: "payload", type: "out" }],
+    nodeType: "DASHBOARD_EVENT_LISTENER",
+    data: {
+      listenerId: "my-listener",
+    },
+    dataType: {
+      listenerId: "STRING",
     },
   },
   TYPE_CONVERTER: {
@@ -276,7 +305,7 @@ export const DEFINITION_NODE = {
     connectors: [{ id: "id", name: "payload", type: "out" }],
     nodeType: "WEBSOCKET_ON",
     data: {
-      url: "ws://localhost:8080",
+      url: "ws://localhost:6174",
     },
     dataType: {
       url: "STRING",
@@ -286,7 +315,7 @@ export const DEFINITION_NODE = {
     connectors: [{ id: "id", name: "payload", type: "in" }],
     nodeType: "WEBSOCKET_SEND",
     data: {
-      url: "ws://localhost:8080",
+      url: "ws://localhost:6174",
     },
     dataType: {
       url: "STRING",

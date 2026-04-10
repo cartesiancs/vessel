@@ -2,6 +2,7 @@ import { useEffect, useRef, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { useWebRTC } from "./WebRTCProvider";
 import { WebRTCManager } from "./rtc";
+import { AudioLevelBar } from "./AudioLevelBar";
 
 type StreamReceiverProps = {
   topic: string;
@@ -60,7 +61,7 @@ export function StreamReceiver({ topic, streamType }: StreamReceiverProps) {
     return (
       <video
         ref={mediaRef as React.RefObject<HTMLVideoElement>}
-        className='w-full bg-black rounded-md'
+        className='w-full bg-black'
         autoPlay
         playsInline
         controls
@@ -71,13 +72,16 @@ export function StreamReceiver({ topic, streamType }: StreamReceiverProps) {
 
   if (streamType === "audio") {
     return (
-      <audio
-        ref={mediaRef as React.RefObject<HTMLAudioElement>}
-        className='w-full'
-        autoPlay
-        playsInline
-        controls
-      />
+      <div className='flex w-full flex-col gap-3 rounded-md bg-black/60 p-1'>
+        <audio
+          ref={mediaRef as React.RefObject<HTMLAudioElement>}
+          className='w-full hidden'
+          autoPlay
+          playsInline
+          controls
+        />
+        <AudioLevelBar stream={stream} />
+      </div>
     );
   }
 

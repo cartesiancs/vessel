@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import dts from "vite-plugin-dts";
@@ -6,6 +7,9 @@ import path from "path";
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  server: {
+    port: 5175,
+  },
   plugins: [
     dts({
       insertTypesEntry: true,
@@ -17,5 +21,9 @@ export default defineConfig({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
+  },
+  test: {
+    environment: "node",
+    include: ["src/**/*.test.ts"],
   },
 });

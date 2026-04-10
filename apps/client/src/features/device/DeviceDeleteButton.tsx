@@ -13,6 +13,7 @@ import {
 import { Trash2 } from "lucide-react";
 import { useDeviceStore } from "@/entities/device/store";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
 
 interface Props {
   deviceId: number;
@@ -47,11 +48,10 @@ export function DeviceDeleteButton({ deviceId }: Props) {
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction
-            onClick={handleDelete}
-            className='bg-red-600 hover:bg-red-700'
-          >
-            Delete
+          <AlertDialogAction asChild>
+            <Button variant={"destructive"} onClick={handleDelete}>
+              Delete
+            </Button>
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

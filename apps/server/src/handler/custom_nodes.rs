@@ -1,7 +1,7 @@
 use crate::{
     db::{
         self,
-        models::{NewCustomNode, UpdateCustomNode},
+        models::{CustomNodeResult, NewCustomNode, UpdateCustomNode},
     },
     error::AppError,
     state::AppState,
@@ -18,14 +18,23 @@ use std::sync::Arc;
 #[derive(Deserialize)]
 pub struct CreateCustomNodePayload {
     pub node_type: String,
-    pub data: Value,
+    pub data: Option<Value>,
 }
 
 pub async fn create_custom_node_handler(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<CreateCustomNodePayload>,
 ) -> Result<(StatusCode, Json<db::models::CustomNode>), AppError> {
-    let data_str = serde_json::to_string(&payload.data)?;
+    let data_str = payload
+        .data
+        .map(|v| {
+            if v.is_null() || v.as_object().map_or(false, |m| m.is_empty()) {
+                String::new()
+            } else {
+                serde_json::to_string(&v).unwrap_or_default()
+            }
+        })
+        .unwrap_or_default();
 
     let new_node = NewCustomNode {
         node_type: &payload.node_type,
@@ -38,7 +47,7 @@ pub async fn create_custom_node_handler(
 
 pub async fn get_all_custom_nodes_handler(
     State(state): State<Arc<AppState>>,
-) -> Result<Json<Vec<db::models::CustomNode>>, AppError> {
+) -> Result<Json<Vec<CustomNodeResult>>, AppError> {
     let nodes = db::repository::get_all_custom_nodes(&state.pool)?;
     Ok(Json(nodes))
 }
@@ -53,15 +62,25 @@ pub async fn get_custom_node_handler(
 
 #[derive(Deserialize)]
 pub struct UpdateCustomNodePayload {
-    pub data: Value,
+    pub data: Option<Value>,
 }
 
 pub async fn update_custom_node_handler(
     State(state): State<Arc<AppState>>,
     Path(node_type): Path<String>,
     Json(payload): Json<UpdateCustomNodePayload>,
-) -> Result<Json<db::models::CustomNode>, AppError> {
-    let data_str = serde_json::to_string(&payload.data)?;
+) -> Result<Json<CustomNodeResult>, AppError> {
+    let data_str = payload
+        .data
+        .map(|v| {
+            if v.is_null() || v.as_object().map_or(false, |m| m.is_empty()) {
+                String::new()
+            } else {
+                v.to_string()
+            }
+        })
+        .unwrap_or_default();
+
     let update_data = UpdateCustomNode {
         data: Some(data_str),
     };

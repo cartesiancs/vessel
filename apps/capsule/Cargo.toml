@@ -1,0 +1,50 @@
+[package]
+name = "capsule"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# Web Framework
+tokio = { version = "1", features = ["full"] }
+axum = { version = "0.7", features = ["json"] }
+tower-http = { version = "0.5", features = ["cors", "trace", "limit"] }
+tower = "0.5"
+
+# HTTP types
+http = "1"
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Cryptography
+chacha20poly1305 = "0.10"
+x25519-dalek = { version = "2", features = ["static_secrets"] }
+rand = "0.8"
+zeroize = { version = "1", features = ["derive"] }
+base64 = "0.22"
+hkdf = "0.12"
+sha2 = "0.10"
+
+# OpenAI
+reqwest = { version = "0.12", features = ["json", "stream"] }
+async-stream = "0.3"
+futures-util = "0.3"
+tokio-stream = "0.1"
+
+# JWT & Auth
+jsonwebtoken = "9"
+async-trait = "0.1"
+chrono = { version = "0.4", features = ["serde"] }
+axum-extra = { version = "0.9", features = ["typed-header"] }
+
+# Utilities
+anyhow = "1"
+thiserror = "1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+dotenvy = "0.15"
+
+[[bin]]
+name = "capsule"
+path = "src/main.rs"

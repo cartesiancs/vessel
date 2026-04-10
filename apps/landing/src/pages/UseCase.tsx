@@ -54,7 +54,7 @@ function UsecasePage() {
             >
               <CardHeader>
                 <div className='flex items-center gap-4'>
-                  <div className='flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10'>
+                  <div className='flex h-12 w-12 items-center justify-center bg-primary/10'>
                     <useCase.icon className='h-6 w-6 text-primary' />
                   </div>
                   <CardTitle className='text-lg'>{useCase.title}</CardTitle>
@@ -62,7 +62,7 @@ function UsecasePage() {
               </CardHeader>
               <CardContent className='flex flex-col flex-grow'>
                 {useCase.image && (
-                  <div className='w-full h-48 mb-4 rounded-md overflow-hidden'>
+                  <div className='w-full h-48 mb-4 overflow-hidden'>
                     <img
                       src={useCase.image}
                       alt={`${useCase.title} image`}

@@ -1,7 +1,10 @@
 import { Button } from "@/components/ui/button";
 import { useIdeStore } from "@/entities/file/store";
-import Editor from "@monaco-editor/react";
+import Editor, { loader } from "@monaco-editor/react";
 import { Loader2 } from "lucide-react";
+import * as monaco from "monaco-editor";
+
+loader.config({ monaco });
 
 const getLanguageFromPath = (path: string) => {
   const extension = path.split(".").pop()?.toLowerCase();

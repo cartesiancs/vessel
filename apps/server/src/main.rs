@@ -1,13 +1,10 @@
-use ::rtp::packet::Packet;
 use anyhow::Result;
-use dashmap::DashMap;
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 use rumqttc::{AsyncClient, MqttOptions};
 use std::{env, sync::Arc};
 use tokio::{
     sync::{broadcast, mpsc, watch, RwLock},
     task::JoinSet,
-    time::Instant,
 };
 use tracing::{error, info, warn};
 use tracing_subscriber::{fmt, layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
@@ -15,33 +12,35 @@ use tracing_subscriber::{fmt, layer::SubscriberExt, util::SubscriberInitExt, Env
 const LOG_FILE_PATH: &str = "log/app.log";
 
 use crate::{
-    broker_rtp::rtp_receiver,
     db::conn::establish_connection,
     flow::manager_state::FlowManagerActor,
-    initial_db::{
-        create_hydrate_streams, create_initial_admin, create_initial_configurations,
-        seed_initial_permissions,
+    init::db_record::{
+        create_initial_admin, create_initial_configurations, seed_initial_permissions,
     },
-    lib::{entity_map::remap_topics, stream_checker::stream_status_checker},
+    init::streams::create_hydrate_streams,
+    utils::{entity_map::remap_topics, stream_checker::stream_status_checker},
     logo::print_logo,
+    media::{MediaAdapter, RtpPushAdapter, RtspPullAdapter},
     routes::web_server,
-    state::{AppState, MediaType, MqttMessage, StreamInfo, StreamManager},
+    state::{AppState, MqttMessage, StreamManager, StreamRegistry},
+    tunnel_control::TunnelManager,
 };
 
 mod broker_mqtt;
-mod broker_rtp;
 mod config;
 mod handler;
-mod initial_db;
+mod init;
 mod routes;
 mod state;
+mod tunnel_control;
 
-pub mod broker_rtsp;
 pub mod db;
 pub mod error;
 pub mod flow;
-pub mod lib;
+pub mod utils;
 pub mod logo;
+pub mod media;
+pub mod recording;
 
 pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("./migrations");
 
@@ -77,7 +76,7 @@ async fn main() -> Result<()> {
         warn!("APPLICATION IS RUNNING IN DEBUG MODE. ONLY THE WEB SERVER WILL BE ACTIVATED.");
     }
 
-    let streams: Arc<DashMap<u32, StreamInfo>> = Arc::new(DashMap::<u32, StreamInfo>::new());
+    let streams: StreamManager = Arc::new(StreamRegistry::new());
 
     let pool = establish_connection(&settings.database_url);
 
@@ -98,20 +97,32 @@ async fn main() -> Result<()> {
     let (mqtt_tx, _) = broadcast::channel::<MqttMessage>(1024);
     let (flow_manager_tx, flow_manager_rx) = mpsc::channel(100);
     let (broadcast_tx, _) = broadcast::channel(1024);
+    let (dashboard_ui_tx, _) = broadcast::channel::<crate::state::DashboardUiEvent>(1024);
     let (shutdown_tx, shutdown_rx) = watch::channel(());
+    let (topic_map_notify_tx, topic_map_notify_rx) = watch::channel(());
+    let tunnel_manager = Arc::new(TunnelManager::new());
 
     let jwt_secret = settings.jwt_secret.clone();
     let configs = db::repository::get_all_system_configs(&pool)?;
+
+    let recording_manager = Arc::new(recording::RecordingManager::new(
+        streams.clone(),
+        pool.clone(),
+    ));
 
     let app_state = Arc::new(AppState {
         streams: streams.clone(),
         mqtt_tx: mqtt_tx.clone(),
         jwt_secret: jwt_secret,
-        pool: pool,
+        pool: pool.clone(),
         topic_map: Arc::new(RwLock::new(Vec::new())),
+        topic_map_notify: topic_map_notify_tx,
         flow_manager_tx,
+        dashboard_ui_tx: dashboard_ui_tx.clone(),
         broadcast_tx,
         system_configs: configs.clone(),
+        tunnel_manager: tunnel_manager.clone(),
+        recording_manager,
     });
 
     let mut set = JoinSet::new();
@@ -136,7 +147,11 @@ async fn main() -> Result<()> {
                     &rtp_config.value
                 );
                 let rtp_listen_address = rtp_config.value.clone();
-                set.spawn(rtp_receiver(rtp_listen_address, streams.clone()));
+                let rtp_adapter =
+                    Arc::new(RtpPushAdapter::new(rtp_listen_address, streams.clone()));
+                let shutdown_rx_clone = shutdown_rx.clone();
+                let rtp_task = rtp_adapter.clone();
+                set.spawn(async move { rtp_task.start(shutdown_rx_clone).await });
             } else {
                 warn!("RTP Receiver is disabled by configuration.");
             }
@@ -188,19 +203,24 @@ async fn main() -> Result<()> {
             shutdown_rx.clone(),
         ));
 
-        let app_state_clone = app_state.clone();
-        set.spawn(broker_rtsp::start_rtsp_pipelines(
-            app_state_clone,
-            shutdown_rx.clone(),
+        let rtsp_adapter = Arc::new(RtspPullAdapter::new(
+            streams.clone(),
+            app_state.topic_map.clone(),
+            topic_map_notify_rx,
         ));
+        let shutdown_rx_clone = shutdown_rx.clone();
+        let rtsp_task = rtsp_adapter.clone();
+        set.spawn(async move { rtsp_task.start(shutdown_rx_clone).await });
     }
 
     let mut flow_manager = FlowManagerActor::new(
         flow_manager_rx,
         mqtt_client_for_flow,
         mqtt_tx.clone(),
+        dashboard_ui_tx,
         streams.clone(),
         configs.clone(),
+        pool.clone(),
     );
     tokio::spawn(async move {
         flow_manager.run().await;

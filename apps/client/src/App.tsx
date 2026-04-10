@@ -1,7 +1,10 @@
 import { AuthPage } from "./pages/auth";
 
 import { createBrowserRouter, RouterProvider } from "react-router";
-import { DashboardPage } from "./pages/dashboard";
+import {
+  DashboardSwipeLayout,
+  DashboardSwipeRoutePlaceholder,
+} from "./features/dashboard-swipe/DashboardSwipeLayout";
 import { ServersPage } from "./pages/servers";
 import { KeyPage } from "./pages/key";
 import { DevicePage } from "./pages/devices";
@@ -17,6 +20,11 @@ import { SetupPage } from "./pages/setup";
 import { CodePage } from "./pages/code";
 import { AuthenticatedLayout } from "./widgets/auth/AuthenticatedLayout";
 import { TopBarWrapper } from "./widgets/auth/TopBarWrapper";
+import { useDesktopSidecar } from "./hooks/useDesktopSidecar";
+import { usePreventBackNavigation } from "./hooks/usePreventBackNavigation";
+import { SettingsPage } from "./pages/settings";
+import { NetworksPage } from "./pages/networks";
+import { RecordingsPage } from "./pages/recordings";
 
 const router = createBrowserRouter([
   {
@@ -35,12 +43,29 @@ const router = createBrowserRouter([
     element: <AuthenticatedLayout />,
     children: [
       {
-        path: "/dashboard",
         element: (
           <AuthInterceptor>
-            <DashboardPage />
+            <DashboardSwipeLayout />
           </AuthInterceptor>
         ),
+        children: [
+          {
+            path: "/dashboard",
+            element: <DashboardSwipeRoutePlaceholder />,
+          },
+          {
+            path: "/dynamic-dashboard/new",
+            element: <DashboardSwipeRoutePlaceholder />,
+          },
+          {
+            path: "/dynamic-dashboard/:dashboardId",
+            element: <DashboardSwipeRoutePlaceholder />,
+          },
+          {
+            path: "/dynamic-dashboard",
+            element: <DashboardSwipeRoutePlaceholder />,
+          },
+        ],
       },
       {
         path: "/servers",
@@ -114,12 +139,36 @@ const router = createBrowserRouter([
           </AuthInterceptor>
         ),
       },
+      {
+        path: "/settings",
+        element: (
+          <AuthInterceptor>
+            <SettingsPage />
+          </AuthInterceptor>
+        ),
+      },
 
       {
         path: "/code",
         element: (
           <AuthInterceptor>
             <CodePage />
+          </AuthInterceptor>
+        ),
+      },
+      {
+        path: "/networks",
+        element: (
+          <AuthInterceptor>
+            <NetworksPage />
+          </AuthInterceptor>
+        ),
+      },
+      {
+        path: "/recordings",
+        element: (
+          <AuthInterceptor>
+            <RecordingsPage />
           </AuthInterceptor>
         ),
       },
@@ -136,6 +185,9 @@ const router = createBrowserRouter([
 ]);
 
 function App() {
+  useDesktopSidecar();
+  usePreventBackNavigation();
+
   return (
     <>
       <RouterProvider router={router} />

@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  capsule:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - RUST_LOG=info
+      - PORT=3000
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4o}
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+    # 보안 설정
+    security_opt:
+      - no-new-privileges:true
+    # 읽기 전용 파일시스템 (민감 데이터 디스크 저장 방지)
+    read_only: true
+    # 임시 파일용 tmpfs
+    tmpfs:
+      - /tmp
+    # 재시작 정책
+    restart: unless-stopped
+    # 헬스체크
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s

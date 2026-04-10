@@ -14,6 +14,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 
 pub mod handlers;
+pub mod dashboard_component_event;
 pub mod webrtc;
 
 pub async fn ws_handler(

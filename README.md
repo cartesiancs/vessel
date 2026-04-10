@@ -1,5 +1,5 @@
 <p align='center'>
-<img src='.github/icon.png' width='210' />
+<img src='.github/icon.png' width='140' />
 <h1 align='center'>Vessel</h1>
 <p align='center'>The open source alternative to Anduril for self-defence</p>
 </p>
@@ -26,11 +26,13 @@ This project is to build a "proactive security system". To achieve this, the fol
 2. **Detect** Threats
 3. **Control** and Respond
 
-This project solves the problems with existing **home security systems**. Current systems fail to protect against burglaries, trespassing, theft—and even war.
+This project solves the problems with existing **home security systems**. Current systems fail to protect against burglaries, trespassing, theft and even war.
 
 So we plan to open-source the technology used in existing defense systems.
 
-This system allows you to analyze video and audio sources with AI/ML technology. And automate actions through Flow-based operations. The Flow provides the flexibility to select multiple AI models and connect them directly to stream sources.
+This system allows you to analyze video and audio sources with AI/ML technology.
+
+And automate actions through Flow-based operations. The Flow provides the flexibility to select multiple AI models and connect them directly to stream sources.
 
 When everything is implemented, individuals will be able to protect themselves from any threats.
 
@@ -42,10 +44,16 @@ When everything is implemented, individuals will be able to protect themselves f
 - Connect all sensers (MQTT, RTP, RTSP, HTTP, ...)
 - RTP Audio & Video Streaming
 - RTSP Video Streaming
+- Real-time streaming support
 - Flow Visual Logic
+- Custom Script Language Support
 - Pub/Sub MQTT with Flow
 - Map based UI
 - Home Assistant Integration
+- ROS2 Integration
+- External access support
+- Capsule (Zero-Knowledge LLM Call) security.
+- Local-first design, Offline-first design.
 
 ## Develop
 
@@ -56,7 +64,6 @@ Get your local copy up and running.
 - [Rust](https://www.rust-lang.org/) & Cargo
 - [Node.js](https://nodejs.org/en/) (v18+) and npm
 - [gstreamer](https://gstreamer.freedesktop.org/documentation/rust/git/docs/gstreamer/index.html)
-- [Python](https://www.python.org/) (3.12+)
 - [mosquitto (MQTT)](https://mosquitto.org/) (additional)
 
 ### Option1. Run normally
@@ -95,8 +102,16 @@ npm run client
 ```bash
 docker build -t server .
 
-docker run -p 0.0.0.0:8080:8080 server:latest
+docker run -p 0.0.0.0:6174:6174 server:latest
 ```
+
+### Option3. Desktop (Tauri)
+
+```bash
+npm run desktop
+```
+
+Builds the Rust server sidecar in release mode, starts the Vite dev server for the client, and launches the Tauri shell. For a packaged build use `npm run desktop:build`.
 
 ## Compile
 
@@ -109,6 +124,12 @@ npm run build
 The compiled binary, named 'server', will be located in the target/release directory.
 
 > To run the server executable, you must have a .env file in the same directory (target/release).
+
+## Principles
+
+1. Local-first
+2. Offline-first
+3. Ultimate control rests with the user
 
 ## Troubleshooting
 

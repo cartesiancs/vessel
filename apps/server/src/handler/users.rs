@@ -1,4 +1,4 @@
-use crate::lib::hash::hash_password;
+use crate::utils::hash::hash_password;
 use crate::{
     db::{
         self,

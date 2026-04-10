@@ -1,5 +1,7 @@
 [workspace]
 members = [
     "apps/server",
+    "apps/desktop/src-tauri",
+    "apps/capsule",
 ]
 resolver = "2"

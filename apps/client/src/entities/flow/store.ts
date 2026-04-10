@@ -16,12 +16,15 @@ interface FlowState {
   nodes: Node[];
   edges: Edge[];
   refresh: number;
+  hasUnsavedChanges: boolean;
   fetchFlows: () => Promise<void>;
   setCurrentFlowId: (flowId: number | null) => void;
   setNodes: (nodes: Node[]) => void;
   setEdges: (edges: Edge[]) => void;
   updateNode: (nodeId: string, data: DataNodeType) => void;
   addRefresh: () => void;
+  markDirty: () => void;
+  markSaved: () => void;
   createNewFlow: (name: string) => Promise<void>;
   saveGraph: (comment?: string) => Promise<void>;
   loadGraph: () => Promise<void>;
@@ -36,6 +39,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
   isLoading: false,
   error: null,
   refresh: 1,
+  hasUnsavedChanges: false,
 
   fetchFlows: async () => {
     set({ isLoading: true, error: null });
@@ -50,14 +54,19 @@ export const useFlowStore = create<FlowState>((set, get) => ({
   },
 
   setCurrentFlowId: (flowId: number | null) => {
-    set({ currentFlowId: flowId, nodes: [], edges: [] });
+    set({
+      currentFlowId: flowId,
+      nodes: [],
+      edges: [],
+      hasUnsavedChanges: false,
+    });
     if (flowId) {
       get().loadGraph();
     }
   },
 
-  setNodes: (nodes) => set({ nodes }),
-  setEdges: (edges) => set({ edges }),
+  setNodes: (nodes) => set({ nodes, hasUnsavedChanges: true }),
+  setEdges: (edges) => set({ edges, hasUnsavedChanges: true }),
 
   updateNode: (nodeId: string, data: DataNodeType) => {
     set((state) => ({
@@ -66,12 +75,16 @@ export const useFlowStore = create<FlowState>((set, get) => ({
           ? { ...node, data: { ...node.data, ...data } }
           : node,
       ),
+      hasUnsavedChanges: true,
     }));
   },
 
   addRefresh: () => {
     set((state) => ({ refresh: state.refresh + 1 }));
   },
+
+  markDirty: () => set({ hasUnsavedChanges: true }),
+  markSaved: () => set({ hasUnsavedChanges: false }),
 
   createNewFlow: async (name: string) => {
     set({ isLoading: true, error: null });
@@ -83,6 +96,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
         nodes: [],
         edges: [],
         isLoading: false,
+        hasUnsavedChanges: false,
       }));
     } catch (err) {
       const error =
@@ -102,7 +116,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
       const graphData = { nodes, edges };
       const graph_json = JSON.stringify(graphData, null, 2);
       await saveFlowVersion(currentFlowId, { graph_json, comment });
-      set({ isLoading: false });
+      set({ isLoading: false, hasUnsavedChanges: false });
     } catch (err) {
       const error = err instanceof Error ? err.message : "Failed to save graph";
       set({ isLoading: false, error });
@@ -124,10 +138,16 @@ export const useFlowStore = create<FlowState>((set, get) => ({
             nodes: graphData.nodes,
             edges: graphData.edges,
             isLoading: false,
+            hasUnsavedChanges: false,
           });
         }
       } else {
-        set({ isLoading: false, nodes: [], edges: [] });
+        set({
+          isLoading: false,
+          nodes: [],
+          edges: [],
+          hasUnsavedChanges: false,
+        });
       }
     } catch (err) {
       const error = err instanceof Error ? err.message : "Failed to load graph";
@@ -135,5 +155,11 @@ export const useFlowStore = create<FlowState>((set, get) => ({
       console.error(error);
     }
   },
-  resetFlowState: () => set({ nodes: [], edges: [], currentFlowId: null }),
+  resetFlowState: () =>
+    set({
+      nodes: [],
+      edges: [],
+      currentFlowId: null,
+      hasUnsavedChanges: false,
+    }),
 }));

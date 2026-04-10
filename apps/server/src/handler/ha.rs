@@ -1,16 +1,14 @@
-use std::sync::Arc;
-use axum::{extract::{Path, State}, Json};
-use anyhow::{anyhow, bail}; 
+use anyhow::anyhow;
+use axum::{
+    extract::{Path, State},
+    Json,
+};
 use reqwest::header;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
+use std::sync::Arc;
 
-use crate::{
-    db,
-    error::AppError,
-    handler::auth::AuthUser,
-    state::AppState,
-};
+use crate::{db, error::AppError, handler::auth::AuthUser, state::{AppState, DbPool}};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct HaState {
@@ -22,23 +20,32 @@ pub struct HaState {
     pub context: Value,
 }
 
+fn get_ha_credentials(pool: &DbPool) -> Result<(String, String), anyhow::Error> {
+    let entity_with_config =
+        db::repository::get_entity_with_config_by_entity_id(pool, "home_assistant.bridge")?
+            .ok_or_else(|| anyhow!("Home Assistant is not configured. Please register the integration first."))?;
+
+    let config = entity_with_config
+        .configuration
+        .ok_or_else(|| anyhow!("Home Assistant bridge entity has no configuration."))?;
+
+    let url = config
+        .get("url")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| anyhow!("Home Assistant URL is not configured."))?;
+    let token = config
+        .get("token")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| anyhow!("Home Assistant Token is not configured."))?;
+
+    Ok((url.to_string(), token.to_string()))
+}
+
 pub async fn get_all_states(
     State(state): State<Arc<AppState>>,
     AuthUser(_user): AuthUser,
 ) -> Result<Json<Vec<HaState>>, AppError> {
-    let configs = db::repository::get_all_system_configs(&state.pool)?;
-
-    let ha_url = configs
-        .iter()
-        .find(|c| c.key == "home_assistant_url")
-        .map(|c| c.value.clone())
-        .ok_or_else(|| anyhow!("Home Assistant URL is not configured."))?;
-
-    let ha_token = configs
-        .iter()
-        .find(|c| c.key == "home_assistant_token")
-        .map(|c| c.value.clone())
-        .ok_or_else(|| anyhow!("Home Assistant Token is not configured."))?;
+    let (ha_url, ha_token) = get_ha_credentials(&state.pool)?;
 
     let api_url = format!("{}/api/states", ha_url.trim_end_matches('/'));
 
@@ -56,8 +63,11 @@ pub async fn get_all_states(
         let states = response.json::<Vec<HaState>>().await?;
         Ok(Json(states))
     } else {
-       let error_text = response.text().await.unwrap_or_else(|_| "Could not read error body".to_string());
-        
+        let error_text = response
+            .text()
+            .await
+            .unwrap_or_else(|_| "Could not read error body".to_string());
+
         let err = anyhow!(
             "Home Assistant returned an error. Status: {}, Body: {}",
             status,
@@ -80,22 +90,10 @@ pub async fn post_state(
     Path(entity_id): Path<String>,
     Json(payload): Json<HaStateUpdatePayload>,
 ) -> Result<Json<HaState>, AppError> {
-    let configs = db::repository::get_all_system_configs(&state.pool)?;
-
-    let ha_url = configs
-        .iter()
-        .find(|c| c.key == "home_assistant_url")
-        .map(|c| c.value.clone())
-        .ok_or_else(|| anyhow!("Home Assistant URL is not configured."))?;
-
-    let ha_token = configs
-        .iter()
-        .find(|c| c.key == "home_assistant_token")
-        .map(|c| c.value.clone())
-        .ok_or_else(|| anyhow!("Home Assistant Token is not configured."))?;
+    let (ha_url, ha_token) = get_ha_credentials(&state.pool)?;
 
     let api_url = format!("{}/api/states/{}", ha_url.trim_end_matches('/'), entity_id);
-    
+
     let mut ha_body = json!({ "state": payload.state });
     if let Some(attributes) = payload.attributes {
         if let Some(obj) = ha_body.as_object_mut() {
@@ -118,8 +116,11 @@ pub async fn post_state(
         let new_state = response.json::<HaState>().await?;
         Ok(Json(new_state))
     } else {
-        let error_text = response.text().await.unwrap_or_else(|_| "Could not read error body".to_string());
-        
+        let error_text = response
+            .text()
+            .await
+            .unwrap_or_else(|_| "Could not read error body".to_string());
+
         let err = anyhow!(
             "Home Assistant returned an error. Status: {}, Body: {}",
             status,

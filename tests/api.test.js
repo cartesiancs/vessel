@@ -1,6 +1,6 @@
 const request = require("supertest");
 
-const API_BASE_URL = "http://localhost:8080";
+const API_BASE_URL = "http://localhost:6174";
 
 describe("Vessel API E2E Test", () => {
   let authToken;

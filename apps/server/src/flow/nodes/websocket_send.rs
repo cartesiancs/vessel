@@ -11,7 +11,7 @@ use super::ExecutableNode;
 use crate::{
     db::models::SystemConfiguration,
     flow::{engine::ExecutionContext, types::ExecutionResult},
-    lib::system_configs::replace_config_placeholders,
+    utils::system_configs::replace_config_placeholders,
 };
 
 #[derive(Deserialize, Debug, Clone)]

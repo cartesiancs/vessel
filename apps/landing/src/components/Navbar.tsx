@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import {
   NavigationMenu,
   NavigationMenuItem,
@@ -6,19 +7,37 @@ import {
   navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu";
 import { Link, useNavigate } from "react-router";
+import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
 
 export function Navbar() {
   const navigate = useNavigate();
+  const { user, loading } = useAuth();
   const openInNewTab = (url: string) => {
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => {
+      setScrolled(window.scrollY > 0);
+    };
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   return (
-    <header className='fixed flex items-center justify-center top-0 z-50 w-full border-b bg-background/95 backdrop-blur-sm supports-[backdrop-filter]:bg-background/70'>
+    <header
+      className={`fixed flex items-center justify-center top-0 z-50 w-full bg-background/95 backdrop-blur-lg supports-[backdrop-filter]:bg-background/70 ${
+        scrolled ? "border-b" : ""
+      }`}
+    >
       <div className='h-12 flex items-center justify-between w-full'>
         <div className='flex items-center'>
           <Link to='/' className='mr-6 flex items-center space-x-2 pl-6 gap-1'>
-            <img src='/icon.png' alt='Logo' className='w-8' />
+            <img src='/icon.png' alt='Logo' className='w-8 invert' />
             <span className='hidden font-medium text-sm sm:inline-block'>
               Vessel
             </span>
@@ -30,6 +49,15 @@ export function Navbar() {
             <NavigationMenuItem>
               <NavigationMenuLink
                 className={`${navigationMenuTriggerStyle()} bg-transparent`}
+                onClick={() => navigate("/pricing")}
+                style={{ cursor: "pointer" }}
+              >
+                Pricing
+              </NavigationMenuLink>
+            </NavigationMenuItem>
+            <NavigationMenuItem>
+              <NavigationMenuLink
+                className={`${navigationMenuTriggerStyle()} bg-transparent`}
                 onClick={() => openInNewTab("/docs/introduction")}
                 style={{ cursor: "pointer" }}
               >
@@ -37,24 +65,15 @@ export function Navbar() {
               </NavigationMenuLink>
             </NavigationMenuItem>
             <NavigationMenuItem>
-              <NavigationMenuLink
-                className={`${navigationMenuTriggerStyle()} bg-transparent`}
-                onClick={() =>
-                  openInNewTab("https://github.com/cartesiancs/vessel")
-                }
-                style={{ cursor: "pointer" }}
-              >
-                GitHub
-              </NavigationMenuLink>
-            </NavigationMenuItem>
-            <NavigationMenuItem>
-              <NavigationMenuLink
-                className={`${navigationMenuTriggerStyle()} bg-transparent`}
-                onClick={() => navigate("/roadmap")}
-                style={{ cursor: "pointer" }}
-              >
-                Roadmap
-              </NavigationMenuLink>
+              {!loading && (
+                <NavigationMenuLink
+                  className={`${navigationMenuTriggerStyle()} bg-transparent`}
+                  onClick={() => navigate(user ? "/dashboard" : "/login")}
+                  style={{ cursor: "pointer" }}
+                >
+                  {user ? "Dashboard" : "Sign In"}
+                </NavigationMenuLink>
+              )}
             </NavigationMenuItem>
           </NavigationMenuList>
         </NavigationMenu>

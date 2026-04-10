@@ -14,6 +14,7 @@ use tracing::{error, info};
 use crate::db::models::SystemConfiguration;
 use crate::flow::nodes::branch::BranchNode;
 use crate::flow::nodes::custom_node::CustomNode;
+use crate::flow::nodes::dashboard_event_listener::DashboardEventListenerNode;
 use crate::flow::nodes::decode_h264::DecodeH264Node;
 use crate::flow::nodes::decode_opus::DecodeOpusNode;
 use crate::flow::nodes::gst_decoder::GstDecoderNode;
@@ -29,26 +30,34 @@ use crate::flow::nodes::websocket_send::WebSocketSendNode;
 use crate::flow::nodes::yolo_detect::YoloDetectNode;
 use crate::flow::nodes::{
     calc::CalcNode, http::HttpNode, interval::IntervalNode, log_message::LogMessageNode,
-    logic_operator::LogicOpetatorNode, set_variable::SetVariableNode, start::StartNode,
-    ExecutableNode,
+    logic_operator::LogicOpetatorNode, set_variable::SetVariableNode, show_toast::ShowToastNode,
+    start::StartNode, ExecutableNode,
 };
-use crate::flow::types::{Graph, Node};
+use crate::flow::types::{FlowRunContext, Graph, Node};
 use crate::flow::BinaryStore;
-use crate::state::MqttMessage;
-use crate::state::StreamManager;
+use crate::state::{DashboardUiEvent, MqttMessage, StreamManager};
 
 pub struct ExecutionContext {
     variables: HashMap<String, Value>,
     mqtt_client: Option<AsyncClient>,
     broadcast_tx: broadcast::Sender<String>,
+    flow_id: i32,
+    run_context: Option<FlowRunContext>,
 }
 
 impl ExecutionContext {
-    pub fn new(mqtt_client: Option<AsyncClient>, broadcast_tx: broadcast::Sender<String>) -> Self {
+    pub fn new(
+        mqtt_client: Option<AsyncClient>,
+        broadcast_tx: broadcast::Sender<String>,
+        flow_id: i32,
+        run_context: Option<FlowRunContext>,
+    ) -> Self {
         Self {
             variables: HashMap::new(),
             mqtt_client,
             broadcast_tx,
+            flow_id,
+            run_context,
         }
     }
 
@@ -62,6 +71,36 @@ impl ExecutionContext {
 
     pub fn get_broadcast(&self) -> broadcast::Sender<String> {
         self.broadcast_tx.clone()
+    }
+
+    /// Broadcast a UI event to clients; only the tab that started the run (matching `session_id`) should react.
+    pub fn emit_flow_ui_event(
+        &self,
+        node_id: &str,
+        node_type: &str,
+        event_kind: &str,
+        event_data: Value,
+    ) {
+        let Some(ref rc) = self.run_context else {
+            return;
+        };
+        let ws_message = json!({
+            "type": "flow_ui_event",
+            "payload": {
+                "target": { "session_id": rc.session_id },
+                "event": { "kind": event_kind, "data": event_data },
+                "meta": {
+                    "flow_id": self.flow_id,
+                    "node_id": node_id,
+                    "node_type": node_type,
+                }
+            }
+        });
+        if let Ok(payload_str) = serde_json::to_string(&ws_message) {
+            if self.broadcast_tx.send(payload_str).is_err() {
+                error!("Failed to broadcast flow_ui_event");
+            }
+        }
     }
 
     pub fn mqtt_client(&self) -> &Option<AsyncClient> {
@@ -90,6 +129,7 @@ pub struct FlowEngine {
     data_flow_graph: HashMap<String, Vec<(String, String, String)>>,
     expected_input_counts: HashMap<String, usize>,
     mqtt_tx: Option<broadcast::Sender<MqttMessage>>,
+    dashboard_ui_tx: Option<broadcast::Sender<DashboardUiEvent>>,
     stream_manager: StreamManager,
     binary_store: BinaryStore,
     system_configs: Vec<SystemConfiguration>,
@@ -99,6 +139,7 @@ impl FlowEngine {
     pub fn new(
         graph: Graph,
         mqtt_tx: Option<broadcast::Sender<MqttMessage>>,
+        dashboard_ui_tx: Option<broadcast::Sender<DashboardUiEvent>>,
         stream_manager: StreamManager,
         binary_store: BinaryStore,
         system_configs: Vec<SystemConfiguration>,
@@ -152,6 +193,7 @@ impl FlowEngine {
             data_flow_graph,
             expected_input_counts,
             mqtt_tx,
+            dashboard_ui_tx,
             stream_manager,
             binary_store,
             system_configs,
@@ -192,6 +234,7 @@ impl FlowEngine {
             "SET_VARIABLE" => Ok(Box::new(SetVariableNode::new(&node.data)?)),
             "SET_VARIABLE_WITH_EXEC" => Ok(Box::new(SetVariableWithExecNode::new(&node.data)?)),
             "LOG_MESSAGE" => Ok(Box::new(LogMessageNode)),
+            "SHOW_TOAST" => Ok(Box::new(ShowToastNode::new(&node.data, node.id.clone())?)),
             "CALCULATION" => Ok(Box::new(CalcNode::new(&node.data)?)),
             "HTTP_REQUEST" => Ok(Box::new(HttpNode::new(&node.data)?)),
             "LOGIC_OPERATOR" => Ok(Box::new(LogicOpetatorNode::new(&node.data)?)),
@@ -209,6 +252,19 @@ impl FlowEngine {
                     &node.data,
                     rx,
                     source_node_ids,
+                )?))
+            }
+            "DASHBOARD_EVENT_LISTENER" => {
+                let rx = self
+                    .dashboard_ui_tx
+                    .as_ref()
+                    .ok_or_else(|| {
+                        anyhow!("Dashboard UI bus is not configured for DASHBOARD_EVENT_LISTENER")
+                    })?
+                    .subscribe();
+                Ok(Box::new(DashboardEventListenerNode::new(
+                    &node.data,
+                    rx,
                 )?))
             }
             "TYPE_CONVERTER" => Ok(Box::new(TypeConverterNode::new(&node.data)?)),
@@ -252,6 +308,8 @@ impl FlowEngine {
         self: Arc<Self>,
         broadcast_tx: broadcast::Sender<String>,
         mqtt_client: Option<AsyncClient>,
+        flow_id: i32,
+        run_context: Option<FlowRunContext>,
     ) -> (
         FlowController,
         JoinHandle<Result<()>>,
@@ -284,7 +342,7 @@ impl FlowEngine {
         let engine_clone = Arc::clone(&self);
         let handle = tokio::spawn(async move {
             let self_ = engine_clone;
-            let mut context = ExecutionContext::new(mqtt_client, broadcast_tx);
+            let mut context = ExecutionContext::new(mqtt_client, broadcast_tx, flow_id, run_context);
             info!("Flow Engine task started. Entering main execution loop...");
             loop {
                 if *shutdown_rx.borrow() {

@@ -1,8 +1,20 @@
-use std::sync::Arc;
-use axum::{extract::{Path, Query, State}, Json};
+use crate::{
+    db::{
+        self,
+        models::{EntityWithConfig, EntityWithStateAndConfig, NewEntity},
+    },
+    error::AppError,
+    handler::auth::AuthUser,
+    utils::entity_map::remap_topics,
+    state::AppState,
+};
+use axum::{
+    extract::{Path, Query, State},
+    Json,
+};
 use serde::Deserialize;
 use serde_json::{json, Value};
-use crate::{db::{self, models::{EntityWithConfig, EntityWithStateAndConfig, NewEntity}}, error::AppError, handler::auth::AuthUser, lib::entity_map::remap_topics, state::AppState};
+use std::sync::Arc;
 
 #[derive(Deserialize)]
 pub struct EntityPayload {
@@ -31,25 +43,29 @@ pub async fn create_entity(
         platform: payload.platform.as_deref(),
         entity_type: payload.entity_type.as_deref(),
     };
-    
-    let config_str = payload.configuration
-        .map(|v| if v.is_null() || v.as_object().map_or(false, |m| m.is_empty()) {
-            String::new()
-        } else {
-            v.to_string()
+
+    let config_str = payload
+        .configuration
+        .map(|v| {
+            if v.is_null() || v.as_object().map_or(false, |m| m.is_empty()) {
+                String::new()
+            } else {
+                v.to_string()
+            }
         })
         .unwrap_or_default();
 
-    let (entity, config_opt) = db::repository::create_entity_with_config(&state.pool, new_entity, &config_str)?;
+    let (entity, config_opt) =
+        db::repository::create_entity_with_config(&state.pool, new_entity, &config_str)?;
 
     let response = EntityWithConfig {
         entity,
-        configuration: config_opt.map(|c| serde_json::from_str(&c.configuration).unwrap_or_default())
+        configuration: config_opt
+            .map(|c| serde_json::from_str(&c.configuration).unwrap_or_default()),
     };
 
     remap_topics(State(state)).await?;
 
-    
     Ok(Json(response))
 }
 
@@ -58,7 +74,8 @@ pub async fn get_entities(
     AuthUser(_user): AuthUser,
     Query(params): Query<GetEntitiesParams>,
 ) -> Result<Json<Vec<EntityWithConfig>>, AppError> {
-    let entities = db::repository::get_all_entities_with_configs_filter(&state.pool, params.entity_type)?;
+    let entities =
+        db::repository::get_all_entities_with_configs_filter(&state.pool, params.entity_type)?;
     Ok(Json(entities))
 }
 
@@ -67,10 +84,12 @@ pub async fn get_entities_with_states(
     AuthUser(_user): AuthUser,
     Query(params): Query<GetEntitiesParams>,
 ) -> Result<Json<Vec<EntityWithStateAndConfig>>, AppError> {
-    let entities = db::repository::get_all_entities_with_states_and_configs_filter(&state.pool, params.entity_type)?;
+    let entities = db::repository::get_all_entities_with_states_and_configs_filter(
+        &state.pool,
+        params.entity_type,
+    )?;
     Ok(Json(entities))
 }
-
 
 pub async fn update_entity(
     State(state): State<Arc<AppState>>,
@@ -86,26 +105,30 @@ pub async fn update_entity(
         entity_type: payload.entity_type.as_deref(),
     };
 
-    let config_str = payload.configuration
-        .map(|v| if v.is_null() || v.as_object().map_or(false, |m| m.is_empty()) {
-            String::new()
-        } else {
-            v.to_string()
+    let config_str = payload
+        .configuration
+        .map(|v| {
+            if v.is_null() || v.as_object().map_or(false, |m| m.is_empty()) {
+                String::new()
+            } else {
+                v.to_string()
+            }
         })
         .unwrap_or_default();
-    
-    let (entity, config_opt) = db::repository::update_entity_with_config(&state.pool, id, &updated_entity, &config_str)?;
+
+    let (entity, config_opt) =
+        db::repository::update_entity_with_config(&state.pool, id, &updated_entity, &config_str)?;
 
     let response = EntityWithConfig {
         entity,
-        configuration: config_opt.map(|c| serde_json::from_str(&c.configuration).unwrap_or_default())
+        configuration: config_opt
+            .map(|c| serde_json::from_str(&c.configuration).unwrap_or_default()),
     };
 
     remap_topics(State(state)).await?;
 
     Ok(Json(response))
 }
-
 
 pub async fn delete_entity(
     State(state): State<Arc<AppState>>,
@@ -115,5 +138,7 @@ pub async fn delete_entity(
     db::repository::delete_entity(&state.pool, id)?;
     remap_topics(State(state)).await?;
 
-    Ok(Json(json!({ "status": "success", "message": "Entity deleted" })))
+    Ok(Json(
+        json!({ "status": "success", "message": "Entity deleted" }),
+    ))
 }

@@ -78,7 +78,7 @@ export function ServersPage() {
           {error && <div className='text-red-500'>{error}</div>}
 
           {!isLoading && !error && (
-            <div className='border shadow-sm rounded-lg overflow-x-auto'>
+            <div className='border shadow-sm  overflow-x-auto'>
               <Table>
                 <TableHeader>
                   <TableRow>

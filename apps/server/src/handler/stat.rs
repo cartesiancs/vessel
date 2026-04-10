@@ -1,9 +1,13 @@
+use crate::{
+    db::{self},
+    error::AppError,
+    handler::auth::AuthUser,
+    utils::entity_map::remap_topics,
+    state::AppState,
+};
+use axum::{extract::State, Json};
+use serde_json::json;
 use std::sync::Arc;
-use axum::{extract::{State}, Json};
-use serde_json::{json};
-use crate::{db::{self}, error::AppError, handler::auth::AuthUser, lib::entity_map::remap_topics, state::AppState};
-
-
 
 pub async fn get_stats(
     AuthUser(_user): AuthUser,
@@ -21,4 +25,3 @@ pub async fn get_stats(
         },
     })))
 }
-

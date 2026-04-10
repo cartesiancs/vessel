@@ -1,16 +1,26 @@
 import React, { useEffect, useState } from "react";
 import { Outlet, useNavigate } from "react-router";
-import Cookies from "js-cookie";
 import { WebSocketProvider } from "@/features/ws/WebSocketProvider";
+import { FlowUiEventBridge } from "@/features/ws/FlowUiEventBridge";
 import { TopBarWrapper } from "./TopBarWrapper";
+import { isDemoMode } from "@/shared/demo";
+import { storage } from "@/lib/storage";
+import { ChatPanelContainer, useChatStore, PANEL_WIDTH } from "@/features/llm-chat";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { useConfigStore } from "@/entities/configurations/store";
 
 export function AuthenticatedLayout() {
   const [wsUrl, setWsUrl] = useState<string | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const token = Cookies.get("token");
-    const serverUrlString = Cookies.get("server_url");
+    if (isDemoMode) {
+      setWsUrl("ws://demo.vessel.local/mock");
+      return;
+    }
+
+    const token = storage.getToken();
+    const serverUrlString = storage.getServerUrl();
 
     if (!token || !serverUrlString) {
       navigate("/auth", { replace: true });
@@ -20,22 +30,46 @@ export function AuthenticatedLayout() {
     try {
       const url = new URL(serverUrlString);
       const host = url.host;
-      setWsUrl(`ws://${host}/signal?token=${token}`);
+      const wsProto = url.protocol === "https:" ? "wss" : "ws";
+
+      setWsUrl(`${wsProto}://${host}/signal?token=${token}`);
     } catch {
-      console.error("Invalid server_url in cookies:", serverUrlString);
+      console.error("Invalid server_url in storage:", serverUrlString);
       navigate("/auth", { replace: true });
     }
   }, [navigate]);
+
+  useEffect(() => {
+    if (!wsUrl) return;
+    void useConfigStore.getState().fetchConfigs();
+  }, [wsUrl]);
+
+  const isOpen = useChatStore((s) => s.isOpen);
+  const isMobile = useIsMobile();
 
   if (!wsUrl) {
     return <div>Loading...</div>;
   }
 
+  // Disable content push on mobile
+  const chatPanelWidth = isOpen && !isMobile ? PANEL_WIDTH : 0;
+
   return (
     <WebSocketProvider url={wsUrl}>
-      <TopBarWrapper>
-        <Outlet />
-      </TopBarWrapper>
+      <FlowUiEventBridge />
+      <div
+        style={
+          {
+            "--chat-panel-width": `${chatPanelWidth}px`,
+          } as React.CSSProperties
+        }
+        className="transition-[padding] duration-300 pr-[var(--chat-panel-width)]"
+      >
+        <TopBarWrapper>
+          <Outlet />
+        </TopBarWrapper>
+      </div>
+      <ChatPanelContainer />
     </WebSocketProvider>
   );
 }

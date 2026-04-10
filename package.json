@@ -9,9 +9,13 @@
   "scripts": {
     "test": "jest",
     "client": "npm run dev --workspace=client",
+    "client:build": "npm run build --workspace=client",
     "landing": "npm run dev --workspace=landing",
     "server": "cargo run -p server",
     "server:prod": "cargo run -p server --release",
+    "desktop": "npm run dev --workspace=desktop",
+    "desktop:build": "npm run tauri build --workspace=desktop",
+    "capsule": "cd ./apps/capsule && cargo run -p capsule",
     "build": "cd ./apps/server && cargo build --release",
     "build:landing": "npm run build --workspace=landing && vitepress build docs",
     "docs:dev": "vitepress dev docs",
@@ -19,7 +23,8 @@
     "docs:preview": "vitepress preview docs"
   },
   "workspaces": [
-    "apps/*"
+    "apps/*",
+    "packages/*"
   ],
   "dependencies": {
     "@tailwindcss/vite": "^4.1.8",
@@ -27,6 +32,7 @@
     "clsx": "^2.1.1",
     "concurrently": "^9.1.2",
     "lucide-react": "^0.539.0",
+    "monaco-editor": "^0.53.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-error-boundary": "^6.0.0",

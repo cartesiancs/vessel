@@ -24,8 +24,15 @@ import {
 } from "@/components/ui/sidebar";
 import { useLogout } from "../auth/hook";
 import { useEffect, useState } from "react";
-import Cookies from "js-cookie";
 import { parseJwt } from "@/lib/jwt";
+import { isDemoMode } from "@/shared/demo";
+import { storage } from "@/lib/storage";
+
+const openExternal = (url: string) => {
+  import("@tauri-apps/plugin-shell")
+    .then(({ open }) => open(url))
+    .catch(() => window.open(url, "_blank", "noopener,noreferrer"));
+};
 
 export function NavFooter({
   user,
@@ -38,12 +45,16 @@ export function NavFooter({
 }) {
   const { isMobile } = useSidebar();
   const { logout } = useLogout();
-  const [userId, setUserId] = useState<string>("");
+  const [userId, setUserId] = useState<string>(isDemoMode ? "demo" : "");
 
   useEffect(() => {
-    if (Cookies.get("token")) {
-      const parse = parseJwt(Cookies.get("token") || "");
-      setUserId(parse.sub);
+    if (isDemoMode) return;
+    const token = storage.getToken();
+    if (token) {
+      const parse = parseJwt(token);
+      if (parse?.sub && typeof parse.sub === "string") {
+        setUserId(parse.sub);
+      }
     }
   }, []);
 
@@ -56,8 +67,8 @@ export function NavFooter({
               size='lg'
               className='data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground'
             >
-              <Avatar className='h-8 w-8 rounded-lg'>
-                <AvatarFallback className='rounded-lg'>
+              <Avatar className='h-8 w-8 '>
+                <AvatarFallback className=''>
                   <User />
                 </AvatarFallback>
               </Avatar>
@@ -69,16 +80,16 @@ export function NavFooter({
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent
-            className='w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg z-[999999]'
+            className='w-(--radix-dropdown-menu-trigger-width) min-w-56  z-[999999]'
             side={isMobile ? "bottom" : "right"}
             align='end'
             sideOffset={4}
           >
             <DropdownMenuLabel className='p-0 font-normal'>
               <div className='flex items-center gap-2 px-1 py-1.5 text-left text-sm'>
-                <Avatar className='h-8 w-8 rounded-lg'>
+                <Avatar className='h-8 w-8 '>
                   <AvatarImage src={user.avatar} alt={userId} />
-                  <AvatarFallback className='rounded-lg'>
+                  <AvatarFallback className=''>
                     <User />
                   </AvatarFallback>
                 </Avatar>
@@ -92,7 +103,7 @@ export function NavFooter({
             <DropdownMenuGroup>
               <DropdownMenuItem
                 onClick={() =>
-                  window.open("https://github.com/cartesiancs/vessel")
+                  openExternal("https://github.com/cartesiancs/vessel")
                 }
               >
                 <Computer />
@@ -100,7 +111,7 @@ export function NavFooter({
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() =>
-                  window.open("https://github.com/cartesiancs/vessel/issues")
+                  openExternal("https://github.com/cartesiancs/vessel/issues")
                 }
               >
                 <MessageSquareWarning />

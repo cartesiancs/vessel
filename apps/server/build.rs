@@ -1,5 +1,5 @@
-use std::process::Command;
 use std::env;
+use std::process::Command;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     if let Ok(profile) = env::var("PROFILE") {
@@ -12,9 +12,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .arg("build")
                 .current_dir(&client_dir)
                 .output()?;
-            
+
             if !output.status.success() {
-                panic!("npm run build failed: {}", String::from_utf8_lossy(&output.stderr));
+                panic!(
+                    "npm run build failed: {}",
+                    String::from_utf8_lossy(&output.stderr)
+                );
             }
         }
     }

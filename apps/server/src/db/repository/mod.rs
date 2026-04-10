@@ -1,4 +1,6 @@
+pub mod dashboards;
 pub mod rbac;
+pub mod recordings;
 pub mod streams;
 
 use std::collections::HashMap;
@@ -11,6 +13,7 @@ use diesel::{
 };
 use serde_json::Value;
 
+use crate::db::models::CustomNodeResult;
 use crate::db::models::{
     CustomNode, FeatureWithVertices, LayerWithFeatures, MapFeature, MapLayer, MapVertex,
     NewCustomNode, NewMapFeature, NewMapLayer, NewMapVertex, Role, UpdateCustomNode,
@@ -162,8 +165,6 @@ pub fn delete_device(pool: &DbPool, target_id: i32) -> Result<usize, anyhow::Err
     let num_deleted = diesel::delete(devices.find(target_id)).execute(&mut conn)?;
     Ok(num_deleted)
 }
-
-// --- Entity CRUD ---
 
 pub fn create_entity(pool: &DbPool, new_entity: NewEntity) -> Result<Entity, anyhow::Error> {
     use crate::db::schema::entities::dsl::*;
@@ -430,6 +431,9 @@ pub fn create_system_config(
     let mut conn = pool.get()?;
     let config = diesel::insert_into(system_configurations)
         .values(&new_config)
+        .on_conflict(key)
+        .do_update()
+        .set(&new_config)
         .get_result(&mut conn)?;
     Ok(config)
 }
@@ -441,6 +445,20 @@ pub fn get_all_system_configs(pool: &DbPool) -> Result<Vec<SystemConfiguration>,
         .select(SystemConfiguration::as_select())
         .load::<SystemConfiguration>(&mut conn)?;
     Ok(configs)
+}
+
+/// `system_configurations` key for the Code workspace (file browser / storage API).
+pub const CODE_SERVICE_CONFIG_KEY: &str = "code_service_enabled";
+
+pub fn is_code_service_enabled(pool: &DbPool) -> Result<bool, anyhow::Error> {
+    use crate::db::schema::system_configurations::dsl::{key as key_col, system_configurations};
+    let mut conn = pool.get()?;
+    let config = system_configurations
+        .filter(key_col.eq(CODE_SERVICE_CONFIG_KEY))
+        .select(SystemConfiguration::as_select())
+        .first::<SystemConfiguration>(&mut conn)
+        .optional()?;
+    Ok(config.is_some_and(|c| c.enabled == 1))
 }
 
 pub fn update_system_config(
@@ -841,6 +859,147 @@ pub fn get_all_entities_with_states_and_configs_filter(
     Ok(result)
 }
 
+pub fn get_entity_with_config_by_entity_id(
+    pool: &DbPool,
+    target_entity_id: &str,
+) -> Result<Option<EntityWithConfig>, anyhow::Error> {
+    use crate::db::schema::entities::dsl as e;
+    use crate::db::schema::entities_configurations::dsl as ec;
+
+    let mut conn = pool.get()?;
+
+    let result = e::entities
+        .filter(e::entity_id.eq(target_entity_id))
+        .left_join(ec::entities_configurations.on(e::id.eq(ec::entity_id)))
+        .first::<(Entity, Option<EntityConfiguration>)>(&mut conn)
+        .optional()?;
+
+    Ok(result.map(|(entity, config_opt)| {
+        let configuration = config_opt
+            .map(|c| serde_json::from_str(&c.configuration).unwrap_or(serde_json::Value::Null))
+            .filter(|v| !v.is_null());
+        EntityWithConfig {
+            entity,
+            configuration,
+        }
+    }))
+}
+
+pub fn upsert_device(
+    pool: &DbPool,
+    target_device_id: &str,
+    target_name: Option<&str>,
+    target_manufacturer: Option<&str>,
+    target_model: Option<&str>,
+) -> Result<Device, anyhow::Error> {
+    use crate::db::schema::devices::dsl::*;
+
+    let mut conn = pool.get()?;
+
+    let existing = devices
+        .filter(device_id.eq(target_device_id))
+        .select(Device::as_select())
+        .first::<Device>(&mut conn)
+        .optional()?;
+
+    if let Some(existing_device) = existing {
+        let updated = diesel::update(devices.find(existing_device.id))
+            .set((
+                name.eq(target_name),
+                manufacturer.eq(target_manufacturer),
+                model.eq(target_model),
+            ))
+            .get_result(&mut conn)?;
+        Ok(updated)
+    } else {
+        let new_device = NewDevice {
+            device_id: target_device_id,
+            name: target_name,
+            manufacturer: target_manufacturer,
+            model: target_model,
+        };
+        let created = diesel::insert_into(devices)
+            .values(&new_device)
+            .get_result(&mut conn)?;
+        Ok(created)
+    }
+}
+
+pub fn upsert_entity_with_config(
+    pool: &DbPool,
+    target_entity_id: &str,
+    target_device_id: Option<i32>,
+    target_friendly_name: Option<&str>,
+    target_platform: Option<&str>,
+    target_entity_type: Option<&str>,
+    config_str: &str,
+) -> Result<(Entity, Option<EntityConfiguration>), anyhow::Error> {
+    use crate::db::schema::entities;
+    use crate::db::schema::entities_configurations;
+
+    let mut conn = pool.get()?;
+
+    let existing = entities::table
+        .filter(entities::entity_id.eq(target_entity_id))
+        .select(Entity::as_select())
+        .first::<Entity>(&mut conn)
+        .optional()?;
+
+    conn.transaction(|conn| {
+        let entity: Entity = if let Some(existing_entity) = existing {
+            diesel::update(entities::table.find(existing_entity.id))
+                .set((
+                    entities::device_id.eq(target_device_id),
+                    entities::friendly_name.eq(target_friendly_name),
+                    entities::platform.eq(target_platform),
+                    entities::entity_type.eq(target_entity_type),
+                ))
+                .get_result(conn)?
+        } else {
+            let new_entity = NewEntity {
+                entity_id: target_entity_id,
+                device_id: target_device_id,
+                friendly_name: target_friendly_name,
+                platform: target_platform,
+                entity_type: target_entity_type,
+            };
+            diesel::insert_into(entities::table)
+                .values(&new_entity)
+                .get_result(conn)?
+        };
+
+        if !config_str.is_empty() {
+            let new_config = NewEntityConfiguration {
+                entity_id: entity.id,
+                configuration: config_str,
+            };
+
+            let config: EntityConfiguration =
+                diesel::insert_into(entities_configurations::table)
+                    .values(&new_config)
+                    .on_conflict(entities_configurations::entity_id)
+                    .do_update()
+                    .set(entities_configurations::configuration.eq(config_str))
+                    .get_result(conn)?;
+
+            Ok((entity, Some(config)))
+        } else {
+            Ok((entity, None))
+        }
+    })
+}
+
+pub fn delete_device_by_device_id(
+    pool: &DbPool,
+    target_device_id: &str,
+) -> Result<usize, anyhow::Error> {
+    use crate::db::schema::devices::dsl::*;
+    let mut conn = pool.get()?;
+    let num_deleted =
+        diesel::delete(devices.filter(device_id.eq(target_device_id))).execute(&mut conn)?;
+    Ok(num_deleted)
+}
+
 pub fn create_map_layer(pool: &DbPool, new_layer: NewMapLayer) -> Result<MapLayer, anyhow::Error> {
     use crate::db::schema::map_layers::dsl::*;
 
@@ -1053,11 +1212,27 @@ pub fn create_custom_node(
     Ok(node)
 }
 
-pub fn get_all_custom_nodes(pool: &DbPool) -> Result<Vec<CustomNode>, anyhow::Error> {
+pub fn get_all_custom_nodes(pool: &DbPool) -> Result<Vec<CustomNodeResult>, anyhow::Error> {
     use crate::db::schema::custom_nodes::dsl::*;
     let mut conn = pool.get()?;
-    let nodes = custom_nodes.load::<CustomNode>(&mut conn)?;
-    Ok(nodes)
+    let nodes = custom_nodes
+        .select(CustomNode::as_select())
+        .load::<CustomNode>(&mut conn)?;
+
+    let nodes_map: Vec<CustomNodeResult> = nodes
+        .into_iter()
+        .map(|(node)| {
+            let configuration_data = serde_json::from_str::<serde_json::Value>(&node.data)
+                .ok()
+                .filter(|v| !v.is_null());
+            CustomNodeResult {
+                node_type: node.node_type,
+                data: configuration_data,
+            }
+        })
+        .collect();
+
+    Ok(nodes_map)
 }
 
 pub fn get_custom_node(pool: &DbPool, target_node_type: &str) -> Result<CustomNode, anyhow::Error> {
@@ -1073,13 +1248,27 @@ pub fn update_custom_node(
     pool: &DbPool,
     target_node_type: &str,
     updated_data: &UpdateCustomNode,
-) -> Result<CustomNode, anyhow::Error> {
+) -> Result<CustomNodeResult, anyhow::Error> {
     use crate::db::schema::custom_nodes::dsl::*;
     let mut conn = pool.get()?;
-    let node = diesel::update(custom_nodes.find(target_node_type))
+    let node: CustomNode = diesel::update(custom_nodes.find(target_node_type))
         .set(updated_data)
         .get_result(&mut conn)?;
-    Ok(node)
+
+    let configuration_data = if node.data.is_empty() {
+        None
+    } else {
+        serde_json::from_str::<Value>(&node.data)
+            .ok()
+            .filter(|v| v.is_object())
+    };
+
+    let result = CustomNodeResult {
+        node_type: node.node_type,
+        data: configuration_data,
+    };
+
+    Ok(result)
 }
 
 pub fn delete_custom_node(pool: &DbPool, target_node_type: &str) -> Result<(), anyhow::Error> {

@@ -34,3 +34,11 @@ pub fn upsert_stream(pool: &DbPool, new_stream: &NewStream) -> Result<Stream, an
 
     Ok(stream)
 }
+
+pub fn delete_stream(pool: &DbPool, target_ssrc: i32) -> Result<usize, anyhow::Error> {
+    use crate::db::schema::streams::dsl::*;
+
+    let mut conn = pool.get()?;
+    let deleted = diesel::delete(streams.filter(ssrc.eq(target_ssrc))).execute(&mut conn)?;
+    Ok(deleted)
+}

@@ -4,24 +4,15 @@ use axum::{
     response::IntoResponse,
     Json,
 };
-use rand::Rng;
-use rtp::packet::Packet;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::sync::Arc;
-use tokio::{
-    sync::{broadcast, RwLock},
-    time::Instant,
-};
-use tracing::{error, info};
+use tracing::error;
 
 use crate::{
-    db::{
-        models::Entity,
-        repository::{get_entity_by_entity_id, set_entity_state},
-    },
+    db::repository::set_entity_state,
     handler::auth::DeviceTokenAuth,
-    state::{AppState, MediaType, StreamInfo},
+    state::{AppState, Protocol},
 };
 
 #[derive(Deserialize)]
@@ -36,28 +27,31 @@ pub struct StateResponse {
 
 pub async fn set_state(
     State(state): State<Arc<AppState>>,
-    Path(entity_id): Path<String>,
+    Path(topic): Path<String>,
     DeviceTokenAuth { device: auth }: DeviceTokenAuth,
     Json(payload): Json<StateRequest>,
 ) -> impl IntoResponse {
-    if let Ok(entity) = get_entity_by_entity_id(&state.pool, &entity_id) {
-        if entity.platform.as_deref() == Some("HTTP") {
-            if let Ok(s) = set_entity_state(&state.pool, &entity.entity_id, &payload.state, None) {
-                let ws_message = json!({
-                    "type": "change_state",
-                    "payload": {
-                        "entity_id": entity.entity_id,
-                        "state": s.clone()
-                    }
-                });
-                if let Ok(payload_str) = serde_json::to_string(&ws_message) {
-                    if state.broadcast_tx.send(payload_str).is_err() {
-                        error!("Failed to send health check response.");
-                    }
+    let topic_map = state.topic_map.read().await;
+    let matched = topic_map
+        .iter()
+        .find(|m| m.protocol == Protocol::Http && m.topic == topic);
+
+    if let Some(mapping) = matched {
+        if let Ok(s) = set_entity_state(&state.pool, &mapping.entity_id, &payload.state, None) {
+            let ws_message = json!({
+                "type": "change_state",
+                "payload": {
+                    "entity_id": mapping.entity_id,
+                    "state": s.clone()
                 }
-            } else {
-                error!("Failed to set entity state for '{}", entity.entity_id);
+            });
+            if let Ok(payload_str) = serde_json::to_string(&ws_message) {
+                if state.broadcast_tx.send(payload_str).is_err() {
+                    error!("Failed to broadcast state change.");
+                }
             }
+        } else {
+            error!("Failed to set entity state for '{}'", mapping.entity_id);
         }
     }
 

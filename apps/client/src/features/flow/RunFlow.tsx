@@ -2,9 +2,9 @@ import { Button } from "@/components/ui/button";
 import { useFlowStore } from "@/entities/flow/store";
 import { Play, Square } from "lucide-react";
 import { toast } from "sonner";
-import { useWebSocket, useWebSocketMessage } from "../ws/WebSocketProvider";
+import { useWebSocket, useWebSocketMessage } from "@/features/ws/WebSocketProvider";
 import { useCallback, useEffect, useState } from "react";
-import { WebSocketMessage } from "../ws/ws";
+import { getFlowRunSessionId, WebSocketMessage } from "@/features/ws/ws";
 
 export function RunFlowButton() {
   const { wsManager } = useWebSocket();
@@ -25,6 +25,7 @@ export function RunFlowButton() {
         type: "compute_flow",
         payload: {
           flow_id: currentFlowId,
+          run_context: { session_id: getFlowRunSessionId() },
         },
       });
 
