@@ -1,4 +1,3 @@
-import React from "react";
 import { useFadeInOnScroll } from "@/lib/useFadeInOnScroll";
 
 type Card = {
