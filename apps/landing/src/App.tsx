@@ -10,6 +10,8 @@ import DashboardPage from "./pages/Dashboard";
 import CheckoutSuccessPage from "./pages/CheckoutSuccess";
 import CapsulePage from "./pages/Capsule";
 import ContactPage from "./pages/Contact";
+import TermsPage from "./pages/Terms";
+import DisclaimerPage from "./pages/Disclaimer";
 import { Toaster } from "sonner";
 
 const router = createBrowserRouter([
@@ -56,6 +58,14 @@ const router = createBrowserRouter([
   {
     path: "/contact",
     element: <ContactPage />,
+  },
+  {
+    path: "/terms",
+    element: <TermsPage />,
+  },
+  {
+    path: "/disclaimer",
+    element: <DisclaimerPage />,
   },
 ]);
 
