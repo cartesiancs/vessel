@@ -15,6 +15,20 @@ import { parseJwt } from "@/lib/jwt";
 
 const MAX_RECENT_URLS = 5;
 
+function sanitizeServerUrl(rawUrl: string): string | null {
+  const trimmed = rawUrl.trim().replace(/\/$/, "");
+
+  try {
+    const parsed = new URL(trimmed);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      return null;
+    }
+    return parsed.origin;
+  } catch {
+    return null;
+  }
+}
+
 export function LoginForm({
   className,
   ...props
@@ -109,7 +123,13 @@ export function LoginForm({
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    const processedUrl = url.replace(/\/$/, "");
+    const processedUrl = sanitizeServerUrl(url);
+
+    if (!processedUrl) {
+      toast.error("Please enter a valid server URL using http or https.");
+      setIsLoading(false);
+      return;
+    }
 
     try {
       const token = await authenticateWithPassword(processedUrl, {
