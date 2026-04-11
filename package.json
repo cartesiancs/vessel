@@ -9,7 +9,7 @@
   "scripts": {
     "test": "jest",
     "client": "npm run dev --workspace=client",
-    "client:build": "npm run build --workspace=client",
+    "client:build": "npm run build --workspace=@vessel/capsule-client && npm run build --workspace=client",
     "landing": "npm run dev --workspace=landing",
     "server": "cargo run -p server",
     "server:prod": "cargo run -p server --release",
