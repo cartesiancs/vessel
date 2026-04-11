@@ -92,31 +92,37 @@ export function UsageCharts({
   }
 
   return (
-    <div className='grid gap-6'>
+    <div className='grid min-w-0 gap-6'>
       {/* Network Usage: Turn + Tunnel */}
-      <Card>
+      <Card className='min-w-0 overflow-x-hidden'>
         <CardHeader>
           <CardTitle>Network Usage</CardTitle>
           <CardDescription>
             Turn & Tunnel bandwidth (last 30 days)
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className='min-w-0'>
           {!hasNetworkData(data) ? (
             <EmptyState />
           ) : (
             <ChartContainer
               config={networkChartConfig}
-              className='h-[250px] w-full'
+              className='h-[250px] w-full min-w-0 max-w-full'
             >
-              <BarChart data={data} accessibilityLayer>
+              <BarChart
+                data={data}
+                accessibilityLayer
+                margin={{ top: 8, right: 4, left: 4, bottom: 4 }}
+              >
                 <CartesianGrid vertical={false} />
                 <XAxis
                   dataKey='date'
                   tickFormatter={formatDate}
                   tickLine={false}
                   axisLine={false}
-                  tickMargin={8}
+                  tickMargin={6}
+                  interval='preserveStartEnd'
+                  minTickGap={8}
                 />
                 <YAxis
                   tickFormatter={formatBytes}
@@ -152,27 +158,33 @@ export function UsageCharts({
       </Card>
 
       {/* Capsule Requests */}
-      <Card>
+      <Card className='min-w-0 overflow-x-hidden'>
         <CardHeader>
           <CardTitle>Capsule Requests</CardTitle>
           <CardDescription>API & image requests (last 30 days)</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className='min-w-0'>
           {!hasCapsuleRequestData(data) ? (
             <EmptyState />
           ) : (
             <ChartContainer
               config={capsuleRequestsConfig}
-              className='h-[250px] w-full'
+              className='h-[250px] w-full min-w-0 max-w-full'
             >
-              <BarChart data={data} accessibilityLayer>
+              <BarChart
+                data={data}
+                accessibilityLayer
+                margin={{ top: 8, right: 4, left: 4, bottom: 4 }}
+              >
                 <CartesianGrid vertical={false} />
                 <XAxis
                   dataKey='date'
                   tickFormatter={formatDate}
                   tickLine={false}
                   axisLine={false}
-                  tickMargin={8}
+                  tickMargin={6}
+                  interval='preserveStartEnd'
+                  minTickGap={8}
                 />
                 <YAxis tickLine={false} axisLine={false} width={40} />
                 <ChartTooltip

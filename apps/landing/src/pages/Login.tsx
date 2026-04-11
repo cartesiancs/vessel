@@ -29,14 +29,14 @@ export default function LoginPage() {
 
   if (loading) {
     return (
-      <div className='min-h-screen flex items-center justify-center bg-background'>
+      <div className='flex min-h-dvh items-center justify-center bg-background pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)]'>
         <p className='text-muted-foreground'>Loading...</p>
       </div>
     );
   }
 
   return (
-    <div className='min-h-screen flex items-center justify-center bg-background px-4'>
+    <div className='flex min-h-dvh items-center justify-center bg-background px-4 pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)]'>
       <Card className='w-full max-w-md bg-black py-10'>
         <CardHeader className='text-center'>
           <div className='flex justify-center mb-4'>

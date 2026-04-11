@@ -124,8 +124,8 @@ export default function DashboardPage() {
   return (
     <>
       <Navbar />
-      <main className='min-h-screen bg-background pt-20 px-4'>
-        <div className='max-w-4xl mx-auto'>
+      <main className='min-h-screen min-w-0 bg-background pt-20 px-4'>
+        <div className='mx-auto max-w-4xl min-w-0'>
           <div className='flex items-center justify-between mb-8'>
             <h1 className='text-3xl font-bold'>Dashboard</h1>
             <Button
@@ -341,7 +341,7 @@ export default function DashboardPage() {
             </Card>
           </div>
 
-          <div className='my-8'>
+          <div className='my-8 min-w-0'>
             <h2 className='text-2xl font-bold mb-6'>Usage</h2>
             <UsageCharts data={usageData} loading={usageLoading} />
           </div>
