@@ -106,7 +106,7 @@ function LandingPage() {
               }}
             >
               <div className='relative h-full w-full overflow-hidden'>
-                <img
+                {/* <img
                   src={HERO_BG_SRC}
                   alt=''
                   aria-hidden
@@ -118,7 +118,7 @@ function LandingPage() {
                   }}
                   onError={() => setHeroBgFailed(true)}
                   className='h-full w-full object-cover brightness-[0.92]'
-                />
+                /> */}
                 <div className='absolute inset-0 bg-black/35' aria-hidden />
               </div>
             </div>
