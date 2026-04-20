@@ -19,7 +19,7 @@ import { HeroSceneSection } from "@/components/sections/HeroScene/HeroScene";
 import { UsecaseAIAssistantSection } from "@/components/sections/UsecaseAI";
 import { cn } from "@/lib/utils";
 
-const HERO_BG_SRC = "/videos/back.webp";
+// const HERO_BG_SRC = "/videos/back.webp";
 
 /** Matches previous Tailwind inset-10 / md:16 / lg:24 / xl:28 (px). */
 function maxHeroInsetForWidth(width: number): number {
@@ -36,8 +36,8 @@ const HERO_INSET_SCROLL_RANGE = 0.72;
 const MOBILE_BG_OFF_MEDIA = "(max-width: 767px)";
 
 function LandingPage() {
-  const [heroBgReady, setHeroBgReady] = useState(false);
-  const [heroBgFailed, setHeroBgFailed] = useState(false);
+  const [heroBgReady] = useState(false);
+  const [heroBgFailed] = useState(false);
   const [heroInsetPx, setHeroInsetPx] = useState(40);
   const [isMobileViewport, setIsMobileViewport] = useState(() =>
     typeof window !== "undefined"
