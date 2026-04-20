@@ -13,12 +13,12 @@ export const useDesktopSidecar = () => {
     const bootstrap = async () => {
       await ensureSidecarRunning();
 
-      const current = storage.getServerUrl();
-      if (!current) {
-        const baseUrl = await getDesktopServerUrl();
-        if (baseUrl) {
-          storage.setServerUrl(baseUrl);
-        }
+      // On the Tauri client, always default to the local sidecar URL so the
+      // login screen connects to the bundled server instead of any stale
+      // address left over in localStorage from a previous session.
+      const baseUrl = await getDesktopServerUrl();
+      if (baseUrl) {
+        storage.setServerUrl(baseUrl);
       }
     };
 
