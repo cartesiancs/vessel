@@ -25,6 +25,7 @@ import { usePreventBackNavigation } from "./hooks/usePreventBackNavigation";
 import { SettingsPage } from "./pages/settings";
 import { NetworksPage } from "./pages/networks";
 import { RecordingsPage } from "./pages/recordings";
+import { DesktopSettingsPage } from "./pages/desktop-settings";
 
 const router = createBrowserRouter([
   {
@@ -184,9 +185,26 @@ const router = createBrowserRouter([
   },
 ]);
 
+const isDesktopSettingsWindow = (): boolean => {
+  if (typeof window === "undefined") return false;
+  try {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("view") === "desktop_settings") return true;
+    if (params.get("desktop_settings") === "1") return true;
+    if (window.location.hash.includes("desktop_settings")) return true;
+    return false;
+  } catch {
+    return false;
+  }
+};
+
 function App() {
   useDesktopSidecar();
   usePreventBackNavigation();
+
+  if (isDesktopSettingsWindow()) {
+    return <DesktopSettingsPage />;
+  }
 
   return (
     <>

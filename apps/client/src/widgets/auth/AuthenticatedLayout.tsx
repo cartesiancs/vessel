@@ -8,9 +8,11 @@ import { storage } from "@/lib/storage";
 import { ChatPanelContainer, useChatStore, PANEL_WIDTH } from "@/features/llm-chat";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useConfigStore } from "@/entities/configurations/store";
+import { isTauri, type SidecarStatus } from "@/shared/desktop";
 
 export function AuthenticatedLayout() {
   const [wsUrl, setWsUrl] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -37,7 +39,39 @@ export function AuthenticatedLayout() {
       console.error("Invalid server_url in storage:", serverUrlString);
       navigate("/auth", { replace: true });
     }
-  }, [navigate]);
+  }, [navigate, reloadKey]);
+
+  useEffect(() => {
+    if (!isTauri()) return;
+    let unlisten: (() => void) | null = null;
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const { listen } = await import("@tauri-apps/api/event");
+        const dispose = await listen<SidecarStatus>("sidecar-restarted", (event) => {
+          const next = event.payload?.base_url;
+          if (next) {
+            storage.setServerUrl(next);
+          }
+          setWsUrl(null);
+          setReloadKey((k) => k + 1);
+        });
+        if (cancelled) {
+          dispose();
+        } else {
+          unlisten = dispose;
+        }
+      } catch (err) {
+        console.warn("Failed to subscribe to sidecar-restarted", err);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      if (unlisten) unlisten();
+    };
+  }, []);
 
   useEffect(() => {
     if (!wsUrl) return;

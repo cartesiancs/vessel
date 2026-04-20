@@ -1,13 +1,13 @@
 <p align='center'>
 <img src='.github/icon.png' width='140' />
 <h1 align='center'>Vessel</h1>
-<p align='center'>The open source alternative to Anduril for self-defence</p>
-</p>
 
 <p align='center'>
 <a href="https://github.com/cartesiancs/vessel/blob/main/LICENSE"><img src="https://img.shields.io/github/license/cartesiancs/vessel?style=for-the-badge" /></a>
 <a href="https://github.com/cartesiancs/vessel/stargazers"><img src="https://img.shields.io/github/stars/cartesiancs/vessel?style=for-the-badge" /></a>
 <a href="https://github.com/cartesiancs/vessel/issues"><img src="https://img.shields.io/github/issues/cartesiancs/vessel?style=for-the-badge" /></a>
+<a href="https://vessel.cartesiancs.com/"><img src="https://img.shields.io/badge/Website-Live-2563eb?style=for-the-badge" /></a>
+<a href="https://vessel.cartesiancs.com/docs/introduction"><img src="https://img.shields.io/badge/Docs-Ready-7c3aed?style=for-the-badge" /></a>
 </p>
 
 <p align='center'>
@@ -17,7 +17,6 @@
 ## About The Project
 
 ![banner](./.github/banner.png)
-[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fcartesiancs%2Fvessel.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fcartesiancs%2Fvessel?ref=badge_shield)
 
 Vessel is the **C2 (Command & Control) software** for connecting, monitoring, and orchestrating arrays of physical sensors via an intuitive, visual flow-based interface.
 
@@ -157,9 +156,6 @@ Please refer to our [CONTRIBUTING.md](CONTRIBUTING.md) for details.
 ## License
 
 Distributed under the Apache-2.0 License. See [LICENSE](LICENSE) for more information.
-
-
-[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fcartesiancs%2Fvessel.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fcartesiancs%2Fvessel?ref=badge_large)
 
 ## Disclaimer
 
