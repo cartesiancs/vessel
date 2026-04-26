@@ -846,7 +846,7 @@ export function GroupCanvas({
                   willChange: springFollows ? "transform" : undefined,
                 }}
               >
-                <div className='group/movehit pointer-events-auto absolute inset-x-0 top-2 z-[36] h-12'>
+                <div className='group/movehit pointer-events-auto absolute inset-x-0 top-2 z-[36] h-3'>
                   <button
                     type='button'
                     aria-label={`Move ${item.label || item.type}`}
