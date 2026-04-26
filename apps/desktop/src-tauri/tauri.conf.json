@@ -4,8 +4,8 @@
   "version": "0.1.0",
   "identifier": "com.vessel.desktop",
   "build": {
-    "beforeDevCommand": "cd ../.. && mkdir -p target/bundle-staging/libs target/bundle-staging/gstreamer-1.0 && npm run build --workspace=client && cargo build --release -p server && HOST=$(rustc -vV | sed -n 's/^host: //p') && BIN=target/release/server && cp \"$BIN\" \"${BIN}-${HOST}\" && npm run dev:vite --workspace=client",
-    "beforeBuildCommand": "cd ../.. && npm run build --workspace=client && cargo build --release -p server && bash scripts/bundle-macos-deps.sh && HOST=$(rustc -vV | sed -n 's/^host: //p') && BIN=target/release/server && cp \"$BIN\" \"${BIN}-${HOST}\"",
+    "beforeDevCommand": "cd ../.. && mkdir -p target/bundle-staging/libs target/bundle-staging/gstreamer-1.0 && npm run build --workspace=@vessel/capsule-client && npm run build --workspace=client && cargo build --release -p server && HOST=$(rustc -vV | sed -n 's/^host: //p') && BIN=target/release/server && cp \"$BIN\" \"${BIN}-${HOST}\" && npm run dev:vite --workspace=client",
+    "beforeBuildCommand": "cd ../.. && npm run build --workspace=@vessel/capsule-client && npm run build --workspace=client && cargo build --release -p server && bash scripts/bundle-macos-deps.sh && HOST=$(rustc -vV | sed -n 's/^host: //p') && BIN=target/release/server && cp \"$BIN\" \"${BIN}-${HOST}\"",
     "devUrl": "http://localhost:5175",
     "frontendDist": "../../client/dist"
   },
