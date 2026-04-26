@@ -107,9 +107,7 @@ export function MidCTASection() {
             <button
               type='button'
               className='inline-flex h-11 items-center justify-center bg-white px-5 text-sm font-medium text-black transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80 cursor-pointer'
-              onClick={() =>
-                window.open("https://github.com/cartesiancs/vessel")
-              }
+              onClick={() => window.open("https://demo.vsl.cartesiancs.com/")}
             >
               Start for free
             </button>
