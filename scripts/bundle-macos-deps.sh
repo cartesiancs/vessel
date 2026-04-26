@@ -287,13 +287,25 @@ fi
 # ---------------------------------------------------------------------------
 # 10. Re-sign all modified Mach-O binaries (required for arm64)
 # ---------------------------------------------------------------------------
-echo "==> Re-signing all binaries..."
+# Use APPLE_SIGNING_IDENTITY when set (release builds in CI), ad-hoc otherwise.
+SIGN_ID="${APPLE_SIGNING_IDENTITY:--}"
+SIGN_ARGS=(--force --sign "$SIGN_ID")
+if [ "$SIGN_ID" != "-" ]; then
+  SIGN_ARGS+=(--options runtime --timestamp)
+  if [ -n "${APPLE_ENTITLEMENTS_PATH:-}" ] && [ -f "${APPLE_ENTITLEMENTS_PATH}" ]; then
+    SIGN_ARGS+=(--entitlements "$APPLE_ENTITLEMENTS_PATH")
+  fi
+  echo "==> Re-signing all binaries with Developer ID: $SIGN_ID"
+else
+  echo "==> Re-signing all binaries (ad-hoc)"
+fi
+
 find "$STAGING" -type f \( -name "*.dylib" -o -name "Python" -o -name "gst-plugin-scanner" \) | while read -r f; do
-  codesign --force --sign - "$f" 2>/dev/null || true
+  codesign "${SIGN_ARGS[@]}" "$f" 2>/dev/null || true
 done
 
 if [ -f "$SERVER_BIN" ]; then
-  codesign --force --sign - "$SERVER_BIN" 2>/dev/null || true
+  codesign "${SIGN_ARGS[@]}" "$SERVER_BIN" 2>/dev/null || true
 fi
 
 # ---------------------------------------------------------------------------
