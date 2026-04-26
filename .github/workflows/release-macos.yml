@@ -68,6 +68,23 @@ jobs:
         working-directory: apps/desktop
         run: npm run tauri -- build --target aarch64-apple-darwin
 
+      - name: Notarize and staple DMG
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          set -e
+          DMG=$(ls target/aarch64-apple-darwin/release/bundle/dmg/*.dmg | head -1)
+          echo "==> Submitting DMG for notarization: $DMG"
+          xcrun notarytool submit "$DMG" \
+            --apple-id "$APPLE_ID" \
+            --password "$APPLE_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID" \
+            --wait
+          echo "==> Stapling DMG"
+          xcrun stapler staple "$DMG"
+
       - name: Verify signature and notarization
         run: |
           set -e
@@ -82,6 +99,7 @@ jobs:
           codesign --verify --deep --strict --verbose=2 "$APP"
           spctl -a -vv -t exec "$APP"
           xcrun stapler validate "$DMG"
+          spctl -a -vv -t install "$DMG"
 
       - name: Upload DMG artifact
         uses: actions/upload-artifact@v4
