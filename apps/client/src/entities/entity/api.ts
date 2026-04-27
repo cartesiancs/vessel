@@ -1,8 +1,12 @@
 import { apiClient } from "@/shared/api";
-import type { Entity, EntityAll, EntityPayload } from "./types";
+import type { Entity, EntityAll, EntityPayload, State } from "./types";
 
 export const getEntities = () => apiClient.get<Entity[]>("/entities");
 export const getAllEntities = () => apiClient.get<EntityAll[]>("/entities/all");
+export const getEntityHistory = (entityId: string) =>
+  apiClient.get<State[]>(
+    `/entities/${encodeURIComponent(entityId)}/history`,
+  );
 export const getEntitiesFilter = (entityType?: string) => {
   return apiClient.get<Entity[]>("/entities", {
     params: {

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { EntityAll } from "@/entities/entity/types";
 import {
   Card,
@@ -17,6 +18,7 @@ import { formatSimpleDateTime } from "@/lib/time";
 import { StreamReceiver } from "../rtc/StreamReceiver";
 import { RecordingMenuItem } from "../recording/RecordingButton";
 import { AnalyzeMenuItem } from "./AnalyzeMenuItem";
+import { StateHistorySheet } from "./StateHistorySheet";
 import { useNavigate } from "react-router";
 
 type StreamState = {
@@ -219,21 +221,41 @@ export function EntityCard({
     );
   }
 
+  return <DefaultEntityCard item={item} />;
+}
+
+function DefaultEntityCard({ item }: { item: EntityAll }) {
+  const [historyOpen, setHistoryOpen] = useState(false);
+
   return (
-    <Card key={item.id}>
-      <CardHeader className='px-4'>
-        <CardDescription>{item.friendly_name}</CardDescription>
-        <CardTitle className='text-2xl font-semibold font-mono tabular-nums truncate'>
-          {item.state?.state || "N/A"}
-        </CardTitle>
-      </CardHeader>
-      <CardFooter className='flex-col items-start gap-1 px-4 text-sm'>
-        <div className='font-medium'>{item.platform}</div>
-        <div className='text-muted-foreground'>
-          {formatSimpleDateTime(item.state?.last_updated || "")}
-        </div>
-      </CardFooter>
-    </Card>
+    <>
+      <Card key={item.id}>
+        <CardHeader className='px-4'>
+          <CardDescription>{item.friendly_name}</CardDescription>
+          <button
+            type='button'
+            onClick={() => setHistoryOpen(true)}
+            className='block w-full min-w-0 max-w-full text-left cursor-pointer hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded'
+          >
+            <CardTitle className='text-2xl font-semibold font-mono tabular-nums truncate'>
+              {item.state?.state || "N/A"}
+            </CardTitle>
+          </button>
+        </CardHeader>
+        <CardFooter className='flex-col items-start gap-1 px-4 text-sm'>
+          <div className='font-medium'>{item.platform}</div>
+          <div className='text-muted-foreground'>
+            {formatSimpleDateTime(item.state?.last_updated || "")}
+          </div>
+        </CardFooter>
+      </Card>
+      <StateHistorySheet
+        entityId={item.entity_id}
+        entityName={item.friendly_name}
+        open={historyOpen}
+        onOpenChange={setHistoryOpen}
+      />
+    </>
   );
 }
 

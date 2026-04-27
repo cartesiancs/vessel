@@ -739,6 +739,33 @@ pub fn set_entity_state(
     })
 }
 
+pub fn get_entity_state_history(
+    pool: &DbPool,
+    target_entity_id: &str,
+) -> Result<Vec<State>, anyhow::Error> {
+    use crate::db::schema::states::dsl as s;
+    use crate::db::schema::states_meta::dsl as sm;
+
+    let mut conn = pool.get()?;
+
+    let metadata_id_opt: Option<i32> = sm::states_meta
+        .filter(sm::entity_id.eq(target_entity_id))
+        .select(sm::metadata_id)
+        .first::<i32>(&mut conn)
+        .optional()?;
+
+    let Some(meta_id) = metadata_id_opt else {
+        return Ok(Vec::new());
+    };
+
+    let history = s::states
+        .filter(s::metadata_id.eq(meta_id))
+        .order(s::last_updated.asc())
+        .load::<State>(&mut conn)?;
+
+    Ok(history)
+}
+
 pub fn get_all_entities_with_states_and_configs(
     pool: &DbPool,
 ) -> Result<Vec<EntityWithStateAndConfig>, anyhow::Error> {
