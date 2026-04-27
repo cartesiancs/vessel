@@ -18,7 +18,7 @@ export function Ros2Dashboard() {
             <Link to='/flow'>Open flow</Link>
           </Button>
           <Button asChild variant='outline'>
-            <Link to='/integration'>Integrations</Link>
+            <Link to='/settings/integration'>Integrations</Link>
           </Button>
         </CardContent>
       </Card>

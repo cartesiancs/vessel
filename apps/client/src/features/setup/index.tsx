@@ -18,7 +18,7 @@ export const initialSetupSteps: SetupStep[] = [
     title: "Enable MQTT & UDP",
     description: "Enable basic protocols",
     isCompleted: false,
-    url: "/servers",
+    url: "/settings/config",
     verifyStatus: async () => {
       try {
         const status = await getIntegrationStatus();
