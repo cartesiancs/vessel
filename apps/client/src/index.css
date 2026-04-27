@@ -80,6 +80,8 @@
 }
 
 @theme inline {
+  --font-sans: "Inter", sans-serif;
+  --font-mono: "RobotoMono", monospace;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);

@@ -223,7 +223,7 @@ export function EntityCard({
     <Card key={item.id}>
       <CardHeader className='px-4'>
         <CardDescription>{item.friendly_name}</CardDescription>
-        <CardTitle className='text-2xl font-semibold tabular-nums truncate'>
+        <CardTitle className='text-2xl font-semibold font-mono tabular-nums truncate'>
           {item.state?.state || "N/A"}
         </CardTitle>
       </CardHeader>
