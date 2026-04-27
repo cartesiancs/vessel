@@ -48,7 +48,7 @@ export const initialSetupSteps: SetupStep[] = [
     title: "Add Sensor",
     description: "Add a sensor (entity) for the device.",
     isCompleted: false,
-    url: "/key",
+    url: "/devices",
     verifyStatus: async () => {
       try {
         const entity = await getAllEntities();

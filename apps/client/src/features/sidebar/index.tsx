@@ -17,7 +17,6 @@ import {
 import { AccountSwitcher } from "../account-switcher";
 import { useLocation, useNavigate } from "react-router";
 import {
-  Key,
   LayoutDashboard,
   MonitorSmartphone,
   ScrollText,
@@ -89,11 +88,6 @@ const data = {
           title: "Recordings",
           url: "/recordings",
           icon: <Video />,
-        },
-        {
-          title: "Key Manager",
-          url: "/key",
-          icon: <Key />,
         },
       ],
     },

@@ -6,7 +6,6 @@ import {
   DashboardSwipeRoutePlaceholder,
 } from "./features/dashboard-swipe/DashboardSwipeLayout";
 import { ServersPage } from "./pages/servers";
-import { KeyPage } from "./pages/key";
 import { DevicePage } from "./pages/devices";
 import { FlowPage } from "./pages/flow";
 import { AuthInterceptor } from "./features/auth/AuthInterceptor";
@@ -73,14 +72,6 @@ const router = createBrowserRouter([
         element: (
           <AuthInterceptor>
             <ServersPage />
-          </AuthInterceptor>
-        ),
-      },
-      {
-        path: "/key",
-        element: (
-          <AuthInterceptor>
-            <KeyPage />
           </AuthInterceptor>
         ),
       },
