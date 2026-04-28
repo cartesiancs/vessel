@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { NavFooter } from "./footer";
 import { isElectron } from "@/lib/electron";
+import { storage } from "@/lib/storage";
 import { useDynamicDashboardStore } from "@/entities/dynamic-dashboard/store";
 import { useIntegrationStore } from "@/entities/integrations/store";
 import { useConfigStore } from "@/entities/configurations/store";
@@ -47,7 +48,6 @@ const CONTROLS_OPEN_KEY = "controls-menu-open";
 const SIDEBAR_SCROLL_KEY = "sidebar-scroll-top";
 
 const data = {
-  versions: ["main"],
   navMain: [
     {
       title: "Dashboard",
@@ -131,6 +131,11 @@ export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
   const { isHaConnected, isRos2Connected, isSdrConnected, fetchStatus } =
     useIntegrationStore();
   const { configurations, fetchConfigs } = useConfigStore();
+
+  const versions = useMemo(() => {
+    const serverUrl = storage.getServerUrl();
+    return [serverUrl ?? "main"];
+  }, []);
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -225,10 +230,7 @@ export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
       }}
     >
       <SidebarHeader>
-        <AccountSwitcher
-          versions={data.versions}
-          defaultVersion={data.versions[0]}
-        />
+        <AccountSwitcher versions={versions} defaultVersion={versions[0]} />
       </SidebarHeader>
       <SidebarContent ref={scrollRef} onScroll={handleScroll}>
         {navMain.map((group) => (

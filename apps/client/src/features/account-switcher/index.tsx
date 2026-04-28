@@ -37,7 +37,9 @@ export function AccountSwitcher({
               </div>
               <div className='flex flex-col gap-0.5 leading-none'>
                 <span className='font-medium'>Server</span>
-                <span className=''>@{selectedVersion}</span>
+                <span className='text-[12px] text-neutral-400'>
+                  {selectedVersion}
+                </span>
               </div>
               <ChevronsUpDown className='ml-auto' />
             </SidebarMenuButton>

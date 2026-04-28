@@ -5,7 +5,11 @@ import { FlowUiEventBridge } from "@/features/ws/FlowUiEventBridge";
 import { TopBarWrapper } from "./TopBarWrapper";
 import { isDemoMode } from "@/shared/demo";
 import { storage } from "@/lib/storage";
-import { ChatPanelContainer, useChatStore, PANEL_WIDTH } from "@/features/llm-chat";
+import {
+  ChatPanelContainer,
+  useChatStore,
+  PANEL_WIDTH,
+} from "@/features/llm-chat";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useConfigStore } from "@/entities/configurations/store";
 import { isTauri, type SidecarStatus } from "@/shared/desktop";
@@ -49,14 +53,17 @@ export function AuthenticatedLayout() {
     (async () => {
       try {
         const { listen } = await import("@tauri-apps/api/event");
-        const dispose = await listen<SidecarStatus>("sidecar-restarted", (event) => {
-          const next = event.payload?.base_url;
-          if (next) {
-            storage.setServerUrl(next);
-          }
-          setWsUrl(null);
-          setReloadKey((k) => k + 1);
-        });
+        const dispose = await listen<SidecarStatus>(
+          "sidecar-restarted",
+          (event) => {
+            const next = event.payload?.base_url;
+            if (next) {
+              storage.setServerUrl(next);
+            }
+            setWsUrl(null);
+            setReloadKey((k) => k + 1);
+          },
+        );
         if (cancelled) {
           dispose();
         } else {
@@ -82,7 +89,7 @@ export function AuthenticatedLayout() {
   const isMobile = useIsMobile();
 
   if (!wsUrl) {
-    return <div>Loading...</div>;
+    return <div></div>;
   }
 
   // Disable content push on mobile
@@ -97,7 +104,7 @@ export function AuthenticatedLayout() {
             "--chat-panel-width": `${chatPanelWidth}px`,
           } as React.CSSProperties
         }
-        className="transition-[padding] duration-300 pr-[var(--chat-panel-width)]"
+        className='transition-[padding] duration-300 pr-[var(--chat-panel-width)]'
       >
         <TopBarWrapper>
           <Outlet />
