@@ -2,9 +2,9 @@ import { Button } from "@/components/ui/button";
 
 export function ErrorRender() {
   return (
-    <div className='bg-background flex h-[calc(100%_-_34px)] items-center justify-center p-6 md:p-10'>
+    <div className='bg-background flex h-[100vh] items-center justify-center p-6 md:p-10'>
       <div className='flex w-full max-w-lg flex-col items-center text-center md:flex-row md:items-center md:gap-8 md:text-left'>
-        <h1 className='text-9xl font-extrabold tracking-tighter text-blue-500'>
+        <h1 className='text-9xl font-extrabold tracking-tighter text-red-500'>
           ERR
         </h1>
         <div className='mt-4 md:mt-0'>

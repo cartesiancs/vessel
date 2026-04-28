@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useNavigate } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 import { ArrowRight, Loader2, Trash2 } from "lucide-react";
 import { DEMO_SERVER_URL, DEMO_TOKEN, isDemoMode } from "@/shared/demo";
 import { DefaultAdminPasswordDialog } from "./DefaultAdminPasswordDialog";
@@ -53,11 +53,12 @@ export function LoginForm({
   );
   const [desktopError, setDesktopError] = useState<string | null>(null);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const isAddMode = searchParams.get("add") === "1";
 
   const connectToServer = async (targetUrl: string) => {
     if (isDemoMode) {
-      storage.setServerUrl(DEMO_SERVER_URL);
-      storage.setToken(DEMO_TOKEN);
+      storage.addServer({ url: DEMO_SERVER_URL, token: DEMO_TOKEN });
       toast.success("Demo mode enabled. Loading demo dashboard...");
       navigate("/dashboard");
       return;
@@ -98,7 +99,6 @@ export function LoginForm({
 
         setRecentUrls(updatedUrls);
         storage.setRecentUrls(updatedUrls);
-        storage.setServerUrl(processedUrl);
 
         setServerUrlForDialog(processedUrl);
         setShowAuthFields(true);
@@ -148,8 +148,7 @@ export function LoginForm({
         password,
       });
 
-      storage.setToken(token);
-      storage.setServerUrl(processedUrl);
+      storage.addServer({ url: processedUrl, token });
 
       setServerUrlForDialog(processedUrl);
 
@@ -193,7 +192,13 @@ export function LoginForm({
         );
         return;
       }
-      storage.setServerUrl(baseUrl);
+      // Tauri: ensure a server entry exists for the local sidecar; token added on auth success.
+      const existing = storage.getServers().find((s) => s.url === baseUrl);
+      if (!existing) {
+        storage.addServer({ url: baseUrl, token: "" });
+      } else {
+        storage.setActiveServer(existing.id);
+      }
       setUrl(baseUrl);
       setShowAuthFields(true);
     } finally {
@@ -203,8 +208,7 @@ export function LoginForm({
 
   useEffect(() => {
     if (isDemoMode) {
-      storage.setServerUrl(DEMO_SERVER_URL);
-      storage.setToken(DEMO_TOKEN);
+      storage.addServer({ url: DEMO_SERVER_URL, token: DEMO_TOKEN });
       toast.message("Demo mode active", {
         description: "Using mock data without a backend.",
       });
@@ -212,21 +216,23 @@ export function LoginForm({
       return;
     }
 
-    const token = storage.getToken();
-    const serverUrl = storage.getServerUrl();
+    if (!isAddMode) {
+      const token = storage.getToken();
+      const serverUrl = storage.getServerUrl();
 
-    if (token && serverUrl) {
-      const parsed = parseJwt(token);
-      if (!parsed?.exp) {
-        storage.removeToken();
-      } else {
-        const now = new Date();
-        const exp = new Date(parsed.exp * 1000);
-        if (now.getTime() >= exp.getTime()) {
+      if (token && serverUrl) {
+        const parsed = parseJwt(token);
+        if (!parsed?.exp) {
           storage.removeToken();
         } else {
-          navigate("/dashboard");
-          return;
+          const now = new Date();
+          const exp = new Date(parsed.exp * 1000);
+          if (now.getTime() >= exp.getTime()) {
+            storage.removeToken();
+          } else {
+            navigate("/dashboard");
+            return;
+          }
         }
       }
     }
@@ -240,7 +246,7 @@ export function LoginForm({
     if (storedUrls.length > 0) {
       setRecentUrls(storedUrls);
     }
-  }, [navigate, isTauriClient]);
+  }, [navigate, isTauriClient, isAddMode]);
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
@@ -399,9 +405,10 @@ export function LoginForm({
         open={isPasswordDialogOpen}
         serverUrl={serverUrlForDialog}
         onSuccess={(refreshedToken) => {
-          storage.setToken(refreshedToken);
           if (serverUrlForDialog) {
-            storage.setServerUrl(serverUrlForDialog);
+            storage.addServer({ url: serverUrlForDialog, token: refreshedToken });
+          } else {
+            storage.setToken(refreshedToken);
           }
           setIsPasswordDialogOpen(false);
           toast.success(

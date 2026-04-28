@@ -30,7 +30,6 @@ import {
 } from "lucide-react";
 import { NavFooter } from "./footer";
 import { isElectron } from "@/lib/electron";
-import { storage } from "@/lib/storage";
 import { useDynamicDashboardStore } from "@/entities/dynamic-dashboard/store";
 import { useIntegrationStore } from "@/entities/integrations/store";
 import { useConfigStore } from "@/entities/configurations/store";
@@ -132,11 +131,6 @@ export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
     useIntegrationStore();
   const { configurations, fetchConfigs } = useConfigStore();
 
-  const versions = useMemo(() => {
-    const serverUrl = storage.getServerUrl();
-    return [serverUrl ?? "main"];
-  }, []);
-
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const navMain = useMemo(() => {
@@ -230,7 +224,7 @@ export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
       }}
     >
       <SidebarHeader>
-        <AccountSwitcher versions={versions} defaultVersion={versions[0]} />
+        <AccountSwitcher />
       </SidebarHeader>
       <SidebarContent ref={scrollRef} onScroll={handleScroll}>
         {navMain.map((group) => (
