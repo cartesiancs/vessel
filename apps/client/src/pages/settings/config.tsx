@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { Link } from "react-router";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -27,7 +28,7 @@ import { ConfigurationActionButton } from "@/features/configurations/Configurati
 import { Separator } from "@/components/ui/separator";
 import { useConfigStore } from "@/entities/configurations/store";
 
-export function ServersPage() {
+export function ConfigSettingsPage() {
   const { configurations, fetchConfigs, isLoading, error } = useConfigStore();
 
   useEffect(() => {
@@ -47,11 +48,19 @@ export function ServersPage() {
           <Breadcrumb className='hidden md:flex'>
             <BreadcrumbList>
               <BreadcrumbItem>
-                <BreadcrumbLink href='/dashboard'>/</BreadcrumbLink>
+                <BreadcrumbLink asChild>
+                  <Link to='/dashboard'>/</Link>
+                </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
-                <BreadcrumbPage>System Configurations</BreadcrumbPage>
+                <BreadcrumbLink asChild>
+                  <Link to='/settings'>Settings</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage>Config</BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>

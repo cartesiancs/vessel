@@ -5,17 +5,12 @@ import {
   DashboardSwipeLayout,
   DashboardSwipeRoutePlaceholder,
 } from "./features/dashboard-swipe/DashboardSwipeLayout";
-import { ServersPage } from "./pages/servers";
-import { KeyPage } from "./pages/key";
 import { DevicePage } from "./pages/devices";
 import { FlowPage } from "./pages/flow";
 import { AuthInterceptor } from "./features/auth/AuthInterceptor";
 import { NotFound } from "./pages/notfound";
 import LandingPage from "./pages/landing";
-import { UsersPage } from "./pages/users";
-import { LogPage } from "./pages/log";
 import { MapPage } from "./pages/map";
-import { IntegrationPage } from "./pages/integration";
 import { SetupPage } from "./pages/setup";
 import { CodePage } from "./pages/code";
 import { AuthenticatedLayout } from "./widgets/auth/AuthenticatedLayout";
@@ -23,7 +18,13 @@ import { TopBarWrapper } from "./widgets/auth/TopBarWrapper";
 import { useDesktopSidecar } from "./hooks/useDesktopSidecar";
 import { usePreventBackNavigation } from "./hooks/usePreventBackNavigation";
 import { SettingsPage } from "./pages/settings";
-import { NetworksPage } from "./pages/networks";
+import { AccountSettingsPage } from "./pages/settings/account";
+import { ServicesSettingsPage } from "./pages/settings/services";
+import { UsersSettingsPage } from "./pages/settings/users";
+import { NetworksSettingsPage } from "./pages/settings/networks";
+import { IntegrationSettingsPage } from "./pages/settings/integration";
+import { LogSettingsPage } from "./pages/settings/log";
+import { ConfigSettingsPage } from "./pages/settings/config";
 import { RecordingsPage } from "./pages/recordings";
 import { DesktopSettingsPage } from "./pages/desktop-settings";
 
@@ -69,22 +70,6 @@ const router = createBrowserRouter([
         ],
       },
       {
-        path: "/servers",
-        element: (
-          <AuthInterceptor>
-            <ServersPage />
-          </AuthInterceptor>
-        ),
-      },
-      {
-        path: "/key",
-        element: (
-          <AuthInterceptor>
-            <KeyPage />
-          </AuthInterceptor>
-        ),
-      },
-      {
         path: "/devices",
         element: (
           <AuthInterceptor>
@@ -101,34 +86,10 @@ const router = createBrowserRouter([
         ),
       },
       {
-        path: "/users",
-        element: (
-          <AuthInterceptor>
-            <UsersPage />
-          </AuthInterceptor>
-        ),
-      },
-      {
-        path: "/log",
-        element: (
-          <AuthInterceptor>
-            <LogPage />
-          </AuthInterceptor>
-        ),
-      },
-      {
         path: "/map",
         element: (
           <AuthInterceptor>
             <MapPage />
-          </AuthInterceptor>
-        ),
-      },
-      {
-        path: "/integration",
-        element: (
-          <AuthInterceptor>
-            <IntegrationPage />
           </AuthInterceptor>
         ),
       },
@@ -148,20 +109,67 @@ const router = createBrowserRouter([
           </AuthInterceptor>
         ),
       },
-
+      {
+        path: "/settings/account",
+        element: (
+          <AuthInterceptor>
+            <AccountSettingsPage />
+          </AuthInterceptor>
+        ),
+      },
+      {
+        path: "/settings/services",
+        element: (
+          <AuthInterceptor>
+            <ServicesSettingsPage />
+          </AuthInterceptor>
+        ),
+      },
+      {
+        path: "/settings/users",
+        element: (
+          <AuthInterceptor>
+            <UsersSettingsPage />
+          </AuthInterceptor>
+        ),
+      },
+      {
+        path: "/settings/networks",
+        element: (
+          <AuthInterceptor>
+            <NetworksSettingsPage />
+          </AuthInterceptor>
+        ),
+      },
+      {
+        path: "/settings/integration",
+        element: (
+          <AuthInterceptor>
+            <IntegrationSettingsPage />
+          </AuthInterceptor>
+        ),
+      },
+      {
+        path: "/settings/log",
+        element: (
+          <AuthInterceptor>
+            <LogSettingsPage />
+          </AuthInterceptor>
+        ),
+      },
+      {
+        path: "/settings/config",
+        element: (
+          <AuthInterceptor>
+            <ConfigSettingsPage />
+          </AuthInterceptor>
+        ),
+      },
       {
         path: "/code",
         element: (
           <AuthInterceptor>
             <CodePage />
-          </AuthInterceptor>
-        ),
-      },
-      {
-        path: "/networks",
-        element: (
-          <AuthInterceptor>
-            <NetworksPage />
           </AuthInterceptor>
         ),
       },

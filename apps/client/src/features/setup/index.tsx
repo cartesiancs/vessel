@@ -18,7 +18,7 @@ export const initialSetupSteps: SetupStep[] = [
     title: "Enable MQTT & UDP",
     description: "Enable basic protocols",
     isCompleted: false,
-    url: "/servers",
+    url: "/settings/config",
     verifyStatus: async () => {
       try {
         const status = await getIntegrationStatus();
@@ -48,7 +48,7 @@ export const initialSetupSteps: SetupStep[] = [
     title: "Add Sensor",
     description: "Add a sensor (entity) for the device.",
     isCompleted: false,
-    url: "/key",
+    url: "/devices",
     verifyStatus: async () => {
       try {
         const entity = await getAllEntities();

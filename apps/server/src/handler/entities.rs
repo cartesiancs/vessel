@@ -1,7 +1,7 @@
 use crate::{
     db::{
         self,
-        models::{EntityWithConfig, EntityWithStateAndConfig, NewEntity},
+        models::{EntityWithConfig, EntityWithStateAndConfig, NewEntity, State as EntityState},
     },
     error::AppError,
     handler::auth::AuthUser,
@@ -141,4 +141,13 @@ pub async fn delete_entity(
     Ok(Json(
         json!({ "status": "success", "message": "Entity deleted" }),
     ))
+}
+
+pub async fn get_entity_history(
+    State(state): State<Arc<AppState>>,
+    AuthUser(_user): AuthUser,
+    Path(entity_id): Path<String>,
+) -> Result<Json<Vec<EntityState>>, AppError> {
+    let history = db::repository::get_entity_state_history(&state.pool, &entity_id)?;
+    Ok(Json(history))
 }

@@ -17,18 +17,12 @@ import {
 import { AccountSwitcher } from "../account-switcher";
 import { useLocation, useNavigate } from "react-router";
 import {
-  Key,
   LayoutDashboard,
   MonitorSmartphone,
-  ScrollText,
-  Server,
-  UserCog,
   Workflow,
   Map,
-  Blocks,
   CircleDashed,
   Code,
-  Network,
   RadioTower,
   ChevronDown,
   ChevronRight,
@@ -90,11 +84,6 @@ const data = {
           url: "/recordings",
           icon: <Video />,
         },
-        {
-          title: "Key Manager",
-          url: "/key",
-          icon: <Key />,
-        },
       ],
     },
     {
@@ -113,39 +102,14 @@ const data = {
       url: "#",
       items: [
         {
-          title: "Users",
-          url: "/users",
-          icon: <UserCog />,
-        },
-        {
-          title: "Integration",
-          url: "/integration",
-          icon: <Blocks />,
-        },
-        {
           title: "Setup",
           url: "/setup",
           icon: <CircleDashed />,
         },
         {
-          title: "Logs",
-          url: "/log",
-          icon: <ScrollText />,
-        },
-        {
-          title: "Networks",
-          url: "/networks",
-          icon: <Network />,
-        },
-        {
           title: "Settings",
           url: "/settings",
           icon: <RadioTower />,
-        },
-        {
-          title: "Config",
-          url: "/servers",
-          icon: <Server />,
         },
       ],
     },

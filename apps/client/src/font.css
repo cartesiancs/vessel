@@ -1,8 +1,18 @@
 @font-face {
+  font-family: "Inter";
+  src: url("/font/Inter.ttf") format("truetype");
+}
+
+@font-face {
   font-family: "RobotoMono";
   src: url("/font/RobotoMono.ttf") format("truetype");
 }
 
-* {
-  font-family: "RobotoMono";
+html,
+body {
+  font-family: "Inter", sans-serif;
+}
+
+.font-mono {
+  font-family: "RobotoMono", monospace;
 }

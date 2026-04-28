@@ -118,6 +118,10 @@ pub async fn web_server(
         )
         .route("/entities/all", get(entities::get_entities_with_states))
         .route(
+            "/entities/:entity_id/history",
+            get(entities::get_entity_history),
+        )
+        .route(
             "/entities/:id",
             put(entities::update_entity).delete(entities::delete_entity),
         )

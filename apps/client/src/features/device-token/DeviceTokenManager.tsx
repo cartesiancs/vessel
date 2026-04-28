@@ -2,13 +2,6 @@ import { useEffect, useState } from "react";
 import { Copy, Check, Key, AlertTriangle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -61,78 +54,70 @@ export function DeviceTokenManager({ deviceId }: Props) {
 
   return (
     <>
-      <Card>
-        <CardHeader>
-          <CardTitle>Access Token</CardTitle>
-          <CardDescription>
-            Manage the permanent access token for this device.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className='space-y-4'>
-          {tokenInfo ? (
-            <div className='flex items-center justify-between p-3 border'>
-              <div>
-                <p className='font-semibold'>Token is active</p>
-                <p className='text-sm text-muted-foreground'>
-                  Created at: {new Date(tokenInfo.created_at).toLocaleString()}
-                </p>
-              </div>
-              <div className='flex items-center gap-2'>
-                <Button
-                  variant='outline'
-                  size='sm'
-                  onClick={() => issueToken(deviceId)}
-                  disabled={isLoading}
-                >
-                  <RefreshCw className='mr-2 h-4 w-4' />
-                  Re-issue
-                </Button>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button
-                      variant='destructive'
-                      size='sm'
-                      disabled={isLoading}
-                    >
-                      Revoke
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        This will permanently revoke the access token. The
-                        device will no longer be able to connect.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={() => revokeToken(deviceId)}>
-                        Continue
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </div>
+      <div className='space-y-4'>
+        {tokenInfo ? (
+          <div className='flex items-center justify-between p-3 border'>
+            <div>
+              <p className='font-semibold'>Token is active</p>
+              <p className='text-sm text-muted-foreground'>
+                Created at: {new Date(tokenInfo.created_at).toLocaleString()}
+              </p>
             </div>
-          ) : (
-            <div className='flex items-center justify-between p-3 border bg-muted/50'>
-              <div>
-                <p className='font-semibold text-muted-foreground'>
-                  No active token
-                </p>
-                <p className='text-sm text-muted-foreground'>
-                  Issue a new token to allow this device to connect.
-                </p>
-              </div>
-              <Button onClick={() => issueToken(deviceId)} disabled={isLoading}>
-                <Key className='mr-2 h-4 w-4' />
-                Issue Token
+            <div className='flex items-center gap-2'>
+              <Button
+                variant='outline'
+                size='sm'
+                onClick={() => issueToken(deviceId)}
+                disabled={isLoading}
+              >
+                <RefreshCw className='mr-2 h-4 w-4' />
+                Re-issue
               </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant='destructive'
+                    size='sm'
+                    disabled={isLoading}
+                  >
+                    Revoke
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will permanently revoke the access token. The
+                      device will no longer be able to connect.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => revokeToken(deviceId)}>
+                      Continue
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </div>
+        ) : (
+          <div className='flex items-center justify-between p-3 border bg-muted/50'>
+            <div>
+              <p className='font-semibold text-muted-foreground'>
+                No active token
+              </p>
+              <p className='text-sm text-muted-foreground'>
+                Issue a new token to allow this device to connect.
+              </p>
+            </div>
+            <Button onClick={() => issueToken(deviceId)} disabled={isLoading}>
+              <Key className='mr-2 h-4 w-4' />
+              Issue Token
+            </Button>
+          </div>
+        )}
+      </div>
 
       <Dialog open={!!newToken} onOpenChange={() => clearNewToken()}>
         <DialogContent>

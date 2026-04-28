@@ -65,6 +65,9 @@ jobs:
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           APPLE_ENTITLEMENTS_PATH: ${{ github.workspace }}/apps/desktop/src-tauri/entitlements.plist
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_CAPSULE_URL: ${{ secrets.VITE_CAPSULE_URL }}
         working-directory: apps/desktop
         run: npm run tauri -- build --target aarch64-apple-darwin
 

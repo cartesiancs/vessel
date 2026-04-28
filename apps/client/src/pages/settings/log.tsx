@@ -1,4 +1,4 @@
-import React from "react";
+import { Link } from "react-router";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -13,16 +13,15 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-
+import { Logs } from "@/features/log";
 import { AppSidebar } from "@/features/sidebar";
-import { Intergration } from "@/features/integration/Integration";
 
-export function IntegrationPage(): React.ReactElement {
+export function LogSettingsPage() {
   return (
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset>
-        <header className='flex h-12 shrink-0 items-center gap-2 border-b px-4'>
+        <header className='flex h-12 shrink-0 items-center gap-2 border-b px-4 fixed w-full bg-background/60 backdrop-blur-md z-[999999]'>
           <SidebarTrigger className='-ml-1' />
           <Separator
             orientation='vertical'
@@ -31,23 +30,25 @@ export function IntegrationPage(): React.ReactElement {
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem className='hidden md:block'>
-                <BreadcrumbLink href='#'>/</BreadcrumbLink>
+                <BreadcrumbLink asChild>
+                  <Link to='/dashboard'>/</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator className='hidden md:block' />
+              <BreadcrumbItem className='hidden md:block'>
+                <BreadcrumbLink asChild>
+                  <Link to='/settings'>Settings</Link>
+                </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator className='hidden md:block' />
               <BreadcrumbItem>
-                <BreadcrumbPage>Integration</BreadcrumbPage>
+                <BreadcrumbPage>Log</BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
         </header>
-        <main className='flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-6'>
-          <div className='flex items-center'>
-            <h1 className='text-lg font-semibold md:text-2xl'>Integrations</h1>
-          </div>
-
-          <div className='flex flex-col gap-4'>
-            <Intergration />
-          </div>
+        <main className='flex flex-1 flex-col gap-4 mt-10 p-4 md:gap-8 md:p-6'>
+          <Logs />
         </main>
       </SidebarInset>
     </SidebarProvider>

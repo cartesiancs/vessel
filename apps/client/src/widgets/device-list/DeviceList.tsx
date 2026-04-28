@@ -19,6 +19,7 @@ import { useDeviceStore } from "@/entities/device/store";
 import { DeviceDeleteButton } from "@/features/device/DeviceDeleteButton";
 import { DeviceUpdateButton } from "@/features/device/DeviceUpdateButton";
 import { DeviceCreateButton } from "@/features/device/DeviceCreateButton";
+import { DeviceKeyButton } from "@/features/device/DeviceKeyButton";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -105,6 +106,7 @@ export function DeviceList() {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align='end'>
                       <DeviceUpdateButton device={device} />
+                      <DeviceKeyButton deviceId={device.id} />
                       <DeviceDeleteButton deviceId={device.id} />
                     </DropdownMenuContent>
                   </DropdownMenu>

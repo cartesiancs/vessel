@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -60,7 +61,7 @@ function NetworkCard({ icon, name, status }: NetworkCardProps) {
   );
 }
 
-export function NetworksPage() {
+export function NetworksSettingsPage() {
   const isOnline = useOnlineStatus();
 
   return (
@@ -76,7 +77,15 @@ export function NetworksPage() {
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem>
-                <BreadcrumbLink href='/dashboard'>/</BreadcrumbLink>
+                <BreadcrumbLink asChild>
+                  <Link to='/dashboard'>/</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild>
+                  <Link to='/settings'>Settings</Link>
+                </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>

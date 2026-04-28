@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useNavigate } from "react-router";
-import { Loader2, Trash2 } from "lucide-react";
+import { ArrowRight, Loader2, Trash2 } from "lucide-react";
 import { DEMO_SERVER_URL, DEMO_TOKEN, isDemoMode } from "@/shared/demo";
 import { DefaultAdminPasswordDialog } from "./DefaultAdminPasswordDialog";
 import { authenticateWithPassword } from "./api";
@@ -291,15 +291,31 @@ export function LoginForm({
             ) : !showAuthFields ? (
               <div className='grid gap-3'>
                 {/* <Label htmlFor='server-url'>Server</Label> */}
-                <Input
-                  id='server-url'
-                  type='text'
-                  placeholder='https://your-server.com'
-                  required
-                  value={url}
-                  onChange={(e) => setUrl(e.target.value)}
-                  disabled={isLoading}
-                />
+                <div className='flex w-full gap-2'>
+                  <Input
+                    id='server-url'
+                    type='text'
+                    placeholder='https://your-server.com'
+                    required
+                    value={url}
+                    onChange={(e) => setUrl(e.target.value)}
+                    disabled={isLoading}
+                    className='flex-1'
+                  />
+                  <Button
+                    type='submit'
+                    size='icon'
+                    disabled={isLoading}
+                    aria-label='Connect'
+                    className='shrink-0'
+                  >
+                    {isLoading ? (
+                      <Loader2 className='size-4 animate-spin' />
+                    ) : (
+                      <ArrowRight className='size-4' />
+                    )}
+                  </Button>
+                </div>
               </div>
             ) : (
               <>
@@ -328,15 +344,12 @@ export function LoginForm({
                 </div>
               </>
             )}
-            {!(isTauriClient && (isResolvingDesktop || desktopError)) && (
-              <Button type='submit' className='w-full' disabled={isLoading}>
-                {isLoading
-                  ? "Processing..."
-                  : showAuthFields
-                    ? "Auth"
-                    : "Connect"}
-              </Button>
-            )}
+            {!(isTauriClient && (isResolvingDesktop || desktopError)) &&
+              showAuthFields && (
+                <Button type='submit' className='w-full' disabled={isLoading}>
+                  {isLoading ? "Processing..." : "Auth"}
+                </Button>
+              )}
           </div>
 
           {!isTauriClient && recentUrls.length > 0 && !showAuthFields && (
