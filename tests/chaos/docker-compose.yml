@@ -1,0 +1,37 @@
+# Toxiproxy in front of the host's vessel server (and optionally mediamtx).
+#
+# Why host networking-ish setup: the vessel server is run on the host by
+# tests/load/start-test-server.sh, not in docker, so toxiproxy must reach
+# host.docker.internal:6174.
+#
+# Brings up:
+#   toxiproxy   :8474 admin API, :6175 vessel-api proxy, :8555 rtsp-mock proxy
+#   mediamtx    :8556 internal RTSP origin (the proxy fronts this on :8555)
+#
+# Start: docker compose -f tests/chaos/docker-compose.yml up -d
+# Stop : docker compose -f tests/chaos/docker-compose.yml down
+#
+# After up, the chaos run.sh script POSTs proxy + toxic definitions to
+# http://localhost:8474.
+
+services:
+  toxiproxy:
+    image: ghcr.io/shopify/toxiproxy:latest
+    container_name: vessel-toxiproxy
+    command: ["-host=0.0.0.0", "-config=/config/toxiproxy.json"]
+    volumes:
+      - ./toxiproxy.json:/config/toxiproxy.json:ro
+    ports:
+      - "8474:8474"   # admin API
+      - "6175:6175"   # vessel-api proxy
+      - "8555:8555"   # rtsp-mock proxy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  mediamtx:
+    image: bluenviron/mediamtx:latest
+    container_name: vessel-rtsp-origin
+    ports:
+      - "8556:8554"   # exposed only so it's reachable; toxiproxy proxies to mediamtx:8554
+    volumes:
+      - ../load/rtsp/mediamtx.yml:/mediamtx.yml:ro

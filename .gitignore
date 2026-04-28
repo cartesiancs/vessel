@@ -17,3 +17,6 @@ database.db-*
 /packages/*/**/node_modules
 /apps/*/**/node_modules
 /supabase
+/tests/load/.tmp
+/tests/chaos/.tmp
+/tests/load/config.test.toml.local

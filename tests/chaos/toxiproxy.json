@@ -1,0 +1,14 @@
+[
+  {
+    "name": "vessel-api",
+    "listen": "0.0.0.0:6175",
+    "upstream": "host.docker.internal:6174",
+    "enabled": true
+  },
+  {
+    "name": "rtsp-mock",
+    "listen": "0.0.0.0:8555",
+    "upstream": "mediamtx:8554",
+    "enabled": true
+  }
+]

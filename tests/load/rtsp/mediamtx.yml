@@ -1,0 +1,15 @@
+# mediamtx config for L7 — RTSP fleet load test.
+#
+# Synthesizes 32 RTSP feeds at rtsp://localhost:8554/cam{0..31}.
+# Each runs an internal ffmpeg loop producing a test pattern.
+# This is intentionally minimal — adjust if you need authentication
+# or different codecs.
+
+paths:
+  ~^cam[0-9]+$:
+    runOnDemand: >
+      ffmpeg -re -f lavfi -i testsrc2=size=320x240:rate=15
+      -c:v libx264 -preset ultrafast -tune zerolatency -g 30
+      -f rtsp rtsp://localhost:$RTSP_PORT/$MTX_PATH
+    runOnDemandRestart: yes
+    runOnDemandCloseAfter: 10s
