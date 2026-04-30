@@ -3,6 +3,11 @@ import { Button } from "@/shared/ui/button";
 import { useWebRTC } from "./WebRTCProvider";
 import { WebRTCManager } from "../lib/rtc";
 import { AudioLevelBar } from "./AudioLevelBar";
+import { HttpStreamReceiver } from "./HttpStreamReceiver";
+import {
+  useConfigStore,
+  getDefaultStreamMode,
+} from "@/entities/configurations";
 
 type StreamReceiverProps = {
   topic: string;
@@ -10,6 +15,25 @@ type StreamReceiverProps = {
 };
 
 export function StreamReceiver({ topic, streamType }: StreamReceiverProps) {
+  const configurations = useConfigStore((s) => s.configurations);
+  const fetchConfigs = useConfigStore((s) => s.fetchConfigs);
+
+  useEffect(() => {
+    if (configurations.length === 0) {
+      void fetchConfigs();
+    }
+  }, [configurations.length, fetchConfigs]);
+
+  const mode = getDefaultStreamMode(configurations);
+
+  if (mode === "http" && streamType === "video") {
+    return <HttpStreamReceiver topic={topic} streamType={streamType} />;
+  }
+
+  return <WebRTCStreamReceiver topic={topic} streamType={streamType} />;
+}
+
+function WebRTCStreamReceiver({ topic, streamType }: StreamReceiverProps) {
   const mediaRef = useRef<HTMLMediaElement>(null);
   const { rtcManager, streams, audioStreamCount, videoStreamCount } =
     useWebRTC();

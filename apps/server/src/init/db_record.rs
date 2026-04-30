@@ -67,6 +67,11 @@ pub fn create_initial_configurations(conn: &mut SqliteConnection) {
             "1",
             "Enable the Code workspace (file browser and editor). Toggle via Settings or set enabled to 1.",
         ),
+        (
+            "default_stream_mode",
+            "webrtc",
+            "Default playback mode for live streams: 'webrtc' or 'http' (HLS).",
+        ),
     ];
 
     for (k, v, d) in default_configs {

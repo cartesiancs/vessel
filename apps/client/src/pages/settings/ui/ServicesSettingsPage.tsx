@@ -34,6 +34,9 @@ import { useConfigStore } from "@/entities/configurations";
 import {
   CODE_SERVICE_CONFIG_KEY,
   getCodeServiceEnabled,
+  STREAM_MODE_CONFIG_KEY,
+  getDefaultStreamMode,
+  type StreamMode,
 } from "@/entities/configurations";
 
 export function ServicesSettingsPage() {
@@ -57,6 +60,11 @@ export function ServicesSettingsPage() {
   );
   const codeServiceEnabled = getCodeServiceEnabled(configurations);
 
+  const streamModeRow = configurations.find(
+    (c) => c.key === STREAM_MODE_CONFIG_KEY,
+  );
+  const streamMode = getDefaultStreamMode(configurations);
+
   useEffect(() => {
     void fetchConfigs();
   }, [fetchConfigs]);
@@ -69,6 +77,34 @@ export function ServicesSettingsPage() {
     if (status.server) setServer(status.server);
     if (status.target) setTarget(status.target);
   }, [status.server, status.target]);
+
+  const handleStreamModeChange = async (mode: StreamMode) => {
+    try {
+      if (streamModeRow) {
+        await updateConfig(streamModeRow.id, {
+          key: streamModeRow.key,
+          value: mode,
+          enabled: 1,
+          description: streamModeRow.description,
+        });
+      } else {
+        await createConfig({
+          key: STREAM_MODE_CONFIG_KEY,
+          value: mode,
+          enabled: 1,
+          description:
+            "Default playback mode for live streams: 'webrtc' or 'http' (HLS).",
+        });
+      }
+      toast.success(
+        mode === "webrtc"
+          ? "Default stream mode set to WebRTC"
+          : "Default stream mode set to HLS",
+      );
+    } catch {
+      toast.error("Failed to update stream mode");
+    }
+  };
 
   const handleCodeServiceToggle = async (on: boolean) => {
     try {
@@ -179,6 +215,49 @@ export function ServicesSettingsPage() {
                   disabled={configsLoading}
                   onCheckedChange={(v) => void handleCodeServiceToggle(v)}
                 />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Live streaming</CardTitle>
+              <CardDescription></CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className='flex items-center justify-between border px-3 py-2'>
+                <div className='flex flex-col gap-0.5'>
+                  <span className='font-medium'>Default stream mode</span>
+                  <span className='text-xs text-muted-foreground'>
+                    Applies to all live video players in the app.
+                  </span>
+                </div>
+                <div className='inline-flex overflow-hidden rounded-md border border-input'>
+                  <button
+                    type='button'
+                    onClick={() => void handleStreamModeChange("webrtc")}
+                    disabled={configsLoading}
+                    className={`px-3 py-1 text-sm transition-colors ${
+                      streamMode === "webrtc"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-background text-muted-foreground hover:bg-muted"
+                    }`}
+                  >
+                    WebRTC
+                  </button>
+                  <button
+                    type='button'
+                    onClick={() => void handleStreamModeChange("http")}
+                    disabled={configsLoading}
+                    className={`px-3 py-1 text-sm transition-colors ${
+                      streamMode === "http"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-background text-muted-foreground hover:bg-muted"
+                    }`}
+                  >
+                    HLS
+                  </button>
+                </div>
               </div>
             </CardContent>
           </Card>

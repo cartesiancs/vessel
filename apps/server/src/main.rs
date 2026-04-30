@@ -41,6 +41,7 @@ pub mod utils;
 pub mod logo;
 pub mod media;
 pub mod recording;
+pub mod streaming;
 
 pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("./migrations");
 
@@ -110,6 +111,8 @@ async fn main() -> Result<()> {
         pool.clone(),
     ));
 
+    let hls_manager = Arc::new(streaming::HlsManager::new(streams.clone()));
+
     let app_state = Arc::new(AppState {
         streams: streams.clone(),
         mqtt_tx: mqtt_tx.clone(),
@@ -123,9 +126,16 @@ async fn main() -> Result<()> {
         system_configs: configs.clone(),
         tunnel_manager: tunnel_manager.clone(),
         recording_manager,
+        hls_manager: hls_manager.clone(),
     });
 
     let mut set = JoinSet::new();
+
+    {
+        let hls_for_reaper = hls_manager.clone();
+        let shutdown_rx_clone = shutdown_rx.clone();
+        set.spawn(async move { hls_for_reaper.run_reaper(shutdown_rx_clone).await });
+    }
 
     remap_topics(axum::extract::State(app_state.clone())).await;
 

@@ -20,3 +20,4 @@ database.db-*
 /tests/load/.tmp
 /tests/chaos/.tmp
 /tests/load/config.test.toml.local
+/hls/*
