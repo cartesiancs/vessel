@@ -1,6 +1,6 @@
-import { useIsMobile } from "@/hooks/use-mobile";
-import { useChatStore } from "./store";
-import { useChatKeyboard } from "./useChatKeyboard";
+import { useIsMobile } from "@/shared/lib/hooks/use-mobile";
+import { useChatStore } from "../model/store";
+import { useChatKeyboard } from "../model/useChatKeyboard";
 import { ChatPanel } from "./ChatPanel";
 import { ChatPanelMobile } from "./ChatPanelMobile";
 

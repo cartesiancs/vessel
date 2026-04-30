@@ -1,5 +1,5 @@
-import { Button } from "@/components/ui/button";
-import { useMapDataStore, useMapInteractionStore } from "@/entities/map/store";
+import { Button } from "@/shared/ui/button";
+import { useMapDataStore, useMapInteractionStore } from "@/entities/map";
 import { MapPin, Milestone, Squircle, Check, X, Map, Satellite } from "lucide-react";
 
 export function MapToolbar() {

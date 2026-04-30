@@ -1,18 +1,18 @@
 import { Controller, useForm } from "react-hook-form";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/shared/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
-import { useConfigStore } from "@/entities/configurations/store";
-import { SystemConfigurationPayload } from "@/entities/configurations/types";
+} from "@/shared/ui/dialog";
+import { Input } from "@/shared/ui/input";
+import { Label } from "@/shared/ui/label";
+import { Switch } from "@/shared/ui/switch";
+import { Textarea } from "@/shared/ui/textarea";
+import { useConfigStore } from "@/entities/configurations";
+import { SystemConfigurationPayload } from "@/entities/configurations";
 
 export function ConfigurationCreate({
   isOpen,

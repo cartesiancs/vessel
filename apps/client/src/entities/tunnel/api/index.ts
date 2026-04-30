@@ -3,7 +3,7 @@ import type {
   StartTunnelRequest,
   StartTunnelResponse,
   TunnelStatus,
-} from "./types";
+} from "../model/types";
 
 export const getStatus = () => apiClient.get<TunnelStatus>("/tunnel/status");
 

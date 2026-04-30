@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import { useWebSocket, useWebSocketMessage } from "../ws/WebSocketProvider";
-import { WebSocketMessage } from "../ws/ws";
+import { useWebSocket, useWebSocketMessage } from "../../ws";
+import { WebSocketMessage } from "../../ws";
 
 export function Footer() {
   const { wsManager } = useWebSocket();
@@ -50,10 +50,10 @@ export function Footer() {
   );
 }
 
-import { WebSocketStatusIndicator } from "../ws/IsConnected";
-import { parseJwt } from "@/lib/jwt";
-import { isDemoMode } from "@/shared/demo";
-import { storage } from "@/lib/storage";
+import { WebSocketStatusIndicator } from "../../ws";
+import { parseJwt } from "@/shared/lib/jwt";
+import { isDemoMode } from "@/shared/config/demo";
+import { storage } from "@/shared/lib/storage";
 
 const TokenExpiration: React.FC = () => {
   const [timeLeft, setTimeLeft] = useState<string>("");

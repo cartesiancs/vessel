@@ -1,4 +1,4 @@
-import { DEFINITION_NODE } from "./flowNode";
+import { DEFINITION_NODE } from "../lib/flowNode";
 
 export type Connector = {
   id: string;

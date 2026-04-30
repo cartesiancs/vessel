@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
-import * as api from "@/entities/entity/api";
-import { EntityAll, State } from "@/entities/entity/types";
-import { useWebSocket, useWebSocketMessage } from "../ws/WebSocketProvider";
-import { WebSocketMessage } from "../ws/ws";
+import * as api from "@/entities/entity";
+import { EntityAll, State } from "@/entities/entity";
+import { useWebSocket, useWebSocketMessage } from "../../ws";
+import { WebSocketMessage } from "../../ws";
 
 export type StreamState = {
   topic: string;

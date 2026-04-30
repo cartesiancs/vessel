@@ -1,5 +1,5 @@
-import { Button } from "@/components/ui/button";
-import { useDynamicDashboardStore } from "@/entities/dynamic-dashboard/store";
+import { Button } from "@/shared/ui/button";
+import { useDynamicDashboardStore } from "@/entities/dynamic-dashboard";
 import { Plus } from "lucide-react";
 import { useNavigate } from "react-router";
 

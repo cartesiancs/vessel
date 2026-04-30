@@ -1,10 +1,10 @@
-import { Button } from "@/components/ui/button";
-import { useFlowStore } from "@/entities/flow/store";
+import { Button } from "@/shared/ui/button";
+import { useFlowStore } from "@/entities/flow";
 import { Play, Square } from "lucide-react";
 import { toast } from "sonner";
-import { useWebSocket, useWebSocketMessage } from "@/features/ws/WebSocketProvider";
+import { useWebSocket, useWebSocketMessage } from "@/features/ws";
 import { useCallback, useEffect, useState } from "react";
-import { getFlowRunSessionId, WebSocketMessage } from "@/features/ws/ws";
+import { getFlowRunSessionId, WebSocketMessage } from "@/features/ws";
 
 export function RunFlowButton() {
   const { wsManager } = useWebSocket();

@@ -1,4 +1,4 @@
-import { MqttPublishNodeType, Node } from "../flowTypes";
+import { MqttPublishNodeType, Node } from "../../model/types";
 
 function mqttLikeCenterLabel(d: Node): string {
   if (d.nodeType === "DASHBOARD_EVENT_LISTENER") {

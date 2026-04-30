@@ -9,10 +9,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+} from "@/shared/ui/alert-dialog";
 import { Trash2 } from "lucide-react";
-import { useEntityStore } from "@/entities/entity/store";
-import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { useEntityStore } from "@/entities/entity";
+import { DropdownMenuItem } from "@/shared/ui/dropdown-menu";
 
 interface Props {
   entityId: number;

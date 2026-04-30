@@ -8,33 +8,33 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
+} from "@/shared/ui/breadcrumb";
 import {
   SidebarInset,
   SidebarProvider,
   SidebarTrigger,
-} from "@/components/ui/sidebar";
+} from "@/shared/ui/sidebar";
 import { AppSidebar } from "@/features/sidebar";
-import { Separator } from "@/components/ui/separator";
+import { Separator } from "@/shared/ui/separator";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { useTunnelStore } from "@/entities/tunnel/store";
-import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
-import { useConfigStore } from "@/entities/configurations/store";
+} from "@/shared/ui/card";
+import { Input } from "@/shared/ui/input";
+import { Label } from "@/shared/ui/label";
+import { Switch } from "@/shared/ui/switch";
+import { Button } from "@/shared/ui/button";
+import { Badge } from "@/shared/ui/badge";
+import { useTunnelStore } from "@/entities/tunnel";
+import { useSupabaseAuth } from "@/app/providers/SupabaseAuthContext";
+import { useConfigStore } from "@/entities/configurations";
 import {
   CODE_SERVICE_CONFIG_KEY,
   getCodeServiceEnabled,
-} from "@/entities/configurations/codeService";
+} from "@/entities/configurations";
 
 export function ServicesSettingsPage() {
   const { status, isLoading, error, refresh, start, stop } = useTunnelStore();

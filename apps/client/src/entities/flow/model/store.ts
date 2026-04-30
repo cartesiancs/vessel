@@ -1,12 +1,12 @@
 import { create } from "zustand";
-import { DataNodeType, Edge, Node } from "@/features/flow/flowTypes";
+import { DataNodeType, Edge, Node } from "@/features/flow";
 import {
   getFlows,
   getFlowVersions,
   saveFlowVersion,
   createFlow,
-} from "@/entities/flow/api";
-import { Flow } from "@/entities/flow/types";
+} from "@/entities/flow";
+import { Flow } from "@/entities/flow";
 
 interface FlowState {
   flows: Flow[];

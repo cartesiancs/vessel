@@ -8,26 +8,26 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
+} from "@/shared/ui/breadcrumb";
 import {
   SidebarInset,
   SidebarProvider,
   SidebarTrigger,
-} from "@/components/ui/sidebar";
+} from "@/shared/ui/sidebar";
 import { AppSidebar } from "@/features/sidebar";
-import { Separator } from "@/components/ui/separator";
+import { Separator } from "@/shared/ui/separator";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
+} from "@/shared/ui/card";
+import { Input } from "@/shared/ui/input";
+import { Label } from "@/shared/ui/label";
+import { Button } from "@/shared/ui/button";
+import { Badge } from "@/shared/ui/badge";
+import { useSupabaseAuth } from "@/app/providers/SupabaseAuthContext";
 import {
   fetchTurnCredentials,
   clearTurnCache,
@@ -37,9 +37,9 @@ import {
   notifyListeners,
   type TurnCredentialsResponse,
   type TurnUsage,
-} from "@/features/rtc/turnService";
-import { useChatStore } from "@/features/llm-chat/store";
-import { storage } from "@/lib/storage";
+} from "@/features/rtc";
+import { useChatStore } from "@/features/llm-chat";
+import { storage } from "@/shared/lib/storage";
 
 function formatTurnQuotaUsage(usage: TurnUsage | null): string | null {
   if (!usage?.quotaBytes) return null;

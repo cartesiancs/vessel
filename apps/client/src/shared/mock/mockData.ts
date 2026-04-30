@@ -1,15 +1,15 @@
-import { Device } from "@/entities/device/types";
-import { EntityAll } from "@/entities/entity/types";
-import { Flow, FlowVersion } from "@/entities/flow/types";
-import { HaState } from "@/entities/ha/types";
-import { MapLayer, FeatureWithVertices } from "@/entities/map/types";
-import { Permission } from "@/entities/permission/types";
-import { Role } from "@/entities/role/types";
-import { DeviceToken } from "@/entities/device-token/types";
-import { Stat } from "@/entities/stat/types";
-import { SystemConfiguration } from "@/entities/configurations/types";
-import { User } from "@/entities/user/types";
-import { CustomNode } from "@/entities/custom-nodes/types";
+import { Device } from "@/entities/device";
+import { EntityAll } from "@/entities/entity";
+import { Flow, FlowVersion } from "@/entities/flow";
+import { HaState } from "@/entities/ha";
+import { MapLayer, FeatureWithVertices } from "@/entities/map";
+import { Permission } from "@/entities/permission";
+import { Role } from "@/entities/role";
+import { DeviceToken } from "@/entities/device-token";
+import { Stat } from "@/entities/stat";
+import { SystemConfiguration } from "@/entities/configurations";
+import { User } from "@/entities/user";
+import { CustomNode } from "@/entities/custom-nodes";
 
 export type MockDatabase = {
   stat: Stat;

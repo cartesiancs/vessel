@@ -1,4 +1,4 @@
-import { useMapInteractionStore } from "@/entities/map/store";
+import { useMapInteractionStore } from "@/entities/map";
 import { Polyline, Polygon } from "react-leaflet";
 
 export function DrawingPreview() {

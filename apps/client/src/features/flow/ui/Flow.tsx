@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Graph } from "./Graph";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/shared/ui/button";
 
 import {
   Dialog,
@@ -11,19 +11,19 @@ import {
   DialogTitle,
   DialogTrigger,
   DialogClose,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+} from "@/shared/ui/dialog";
+import { Input } from "@/shared/ui/input";
+import { Label } from "@/shared/ui/label";
 import { MoreHorizontal, Plus, Trash2 } from "lucide-react";
 import { File } from "lucide-react";
-import { deleteFlow } from "@/entities/flow/api";
-import { Flow } from "@/entities/flow/types";
+import { deleteFlow } from "@/entities/flow";
+import { Flow } from "@/entities/flow";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@/shared/ui/dropdown-menu";
 import {
   AlertDialogHeader,
   AlertDialogFooter,
@@ -33,10 +33,10 @@ import {
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { useFlowStore } from "@/entities/flow/store";
+} from "@/shared/ui/alert-dialog";
+import { useFlowStore } from "@/entities/flow";
 import { RunFlowButton } from "./RunFlow";
-import { FlowLog } from "../flow-log/FlowLog";
+import { FlowLog } from "../../flow-log";
 
 export default function FlowPage() {
   const {

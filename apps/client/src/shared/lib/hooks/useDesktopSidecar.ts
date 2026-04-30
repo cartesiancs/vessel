@@ -1,8 +1,8 @@
 import { useEffect } from "react";
 
-import { isDemoMode } from "@/shared/demo";
-import { ensureSidecarRunning, getDesktopServerUrl, isTauri } from "@/shared/desktop";
-import { storage } from "@/lib/storage";
+import { isDemoMode } from "@/shared/config/demo";
+import { ensureSidecarRunning, getDesktopServerUrl, isTauri } from "@/shared/lib/desktop";
+import { storage } from "@/shared/lib/storage";
 
 export const useDesktopSidecar = () => {
   useEffect(() => {

@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { IdeState } from "./types";
-import { getFileContent, updateFileContent } from "./api";
+import { getFileContent, updateFileContent } from "../api";
 import { toast } from "sonner";
 
 export interface FileTreeState {

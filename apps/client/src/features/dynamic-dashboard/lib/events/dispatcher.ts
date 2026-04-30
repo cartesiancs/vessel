@@ -3,8 +3,8 @@ import {
   type DashboardComponentEventPayload,
   type DashboardComponentAction,
   type DashboardComponentType,
-} from "@/entities/dynamic-dashboard/interaction";
-import type { WebSocketMessage } from "@/features/ws/ws";
+} from "@/entities/dynamic-dashboard";
+import type { WebSocketMessage } from "@/features/ws";
 
 export const DEFAULT_DASHBOARD_COOLDOWN_MS = 320;
 export const MIN_DASHBOARD_COOLDOWN_MS = 100;

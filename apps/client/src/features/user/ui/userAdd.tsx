@@ -1,16 +1,16 @@
-import { Button } from "@/components/ui/button";
+import { Button } from "@/shared/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { CreateUserPayload, UpdateUserPayload } from "@/entities/user/types";
+} from "@/shared/ui/dialog";
+import { CreateUserPayload, UpdateUserPayload } from "@/entities/user";
 import { PlusCircle } from "lucide-react";
 import { FC, useState } from "react";
 import { UserForm } from "./userForm";
-import { useUserStore } from "@/entities/user/store";
+import { useUserStore } from "@/entities/user";
 
 export const AddUser: FC = () => {
   const [isOpen, setIsOpen] = useState(false);

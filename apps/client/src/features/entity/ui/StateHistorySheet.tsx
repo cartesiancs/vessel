@@ -6,18 +6,18 @@ import {
   SheetDescription,
   SheetHeader,
   SheetTitle,
-} from "@/components/ui/sheet";
-import { ScrollArea } from "@/components/ui/scroll-area";
+} from "@/shared/ui/sheet";
+import { ScrollArea } from "@/shared/ui/scroll-area";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { Skeleton } from "@/components/ui/skeleton";
-import { formatSimpleDateTime } from "@/lib/time";
-import * as api from "@/entities/entity/api";
-import type { State } from "@/entities/entity/types";
+} from "@/shared/ui/tooltip";
+import { Skeleton } from "@/shared/ui/skeleton";
+import { formatSimpleDateTime } from "@/shared/lib/time";
+import * as api from "@/entities/entity";
+import type { State } from "@/entities/entity";
 
 type Props = {
   entityId: string;

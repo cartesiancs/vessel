@@ -5,7 +5,7 @@ import {
   StartRecordingResponse,
   ActiveRecordingInfo,
   TopicRecordingStatus,
-} from "./types";
+} from "../model/types";
 
 export const getRecordings = async (): Promise<Recording[]> => {
   const { data } = await apiClient.get<Recording[]>("/recordings");

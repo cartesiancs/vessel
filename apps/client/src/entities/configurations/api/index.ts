@@ -1,5 +1,5 @@
 import { apiClient } from "@/shared/api";
-import type { SystemConfiguration, SystemConfigurationPayload } from "./types";
+import type { SystemConfiguration, SystemConfigurationPayload } from "../model/types";
 
 export const getConfigs = () =>
   apiClient.get<SystemConfiguration[]>("/configurations");

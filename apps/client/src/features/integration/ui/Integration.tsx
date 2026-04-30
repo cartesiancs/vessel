@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 
-import { Button } from "@/components/ui/button";
+import { Button } from "@/shared/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -8,15 +8,15 @@ import {
   DialogTitle,
   DialogFooter,
   DialogDescription,
-} from "@/components/ui/dialog";
+} from "@/shared/ui/dialog";
 import { Home, Bot, Radio, ArrowRight, CheckCircle, Loader2 } from "lucide-react";
-import { useIntegrationStore } from "@/entities/integrations/store";
+import { useIntegrationStore } from "@/entities/integrations";
 import {
   StepComponentProps,
   FinalStepProps,
   IntegrationId,
   IntegrationWizardModalProps,
-} from "./types";
+} from "../model/types";
 import { HA_Step1_URL, HA_Step2_Token } from "./HA";
 import { ROS2_Step1_Bridge, ROS2_Step2_Address } from "./ROS";
 import { SDR_Step1_Info, SDR_Step2_Host, SDR_Step3_Port } from "./SDR";

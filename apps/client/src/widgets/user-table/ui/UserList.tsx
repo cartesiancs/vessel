@@ -1,10 +1,10 @@
-import { Button } from "@/components/ui/button";
+import { Button } from "@/shared/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@/shared/ui/dropdown-menu";
 import {
   Table,
   TableHeader,
@@ -12,12 +12,12 @@ import {
   TableHead,
   TableBody,
   TableCell,
-} from "@/components/ui/table";
-import { useUserStore } from "@/entities/user/store";
-import { User } from "@/entities/user/types";
-import { AddUserDialog } from "@/features/user/userAdd";
-import { DeleteUserDialog } from "@/features/user/userDelete";
-import { EditUserDialog } from "@/features/user/userEdit";
+} from "@/shared/ui/table";
+import { useUserStore } from "@/entities/user";
+import { User } from "@/entities/user";
+import { AddUserDialog } from "@/features/user";
+import { DeleteUserDialog } from "@/features/user";
+import { EditUserDialog } from "@/features/user";
 import { Edit, MoreHorizontal, PlusCircle, Trash2 } from "lucide-react";
 import { FC, useEffect, useState } from "react";
 

@@ -8,16 +8,16 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@/shared/ui/dropdown-menu";
 import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@/components/ui/sidebar";
-import { VesselLogo } from "@/components/icon/Logo";
-import { storage, type ServerConnection } from "@/lib/storage";
-import { hardNavigateToDashboard } from "@/lib/resetStores";
-import { isTauri } from "@/shared/desktop";
+} from "@/shared/ui/sidebar";
+import { VesselLogo } from "@/shared/ui/icon/Logo";
+import { storage, type ServerConnection } from "@/shared/lib/storage";
+import { hardNavigateToDashboard } from "@/shared/lib/resetStores";
+import { isTauri } from "@/shared/lib/desktop";
 
 function displayName(server: ServerConnection): string {
   if (server.name) return server.name;

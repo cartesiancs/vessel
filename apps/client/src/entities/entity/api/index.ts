@@ -1,5 +1,5 @@
 import { apiClient } from "@/shared/api";
-import type { Entity, EntityAll, EntityPayload, State } from "./types";
+import type { Entity, EntityAll, EntityPayload, State } from "../model/types";
 
 export const getEntities = () => apiClient.get<Entity[]>("/entities");
 export const getAllEntities = () => apiClient.get<EntityAll[]>("/entities/all");

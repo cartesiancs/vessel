@@ -1,5 +1,5 @@
 import { apiClient } from "@/shared/api";
-import type { DeviceToken, IssuedTokenResponse } from "./types";
+import type { DeviceToken, IssuedTokenResponse } from "../model/types";
 
 export const issueDeviceToken = (deviceId: number) =>
   apiClient.post<IssuedTokenResponse>(`/devices/${deviceId}/token`);

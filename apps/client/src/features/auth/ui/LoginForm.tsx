@@ -1,23 +1,23 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { cn } from "@/shared/lib/utils";
+import { Button } from "@/shared/ui/button";
+import { Input } from "@/shared/ui/input";
+import { Label } from "@/shared/ui/label";
 import { useNavigate, useSearchParams } from "react-router";
 import { ArrowRight, Loader2, Trash2 } from "lucide-react";
-import { DEMO_SERVER_URL, DEMO_TOKEN, isDemoMode } from "@/shared/demo";
+import { DEMO_SERVER_URL, DEMO_TOKEN, isDemoMode } from "@/shared/config/demo";
 import { DefaultAdminPasswordDialog } from "./DefaultAdminPasswordDialog";
-import { authenticateWithPassword } from "./api";
-import { storage } from "@/lib/storage";
-import { parseJwt } from "@/lib/jwt";
+import { authenticateWithPassword } from "../api";
+import { storage } from "@/shared/lib/storage";
+import { parseJwt } from "@/shared/lib/jwt";
 import {
   ensureSidecarRunning,
   getDesktopServerUrl,
   isTauri,
   openDesktopSettings,
-} from "@/shared/desktop";
+} from "@/shared/lib/desktop";
 
 const MAX_RECENT_URLS = 5;
 

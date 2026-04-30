@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback, useState } from "react";
-import { storage } from "@/lib/storage";
+import { storage } from "@/shared/lib/storage";
 
 const AUDIO_SAMPLE_RATE = 48000;
 const BUFFER_SIZE = 4096;

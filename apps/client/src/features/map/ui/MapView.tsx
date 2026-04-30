@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Plus, Minus } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/shared/ui/button";
 import { MapContainer, TileLayer, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
@@ -8,18 +8,18 @@ import L from "leaflet";
 import icon from "leaflet/dist/images/marker-icon.png";
 import iconShadow from "leaflet/dist/images/marker-shadow.png";
 import "./style.css";
-import { useMapDataStore, useMapInteractionStore } from "@/entities/map/store";
-import { TILE_MAPS } from "@/entities/map/types";
+import { useMapDataStore, useMapInteractionStore } from "@/entities/map";
+import { TILE_MAPS } from "@/entities/map";
 
-import { MapEntityRender } from "../map-entity/render";
-import { FeatureDetailsPanel } from "../map-draw/FeatureDetailsPanel";
-import { DrawingPreview } from "../map-draw/FeatureDrawingPreview";
-import { FeatureEditor } from "../map-draw/FeatureEditor";
-import { FeatureRenderer } from "../map-draw/FeatureRenderer";
-import { MapEvents } from "../map-draw/MapEvents";
-import { EntityDetailsPanel } from "../map-entity/EntityDetailsPanel";
-import { useMapEntityStore } from "../map-entity/store";
-import { cn } from "@/lib/utils";
+import { MapEntityRender } from "../../map-entity";
+import { FeatureDetailsPanel } from "../../map-draw";
+import { DrawingPreview } from "../../map-draw";
+import { FeatureEditor } from "../../map-draw";
+import { FeatureRenderer } from "../../map-draw";
+import { MapEvents } from "../../map-draw";
+import { EntityDetailsPanel } from "../../map-entity";
+import { useMapEntityStore } from "../../map-entity";
+import { cn } from "@/shared/lib/utils";
 import { MapLastViewTracker, getStoredMapView } from "./MapViewPersistence";
 import { CurrentLocationMarker } from "./CurrentLocationMarker";
 

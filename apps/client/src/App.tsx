@@ -1,32 +1,33 @@
-import { AuthPage } from "./pages/auth";
+import { AuthPage } from "@/pages/auth";
 
 import { createBrowserRouter, RouterProvider } from "react-router";
 import {
   DashboardSwipeLayout,
   DashboardSwipeRoutePlaceholder,
-} from "./features/dashboard-swipe/DashboardSwipeLayout";
-import { DevicePage } from "./pages/devices";
-import { FlowPage } from "./pages/flow";
-import { AuthInterceptor } from "./features/auth/AuthInterceptor";
-import { NotFound } from "./pages/notfound";
-import LandingPage from "./pages/landing";
-import { MapPage } from "./pages/map";
-import { SetupPage } from "./pages/setup";
-import { CodePage } from "./pages/code";
-import { AuthenticatedLayout } from "./widgets/auth/AuthenticatedLayout";
-import { TopBarWrapper } from "./widgets/auth/TopBarWrapper";
-import { useDesktopSidecar } from "./hooks/useDesktopSidecar";
-import { usePreventBackNavigation } from "./hooks/usePreventBackNavigation";
-import { SettingsPage } from "./pages/settings";
-import { AccountSettingsPage } from "./pages/settings/account";
-import { ServicesSettingsPage } from "./pages/settings/services";
-import { UsersSettingsPage } from "./pages/settings/users";
-import { NetworksSettingsPage } from "./pages/settings/networks";
-import { IntegrationSettingsPage } from "./pages/settings/integration";
-import { LogSettingsPage } from "./pages/settings/log";
-import { ConfigSettingsPage } from "./pages/settings/config";
-import { RecordingsPage } from "./pages/recordings";
-import { DesktopSettingsPage } from "./pages/desktop-settings";
+} from "@/features/dashboard-swipe";
+import { DevicePage } from "@/pages/devices";
+import { FlowPage } from "@/pages/flow";
+import { AuthInterceptor } from "@/features/auth";
+import { NotFound } from "@/pages/notfound";
+import LandingPage from "@/pages/landing";
+import { MapPage } from "@/pages/map";
+import { SetupPage } from "@/pages/setup";
+import { CodePage } from "@/pages/code";
+import { AuthenticatedLayout, TopBarWrapper } from "@/widgets/auth";
+import { useDesktopSidecar } from "@/shared/lib/hooks/useDesktopSidecar";
+import { usePreventBackNavigation } from "@/shared/lib/hooks/usePreventBackNavigation";
+import {
+  SettingsPage,
+  AccountSettingsPage,
+  ServicesSettingsPage,
+  UsersSettingsPage,
+  NetworksSettingsPage,
+  IntegrationSettingsPage,
+  LogSettingsPage,
+  ConfigSettingsPage,
+} from "@/pages/settings";
+import { RecordingsPage } from "@/pages/recordings";
+import { DesktopSettingsPage } from "@/pages/desktop-settings";
 
 const router = createBrowserRouter([
   {

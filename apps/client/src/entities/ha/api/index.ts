@@ -1,6 +1,6 @@
 import { apiClient } from "@/shared/api";
 
-import { HaState } from "./types";
+import { HaState } from "../model/types";
 
 export const fetchAllHaStates = async (): Promise<HaState[]> => {
   try {

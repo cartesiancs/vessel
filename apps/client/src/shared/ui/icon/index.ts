@@ -1,0 +1,1 @@
+export { VesselLogo } from "./Logo";

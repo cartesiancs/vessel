@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+import { Button } from "@/shared/ui/button";
 import {
   Command,
   CommandEmpty,
@@ -6,16 +6,16 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from "@/components/ui/command";
+} from "@/shared/ui/command";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover";
-import { useRoleStore } from "@/entities/role/store";
-import { Role } from "@/entities/role/types";
-import { assignRoleToUser, revokeRoleFromUser } from "@/entities/user/api";
-import { cn } from "@/lib/utils";
+} from "@/shared/ui/popover";
+import { useRoleStore } from "@/entities/role";
+import { Role } from "@/entities/role";
+import { assignRoleToUser, revokeRoleFromUser } from "@/entities/user";
+import { cn } from "@/shared/lib/utils";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { FC, useEffect, useState } from "react";
 import { toast } from "sonner";

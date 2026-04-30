@@ -1,3 +1,3 @@
-export * from "./types";
 export * from "./api";
-export { useRecordingStore } from "./store";
+export * from "./model/types";
+export { useRecordingStore } from "./model/store";

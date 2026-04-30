@@ -1,4 +1,4 @@
-import { CalculationNodeType, Node } from "../flowTypes";
+import { CalculationNodeType, Node } from "../../model/types";
 
 export function renderCalcNode(
   g: d3.Selection<SVGGElement, Node, null, undefined>,

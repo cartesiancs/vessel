@@ -4,8 +4,8 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { useStatStore } from "@/entities/stat/store";
+} from "@/shared/ui/card";
+import { useStatStore } from "@/entities/stat";
 import { useEffect } from "react";
 
 export default function StatBlock() {

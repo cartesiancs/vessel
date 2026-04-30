@@ -1,5 +1,5 @@
-import { supabase } from "@/lib/supabase";
-import { getConfigs, updateConfig } from "@/entities/configurations/api";
+import { supabase } from "@/shared/lib/supabase";
+import { getConfigs, updateConfig } from "@/entities/configurations";
 
 export interface TurnUsage {
   egressBytes: number;

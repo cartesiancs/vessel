@@ -1,6 +1,6 @@
-import { cn } from "@/lib/utils";
+import { cn } from "@/shared/lib/utils";
 import { LoaderCircle } from "lucide-react";
-import type { ChatMessage as ChatMessageType } from "./types";
+import type { ChatMessage as ChatMessageType } from "../model/types";
 
 interface ChatMessageProps {
   message: ChatMessageType;

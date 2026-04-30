@@ -7,9 +7,9 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
-import { useUserStore } from "@/entities/user/store";
+} from "@/shared/ui/alert-dialog";
+import { DropdownMenuItem } from "@/shared/ui/dropdown-menu";
+import { useUserStore } from "@/entities/user";
 import { Trash2 } from "lucide-react";
 import { FC, useState } from "react";
 

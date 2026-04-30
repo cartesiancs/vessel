@@ -1,20 +1,20 @@
 import { useEffect, useMemo, useState } from "react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Badge } from "@/shared/ui/badge";
+import { Button } from "@/shared/ui/button";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { useFlowStore } from "@/entities/flow/store";
+} from "@/shared/ui/select";
+import { useFlowStore } from "@/entities/flow";
 import {
   useWebSocket,
   useWebSocketMessage,
-} from "@/features/ws/WebSocketProvider";
-import { getFlowRunSessionId, WebSocketMessage } from "@/features/ws/ws";
-import { DashboardItemDataMap } from "@/entities/dynamic-dashboard/store";
+} from "@/features/ws";
+import { getFlowRunSessionId, WebSocketMessage } from "@/features/ws";
+import { DashboardItemDataMap } from "@/entities/dynamic-dashboard";
 import { Play, Square } from "lucide-react";
 
 type FlowPanelProps = {

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from "react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/shared/ui/button";
 import { SendIcon, ImageIcon, XIcon } from "lucide-react";
 
 interface ChatInputProps {

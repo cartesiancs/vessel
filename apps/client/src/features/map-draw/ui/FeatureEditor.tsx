@@ -1,7 +1,7 @@
 import { Marker } from "react-leaflet";
 import L from "leaflet";
-import { useMapInteractionStore } from "@/entities/map/store";
-import { useMapDataStore } from "@/entities/map/store";
+import { useMapInteractionStore } from "@/entities/map";
+import { useMapDataStore } from "@/entities/map";
 import { LatLng } from "leaflet";
 
 const DraggableIcon = L.divIcon({

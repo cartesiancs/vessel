@@ -1,14 +1,14 @@
 import { useState, useEffect, useCallback } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Button } from "@/shared/ui/button";
+import { Input } from "@/shared/ui/input";
+import { Label } from "@/shared/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/shared/ui/select";
 import {
   Sheet,
   SheetContent,
@@ -16,9 +16,9 @@ import {
   SheetFooter,
   SheetHeader,
   SheetTitle,
-} from "@/components/ui/sheet";
-import { DataNodeType, DataNodeTypeType, Node } from "./flowTypes";
-import { useFlowStore } from "@/entities/flow/store";
+} from "@/shared/ui/sheet";
+import { DataNodeType, DataNodeTypeType, Node } from "../model/types";
+import { useFlowStore } from "@/entities/flow";
 
 interface OptionsProps {
   open: boolean;

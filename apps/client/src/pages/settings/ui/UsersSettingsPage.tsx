@@ -6,17 +6,17 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
-import { Separator } from "@/components/ui/separator";
+} from "@/shared/ui/breadcrumb";
+import { Separator } from "@/shared/ui/separator";
 import {
   SidebarInset,
   SidebarProvider,
   SidebarTrigger,
-} from "@/components/ui/sidebar";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+} from "@/shared/ui/sidebar";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs";
 import { AppSidebar } from "@/features/sidebar";
-import { RoleTable } from "@/widgets/role-table/RoleList";
-import { UserTable } from "@/widgets/user-table/UserList";
+import { RoleTable } from "@/widgets/role-table";
+import { UserTable } from "@/widgets/user-table";
 
 export function UsersSettingsPage() {
   return (

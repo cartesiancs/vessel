@@ -1,9 +1,9 @@
 import React from "react";
 
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Input } from "@/shared/ui/input";
+import { Label } from "@/shared/ui/label";
 
-import { StepComponentProps } from "./types";
+import { StepComponentProps } from "../model/types";
 
 export const HA_Step1_URL: React.FC<StepComponentProps> = ({
   value,

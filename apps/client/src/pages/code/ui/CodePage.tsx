@@ -7,23 +7,23 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
+} from "@/shared/ui/breadcrumb";
 import {
   ResizablePanelGroup,
   ResizablePanel,
   ResizableHandle,
-} from "@/components/ui/resizable";
-import { Separator } from "@/components/ui/separator";
+} from "@/shared/ui/resizable";
+import { Separator } from "@/shared/ui/separator";
 import {
   SidebarInset,
   SidebarProvider,
   SidebarTrigger,
-} from "@/components/ui/sidebar";
-import { FileEditor } from "@/features/code/FileEditor";
-import { FileTree } from "@/features/code/FileTree";
+} from "@/shared/ui/sidebar";
+import { FileEditor } from "@/features/code";
+import { FileTree } from "@/features/code";
 import { AppSidebar } from "@/features/sidebar";
-import { useConfigStore } from "@/entities/configurations/store";
-import { getCodeServiceEnabled } from "@/entities/configurations/codeService";
+import { useConfigStore } from "@/entities/configurations";
+import { getCodeServiceEnabled } from "@/entities/configurations";
 
 export function CodePage() {
   const { configurations, fetchConfigs, isLoading } = useConfigStore();

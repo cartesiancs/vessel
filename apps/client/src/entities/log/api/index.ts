@@ -1,5 +1,5 @@
 import { apiClient } from "@/shared/api";
-import { LogContentResponse, LogFileListResponse } from "./types";
+import { LogContentResponse, LogFileListResponse } from "../model/types";
 
 export const getLatestLog = async (): Promise<LogContentResponse> => {
   const { data } = await apiClient.get<LogContentResponse>("/logs/latest");

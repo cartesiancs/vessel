@@ -1,18 +1,18 @@
 import React, { useEffect, useState } from "react";
 import { Outlet, useNavigate } from "react-router";
-import { WebSocketProvider } from "@/features/ws/WebSocketProvider";
-import { FlowUiEventBridge } from "@/features/ws/FlowUiEventBridge";
+import { WebSocketProvider } from "@/features/ws";
+import { FlowUiEventBridge } from "@/features/ws";
 import { TopBarWrapper } from "./TopBarWrapper";
-import { isDemoMode } from "@/shared/demo";
-import { storage } from "@/lib/storage";
+import { isDemoMode } from "@/shared/config/demo";
+import { storage } from "@/shared/lib/storage";
 import {
   ChatPanelContainer,
   useChatStore,
   PANEL_WIDTH,
 } from "@/features/llm-chat";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { useConfigStore } from "@/entities/configurations/store";
-import { isTauri, type SidecarStatus } from "@/shared/desktop";
+import { useIsMobile } from "@/shared/lib/hooks/use-mobile";
+import { useConfigStore } from "@/entities/configurations";
+import { isTauri, type SidecarStatus } from "@/shared/lib/desktop";
 
 export function AuthenticatedLayout() {
   const [wsUrl, setWsUrl] = useState<string | null>(null);

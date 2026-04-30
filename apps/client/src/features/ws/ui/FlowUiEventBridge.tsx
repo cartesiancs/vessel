@@ -4,9 +4,9 @@ import {
   getFlowRunSessionId,
   type FlowUiEventPayload,
   type WebSocketMessage,
-} from "./ws";
-import { createFlowUiEventRouter, mergeFlowUiAdapters } from "./flowUiEventRouter";
-import { toastFlowUiAdapter } from "./flowUiAdapters/toastFlowUiAdapter";
+} from "../lib/ws";
+import { createFlowUiEventRouter, mergeFlowUiAdapters } from "../lib/flowUiEventRouter";
+import { toastFlowUiAdapter } from "../lib/adapters/toastFlowUiAdapter";
 
 /** Subscribes once app-wide: routes `flow_ui_event` → adapters for this tab's session only. */
 export function FlowUiEventBridge() {

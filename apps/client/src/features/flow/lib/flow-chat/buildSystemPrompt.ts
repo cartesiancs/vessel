@@ -1,6 +1,6 @@
-import type { Node, Edge } from "@/features/flow/flowTypes";
-import type { Flow } from "@/entities/flow/types";
-import { DEFINITION_NODE } from "@/features/flow/flowNode";
+import type { Node, Edge } from "../../model/types";
+import type { Flow } from "@/entities/flow";
+import { DEFINITION_NODE } from "../flowNode";
 
 export function buildFlowSystemPrompt(
   currentNodes: Node[],

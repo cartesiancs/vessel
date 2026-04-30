@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/shared/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -8,12 +8,12 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+} from "@/shared/ui/dialog";
+import { Input } from "@/shared/ui/input";
+import { Label } from "@/shared/ui/label";
 import { PlusCircle } from "lucide-react";
-import { DevicePayload } from "@/entities/device/types";
-import { useDeviceStore } from "@/entities/device/store";
+import { DevicePayload } from "@/entities/device";
+import { useDeviceStore } from "@/entities/device";
 
 export function DeviceCreateButton() {
   const [isOpen, setIsOpen] = useState(false);

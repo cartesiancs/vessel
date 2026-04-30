@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/shared/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -8,24 +8,24 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+} from "@/shared/ui/dialog";
+import { Input } from "@/shared/ui/input";
+import { Label } from "@/shared/ui/label";
 import {
   Select,
   SelectContent,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/shared/ui/select";
 import { AlertCircleIcon, Pencil } from "lucide-react";
-import { useEntityStore } from "@/entities/entity/store";
-import { Entity, EntityPayload } from "@/entities/entity/types";
-import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
-import { JsonCodeEditor } from "../json/JsonEditor";
+import { useEntityStore } from "@/entities/entity";
+import { Entity, EntityPayload } from "@/entities/entity";
+import { DropdownMenuItem } from "@/shared/ui/dropdown-menu";
+import { JsonCodeEditor } from "../../json";
 import { EntitySelectTypes } from "./SelectTypes";
 import { EntitySelectPlatforms } from "./SelectPlatforms";
 import { toast } from "sonner";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "@/shared/ui/alert";
 
 interface Props {
   entity: Entity;

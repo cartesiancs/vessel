@@ -1,22 +1,22 @@
-import { Button } from "@/components/ui/button";
+import { Button } from "@/shared/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from "@/shared/ui/card";
 import { X, MapPin, TabletSmartphone, Server, Minus } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import { getDeviceById } from "@/entities/device/api";
-import { EntityAll } from "@/entities/entity/types";
-import { EntityCard } from "../entity/Card";
-import { useWebSocket, useWebSocketMessage } from "../ws/WebSocketProvider";
-import { WebSocketMessage } from "../ws/ws";
-import { ChangeStatePayload, StreamState } from "../entity/AllEntities";
-import * as api from "../../entities/entity/api";
-import { useMapEntityStore } from "./store";
-import { cn } from "@/lib/utils";
+import { getDeviceById } from "@/entities/device";
+import { EntityAll } from "@/entities/entity";
+import { EntityCard } from "../../entity";
+import { useWebSocket, useWebSocketMessage } from "../../ws";
+import { WebSocketMessage } from "../../ws";
+import { ChangeStatePayload, StreamState } from "../../entity";
+import * as api from "@/entities/entity";
+import { useMapEntityStore } from "../model/store";
+import { cn } from "@/shared/lib/utils";
 
 interface EntityDetailsPanelProps {
   isCollapsed: boolean;

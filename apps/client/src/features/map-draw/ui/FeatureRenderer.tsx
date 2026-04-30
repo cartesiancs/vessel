@@ -1,7 +1,7 @@
 import { CircleMarker, Polygon, Polyline } from "react-leaflet";
 import { LatLngExpression } from "leaflet";
-import { FeatureWithVertices } from "@/entities/map/types";
-import { useMapInteractionStore } from "@/entities/map/store";
+import { FeatureWithVertices } from "@/entities/map";
+import { useMapInteractionStore } from "@/entities/map";
 import { useMemo } from "react";
 
 interface FeatureRendererProps {

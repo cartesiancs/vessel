@@ -6,7 +6,7 @@ import {
   User,
 } from "lucide-react";
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/shared/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,18 +15,18 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@/shared/ui/dropdown-menu";
 import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
-} from "@/components/ui/sidebar";
-import { useLogout } from "../auth/hook";
+} from "@/shared/ui/sidebar";
+import { useLogout } from "../../auth";
 import { useEffect, useState } from "react";
-import { parseJwt } from "@/lib/jwt";
-import { isDemoMode } from "@/shared/demo";
-import { storage } from "@/lib/storage";
+import { parseJwt } from "@/shared/lib/jwt";
+import { isDemoMode } from "@/shared/config/demo";
+import { storage } from "@/shared/lib/storage";
 
 const openExternal = (url: string) => {
   import("@tauri-apps/plugin-shell")

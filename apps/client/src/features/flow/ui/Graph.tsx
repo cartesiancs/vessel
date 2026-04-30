@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import * as d3 from "d3";
 import { Plus, Minus, Lock, LockOpen, SquarePlus } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/shared/ui/button";
 import {
   GraphProps,
   Node,
@@ -9,7 +9,7 @@ import {
   Connector,
   NodeRenderer,
   NodeTypes,
-} from "./flowTypes";
+} from "../model/types";
 
 // import { renderButtonNode } from "./nodes/ButtonNode";
 import { renderTitleNode } from "./nodes/TitleNode";
@@ -23,21 +23,21 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@/shared/ui/dropdown-menu";
 import { renderProcessingNode } from "./nodes/ProcessingNode";
-import { getCustomNode, getDefalutNode } from "./flowUtils";
+import { getCustomNode, getDefalutNode } from "../lib/flowUtils";
 import { renderVarNode } from "./nodes/VarNode";
 import { renderCalcNode } from "./nodes/CalcNode";
 import { renderHttpNode } from "./nodes/HttpNode";
-import { formatConstantCase } from "@/lib/string";
+import { formatConstantCase } from "@/shared/lib/string";
 import { renderLogicNode } from "./nodes/LogicNode";
 import { renderIntervalNode } from "./nodes/IntervalNode";
 import { renderMQTTNode } from "./nodes/MQTTNode";
 import { renderButtonNode } from "./nodes/ButtonNode";
 import { zoomIdentity } from "d3-zoom";
 import { AddCustomNode } from "./AddCustomNode";
-import { useCustomNodeStore } from "@/entities/custom-nodes/store";
-import { useIntegrationStore } from "@/entities/integrations/store";
+import { useCustomNodeStore } from "@/entities/custom-nodes";
+import { useIntegrationStore } from "@/entities/integrations";
 import { SelectedItemActions } from "./SelectedItemActions";
 
 type NodeGroup = {

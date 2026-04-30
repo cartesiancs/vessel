@@ -7,15 +7,15 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
+} from "@/shared/ui/breadcrumb";
 import {
   SidebarInset,
   SidebarProvider,
   SidebarTrigger,
-} from "@/components/ui/sidebar";
+} from "@/shared/ui/sidebar";
 import { AppSidebar } from "@/features/sidebar";
-import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/shared/ui/separator";
+import { Badge } from "@/shared/ui/badge";
 import { Globe, Radio, Bluetooth, Zap } from "lucide-react";
 
 function useOnlineStatus() {

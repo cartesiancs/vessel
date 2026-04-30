@@ -1,5 +1,5 @@
 import { apiClient } from "@/shared/api";
-import type { Device, DevicePayload, DeviceWithEntity } from "./types";
+import type { Device, DevicePayload, DeviceWithEntity } from "../model/types";
 
 export const getDevices = () => apiClient.get<Device[]>("/devices");
 export const getDeviceById = (pk_id: number) =>

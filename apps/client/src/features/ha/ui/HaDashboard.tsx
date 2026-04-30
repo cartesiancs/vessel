@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
-import { useHaStore } from "@/entities/ha/store";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useHaStore } from "@/entities/ha";
+import { Alert, AlertDescription, AlertTitle } from "@/shared/ui/alert";
 import { Loader2, AlertTriangle } from "lucide-react";
 import { HaStatBlock } from "./HaStatBlock";
 import { HaEntitiesTable } from "./HaEntitiesTable";

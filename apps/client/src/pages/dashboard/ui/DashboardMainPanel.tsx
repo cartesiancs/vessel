@@ -1,9 +1,9 @@
-import { AllEntities } from "@/features/entity/AllEntities";
+import { AllEntities } from "@/features/entity";
 import StatBlock from "@/features/stat";
-import ResourceUsage from "@/features/server-resource/resourceUsage";
+import ResourceUsage from "@/features/server-resource";
 import { HaDashboard } from "@/features/ha";
-import { SdrDashboard } from "@/features/sdr/SdrDashboard";
-import { Ros2Dashboard } from "@/features/ros2/Ros2Dashboard";
+import { SdrDashboard } from "@/features/sdr";
+import { Ros2Dashboard } from "@/features/ros2";
 
 export type DashboardMainPanelContentView = "main" | "ha" | "ros2" | "sdr";
 

@@ -7,41 +7,41 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+} from "@/shared/ui/alert-dialog";
 import {
   Breadcrumb,
   BreadcrumbItem,
   BreadcrumbLink,
   BreadcrumbList,
   BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
-import { Button } from "@/components/ui/button";
+} from "@/shared/ui/breadcrumb";
+import { Button } from "@/shared/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from "@/shared/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
-import { SidebarTrigger } from "@/components/ui/sidebar";
+} from "@/shared/ui/dropdown-menu";
+import { Input } from "@/shared/ui/input";
+import { Label } from "@/shared/ui/label";
+import { Separator } from "@/shared/ui/separator";
+import { SidebarTrigger } from "@/shared/ui/sidebar";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { useDynamicDashboardStore } from "@/entities/dynamic-dashboard/store";
-import { useIntegrationStore } from "@/entities/integrations/store";
+} from "@/shared/ui/select";
+import { useDynamicDashboardStore } from "@/entities/dynamic-dashboard";
+import { useIntegrationStore } from "@/entities/integrations";
 import { MoreVertical, Pencil, Plus, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import {

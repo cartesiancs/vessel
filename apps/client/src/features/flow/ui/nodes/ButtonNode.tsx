@@ -1,4 +1,4 @@
-import { Node } from "../flowTypes";
+import { Node } from "../../model/types";
 
 export function renderButtonNode(
   g: d3.Selection<SVGGElement, Node, null, undefined>,

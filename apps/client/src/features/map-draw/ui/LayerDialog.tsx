@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+import { Button } from "@/shared/ui/button";
 import {
   DialogHeader,
   DialogFooter,
@@ -6,11 +6,11 @@ import {
   Dialog,
   DialogContent,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useMapDataStore } from "@/entities/map/store";
-import { MapLayer, LayerPayload } from "@/entities/map/types";
+} from "@/shared/ui/dialog";
+import { Input } from "@/shared/ui/input";
+import { Label } from "@/shared/ui/label";
+import { useMapDataStore } from "@/entities/map";
+import { MapLayer, LayerPayload } from "@/entities/map";
 import { useState, useEffect, useCallback } from "react";
 
 interface LayerDialogProps {

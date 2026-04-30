@@ -1,5 +1,5 @@
-import { Button } from "@/components/ui/button";
-import { useIdeStore } from "@/entities/file/store";
+import { Button } from "@/shared/ui/button";
+import { useIdeStore } from "@/entities/file";
 import Editor, { loader } from "@monaco-editor/react";
 import { Loader2 } from "lucide-react";
 import * as monaco from "monaco-editor";

@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { HaStateStore } from "./types";
-import { fetchAllHaStates } from "./api";
+import { fetchAllHaStates } from "../api";
 
 export const useHaStore = create<HaStateStore>((set) => ({
   states: [],

@@ -1,4 +1,4 @@
-import type { DashboardComponentEventPayload } from "@/entities/dynamic-dashboard/interaction";
+import type { DashboardComponentEventPayload } from "@/entities/dynamic-dashboard";
 
 /** Flow-driven UI events (toast, etc.); client should filter by `target.session_id`. */
 export type FlowUiEventPayload = {

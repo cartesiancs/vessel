@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+import { Button } from "@/shared/ui/button";
 import { Trash2 } from "lucide-react";
 
 type SelectedElement = {

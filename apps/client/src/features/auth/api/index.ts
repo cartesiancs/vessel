@@ -1,5 +1,5 @@
 import { apiClient } from "@/shared/api";
-import { User } from "@/entities/user/types";
+import { User } from "@/entities/user";
 
 export type AuthCredentials = {
   id: string;

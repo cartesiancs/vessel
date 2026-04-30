@@ -4,10 +4,10 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from "@/shared/ui/card";
 import { useCallback, useEffect, useState } from "react";
-import { useWebSocket, useWebSocketMessage } from "../ws/WebSocketProvider";
-import { WebSocketMessage } from "../ws/ws";
+import { useWebSocket, useWebSocketMessage } from "../../ws";
+import { WebSocketMessage } from "../../ws";
 
 export default function ResourceUsage() {
   const { wsManager } = useWebSocket();

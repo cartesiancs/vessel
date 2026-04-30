@@ -1,10 +1,10 @@
 import { Fragment } from "react";
-// import { EntityAll } from "@/entities/entity/types";
+// import { EntityAll } from "@/entities/entity";
 import { EntityCard } from "./Card";
 import {
   // StreamState,
   useEntitiesData,
-} from "@/features/entity/useEntitiesData";
+} from "@/features/entity";
 
 export function AllEntities() {
   const { entities, streamsState } = useEntitiesData();

@@ -15,16 +15,16 @@ import {
   createNewFolder,
   renameEntry,
   deleteEntry,
-} from "@/entities/file/api";
+} from "@/entities/file";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Button } from "@/shared/ui/button";
+import { Input } from "@/shared/ui/input";
 import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuTrigger,
-} from "@/components/ui/context-menu";
+} from "@/shared/ui/context-menu";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,9 +34,9 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { useFileTreeStore, useIdeStore } from "@/entities/file/store";
-import { DirEntry } from "@/entities/file/types";
+} from "@/shared/ui/alert-dialog";
+import { useFileTreeStore, useIdeStore } from "@/entities/file";
+import { DirEntry } from "@/entities/file";
 import { CreateItemDialog } from "./CreateItemDialog";
 
 interface TreeNodeProps {

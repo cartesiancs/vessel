@@ -1,5 +1,5 @@
 import { apiClient } from "@/shared/api";
-import { CustomNodeDynamicData, CustomNodeFromApi } from "./types";
+import { CustomNodeDynamicData, CustomNodeFromApi } from "../model/types";
 
 export const getAllCustomNodes = async (): Promise<CustomNodeFromApi[]> => {
   const response = await apiClient.get("/custom-nodes");

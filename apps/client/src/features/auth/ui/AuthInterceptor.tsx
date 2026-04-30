@@ -1,8 +1,8 @@
 import { useEffect } from "react";
 import { Navigate, useLocation } from "react-router";
-import { parseJwt } from "@/lib/jwt";
-import { storage } from "@/lib/storage";
-import { isDemoMode } from "@/shared/demo";
+import { parseJwt } from "@/shared/lib/jwt";
+import { storage } from "@/shared/lib/storage";
+import { isDemoMode } from "@/shared/config/demo";
 
 export function AuthInterceptor({ children }: { children: React.ReactNode }) {
   const location = useLocation();

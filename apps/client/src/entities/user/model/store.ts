@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { getUsers, createUser, updateUser, deleteUser } from "./api";
+import { getUsers, createUser, updateUser, deleteUser } from "../api";
 import { User, CreateUserPayload, UpdateUserPayload } from "./types";
 
 type UserState = {

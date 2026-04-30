@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import { useNavigate } from "react-router";
-import { storage } from "@/lib/storage";
-import { hardNavigateToDashboard } from "@/lib/resetStores";
+import { storage } from "@/shared/lib/storage";
+import { hardNavigateToDashboard } from "@/shared/lib/resetStores";
 
 export const useLogout = () => {
   const navigate = useNavigate();

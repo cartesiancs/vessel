@@ -1,4 +1,4 @@
-import type { FlowUiEventPayload } from "@/features/ws/ws";
+import type { FlowUiEventPayload } from "./ws";
 
 export type FlowUiEventAdapter = (payload: FlowUiEventPayload) => void;
 

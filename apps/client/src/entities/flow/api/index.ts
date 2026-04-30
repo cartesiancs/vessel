@@ -1,5 +1,5 @@
 import { apiClient } from "@/shared/api";
-import { Flow, FlowPayload, FlowVersion, FlowVersionPayload } from "./types";
+import { Flow, FlowPayload, FlowVersion, FlowVersionPayload } from "../model/types";
 
 export const getFlows = async (): Promise<Flow[]> => {
   const { data } = await apiClient.get<Flow[]>("/flows");

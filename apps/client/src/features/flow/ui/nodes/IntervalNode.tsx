@@ -1,4 +1,4 @@
-import { IntervalNodeType, Node } from "../flowTypes";
+import { IntervalNodeType, Node } from "../../model/types";
 
 export function renderIntervalNode(
   g: d3.Selection<SVGGElement, Node, null, undefined>,

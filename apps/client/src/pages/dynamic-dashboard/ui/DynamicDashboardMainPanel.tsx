@@ -1,7 +1,7 @@
 import { useMemo } from "react";
-import { useDynamicDashboardStore } from "@/entities/dynamic-dashboard/store";
-import { GroupCanvas } from "@/features/dynamic-dashboard/GroupCanvas";
-import { useEntitiesData } from "@/features/entity/useEntitiesData";
+import { useDynamicDashboardStore } from "@/entities/dynamic-dashboard";
+import { GroupCanvas } from "@/features/dynamic-dashboard";
+import { useEntitiesData } from "@/features/entity";
 
 type DynamicDashboardMainPanelProps = {
   /** Which dashboard this column renders (store order / swipe order). */

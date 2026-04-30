@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { EntityAll } from "@/entities/entity/types";
+import type { EntityAll } from "@/entities/entity";
 
 interface MapEntityState {
   selectedEntity: EntityAll | null;

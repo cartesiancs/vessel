@@ -5,14 +5,14 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
+} from "@/shared/ui/card";
+import { Button } from "@/shared/ui/button";
+import { Input } from "@/shared/ui/input";
+import { Label } from "@/shared/ui/label";
+import { Badge } from "@/shared/ui/badge";
 import { Radio, Play, Square, Loader2 } from "lucide-react";
 import { SdrAudioPlayer } from "./SdrAudioPlayer";
-import * as sdrApi from "./api";
+import * as sdrApi from "../api";
 
 export function SdrDashboard() {
   const [frequencyMhz, setFrequencyMhz] = useState("100.0");

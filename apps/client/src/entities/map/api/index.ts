@@ -7,7 +7,7 @@ import {
   MapFeature,
   FeatureWithVertices,
   UpdateFeaturePayload,
-} from "./types";
+} from "../model/types";
 
 export const getAllLayers = async (): Promise<MapLayer[]> => {
   const response = await apiClient.get<MapLayer[]>("/map/layers");

@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { CustomNodeState } from "./types";
-import * as api from "./api";
+import * as api from "../api";
 
 // const parseNodeData = (nodeFromApi: CustomNodeFromApi): CustomNodeFromApi => {
 //   try {

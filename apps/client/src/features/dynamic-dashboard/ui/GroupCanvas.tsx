@@ -1,24 +1,24 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { resolveItemPositionOrNull } from "@/entities/dynamic-dashboard/layoutResolve";
+import { Button } from "@/shared/ui/button";
+import { Card } from "@/shared/ui/card";
+import { resolveItemPositionOrNull } from "@/entities/dynamic-dashboard";
 import {
   DashboardGroup,
   DashboardItem,
   useDynamicDashboardStore,
-} from "@/entities/dynamic-dashboard/store";
-import { EntityAll } from "@/entities/entity/types";
-import { StreamState } from "@/features/entity/useEntitiesData";
-import { EntityCard } from "@/features/entity/Card";
-import { StreamReceiver } from "@/features/rtc/StreamReceiver";
+} from "@/entities/dynamic-dashboard";
+import { EntityAll } from "@/entities/entity";
+import { StreamState } from "@/features/entity";
+import { EntityCard } from "@/features/entity";
+import { StreamReceiver } from "@/features/rtc";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from "@/shared/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,19 +27,19 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+} from "@/shared/ui/dropdown-menu";
+import { Input } from "@/shared/ui/input";
+import { Label } from "@/shared/ui/label";
 import { Plus, X } from "lucide-react";
-import { useSidebar } from "@/components/ui/sidebar";
-import { useFlowStore } from "@/entities/flow/store";
-import { useMapDataStore } from "@/entities/map/store";
+import { useSidebar } from "@/shared/ui/sidebar";
+import { useFlowStore } from "@/entities/flow";
+import { useMapDataStore } from "@/entities/map";
 import { MapPanel } from "./panels/MapPanel";
 import { FlowPanel } from "./panels/FlowPanel";
-import { useWebSocket } from "@/features/ws/WebSocketProvider";
-import { getFlowRunSessionId } from "@/features/ws/ws";
-import { createDashboardEventDispatcher } from "./events/dispatcher";
-import { isValidListenerId } from "@/entities/dynamic-dashboard/interaction";
+import { useWebSocket } from "@/features/ws";
+import { getFlowRunSessionId } from "@/features/ws";
+import { createDashboardEventDispatcher } from "../lib/events/dispatcher";
+import { isValidListenerId } from "@/entities/dynamic-dashboard";
 
 const isMapItem = (
   candidate: DashboardItem,

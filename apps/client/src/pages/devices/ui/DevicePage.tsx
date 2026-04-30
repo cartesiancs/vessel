@@ -7,22 +7,22 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
-import { Separator } from "@/components/ui/separator";
+} from "@/shared/ui/breadcrumb";
+import { Separator } from "@/shared/ui/separator";
 import {
   SidebarInset,
   SidebarProvider,
   SidebarTrigger,
-} from "@/components/ui/sidebar";
+} from "@/shared/ui/sidebar";
 import { AppSidebar } from "@/features/sidebar";
 import {
   INTEGRATION_DEVICE_ID,
   INTEGRATION_ENTITY_ID,
-} from "@/features/integration/constants";
-import { useDeviceStore } from "@/entities/device/store";
-import { useEntityStore } from "@/entities/entity/store";
-import { DeviceList } from "@/widgets/device-list/DeviceList";
-import { EntityList } from "@/widgets/entity-list/EntityList";
+} from "@/features/integration";
+import { useDeviceStore } from "@/entities/device";
+import { useEntityStore } from "@/entities/entity";
+import { DeviceList } from "@/widgets/device-list";
+import { EntityList } from "@/widgets/entity-list";
 
 export function DevicePage() {
   const [searchParams, setSearchParams] = useSearchParams();

@@ -1,11 +1,11 @@
-import { Button } from "@/components/ui/button";
-import { DialogFooter } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
+import { Button } from "@/shared/ui/button";
+import { DialogFooter } from "@/shared/ui/dialog";
+import { Input } from "@/shared/ui/input";
 import {
   User,
   CreateUserPayload,
   UpdateUserPayload,
-} from "@/entities/user/types";
+} from "@/entities/user";
 import { Label } from "@radix-ui/react-label";
 import { FC, useState } from "react";
 import { UserRoleAssigner } from "./UserRoleAssigner";

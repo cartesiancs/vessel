@@ -1,10 +1,10 @@
 import { Footer } from "@/features/footer";
 import { AppSidebar } from "@/features/sidebar";
-import { WebRTCProvider } from "@/features/rtc/WebRTCProvider";
+import { WebRTCProvider } from "@/features/rtc";
 import {
   SidebarInset,
   SidebarProvider,
-} from "@/components/ui/sidebar";
+} from "@/shared/ui/sidebar";
 import {
   DashboardMainPanel,
   type DashboardMainPanelContentView,
@@ -13,9 +13,9 @@ import {
   DynamicDashboardMainPanel,
   NewDynamicDashboardPanel,
 } from "@/pages/dynamic-dashboard";
-import type { DynamicDashboard } from "@/entities/dynamic-dashboard/store";
-import { useDynamicDashboardStore } from "@/entities/dynamic-dashboard/store";
-import { useIntegrationStore } from "@/entities/integrations/store";
+import type { DynamicDashboard } from "@/entities/dynamic-dashboard";
+import { useDynamicDashboardStore } from "@/entities/dynamic-dashboard";
+import { useIntegrationStore } from "@/entities/integrations";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router";
 import { DashboardSwipeHeader } from "./DashboardSwipeHeader";

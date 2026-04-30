@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { getPermissions } from "./api";
+import { getPermissions } from "../api";
 import { Permission } from "./types";
 
 type PermissionState = {

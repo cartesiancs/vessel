@@ -1,6 +1,6 @@
 import { useRef, useState, useCallback } from "react";
-import { cn } from "@/lib/utils";
-import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/shared/lib/utils";
+import { Skeleton } from "@/shared/ui/skeleton";
 
 interface Frame {
   timeMs: number;

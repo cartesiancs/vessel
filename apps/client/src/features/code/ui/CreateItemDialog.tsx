@@ -5,9 +5,9 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+} from "@/shared/ui/dialog";
+import { Input } from "@/shared/ui/input";
+import { Button } from "@/shared/ui/button";
 
 interface CreateItemDialogProps {
   isOpen: boolean;

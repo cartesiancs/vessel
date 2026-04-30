@@ -1,4 +1,4 @@
-import { EntityAll } from "../entity/types";
+import { EntityAll } from "../../entity/model/types";
 
 export interface Device {
   id: number;

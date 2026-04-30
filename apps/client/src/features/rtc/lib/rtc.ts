@@ -1,4 +1,4 @@
-import { WebSocketChannel, WebSocketMessage } from "../ws/ws";
+import { WebSocketChannel, WebSocketMessage } from "../../ws";
 
 export interface WebRTCConfig {
   iceServers: RTCIceServer[];

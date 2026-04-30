@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import * as mapApi from "./api";
+import * as mapApi from "../api";
 import {
   MapDataState,
   MapInteractionState,

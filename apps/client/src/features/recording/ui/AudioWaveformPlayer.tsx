@@ -1,8 +1,8 @@
 import { useRef, useState, useEffect, useCallback } from "react";
-import { cn } from "@/lib/utils";
-import { Skeleton } from "@/components/ui/skeleton";
-import { useMediaPlayback } from "../hooks/useMediaPlayback";
-import { useAudioWaveform } from "../hooks/useAudioWaveform";
+import { cn } from "@/shared/lib/utils";
+import { Skeleton } from "@/shared/ui/skeleton";
+import { useMediaPlayback } from "../model/useMediaPlayback";
+import { useAudioWaveform } from "../model/useAudioWaveform";
 import { PlaybackControls } from "./PlaybackControls";
 import { WaveformCanvas } from "./WaveformCanvas";
 import { TimeRuler } from "./TimeRuler";

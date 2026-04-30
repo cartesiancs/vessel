@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { Eye, Loader2 } from "lucide-react";
-import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
-import { useWebRTC } from "../rtc/WebRTCProvider";
-import { captureFrameFromStream } from "../rtc/captureFrame";
-import { useChatStore } from "../llm-chat/store";
-import { cn } from "@/lib/utils";
+import { DropdownMenuItem } from "@/shared/ui/dropdown-menu";
+import { useWebRTC } from "../../rtc";
+import { captureFrameFromStream } from "../../rtc";
+import { useChatStore } from "../../llm-chat";
+import { cn } from "@/shared/lib/utils";
 
 interface AnalyzeMenuItemProps {
   topic: string;

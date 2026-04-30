@@ -6,14 +6,14 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
+} from "@/shared/ui/breadcrumb";
+import { Button } from "@/shared/ui/button";
+import { Separator } from "@/shared/ui/separator";
 import {
   SidebarInset,
   SidebarProvider,
   SidebarTrigger,
-} from "@/components/ui/sidebar";
+} from "@/shared/ui/sidebar";
 import { AppSidebar } from "@/features/sidebar";
 import { ArrowRight, Check, Circle, Loader2 } from "lucide-react";
 import { initialSetupSteps, SetupStep } from "@/features/setup";

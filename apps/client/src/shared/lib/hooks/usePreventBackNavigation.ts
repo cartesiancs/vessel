@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 
-import { isTauri } from "@/shared/desktop";
+import { isTauri } from "@/shared/lib/desktop";
 
 const isBackspaceAllowed = (event: KeyboardEvent) => {
   const path = event.composedPath();

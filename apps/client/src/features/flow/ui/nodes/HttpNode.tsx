@@ -1,4 +1,4 @@
-import { HTTPRequestNodeType, Node } from "../flowTypes";
+import { HTTPRequestNodeType, Node } from "../../model/types";
 
 export function renderHttpNode(
   g: d3.Selection<SVGGElement, Node, null, undefined>,

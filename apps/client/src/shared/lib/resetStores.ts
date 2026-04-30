@@ -1,6 +1,6 @@
-import { useDynamicDashboardStore } from "@/entities/dynamic-dashboard/store";
-import { useIntegrationStore } from "@/entities/integrations/store";
-import { useConfigStore } from "@/entities/configurations/store";
+import { useDynamicDashboardStore } from "@/entities/dynamic-dashboard";
+import { useIntegrationStore } from "@/entities/integrations";
+import { useConfigStore } from "@/entities/configurations";
 
 /**
  * Wipe in-memory zustand caches that are scoped to the active server.

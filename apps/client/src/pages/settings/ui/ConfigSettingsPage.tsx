@@ -7,12 +7,12 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
+} from "@/shared/ui/breadcrumb";
 import {
   SidebarInset,
   SidebarProvider,
   SidebarTrigger,
-} from "@/components/ui/sidebar";
+} from "@/shared/ui/sidebar";
 import { AppSidebar } from "@/features/sidebar";
 import {
   Table,
@@ -21,12 +21,12 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { ConfigurationCreateButton } from "@/features/configurations/ConfigurationCreateButton";
-import { ConfigurationActionButton } from "@/features/configurations/ConfigurationActionButton";
-import { Separator } from "@/components/ui/separator";
-import { useConfigStore } from "@/entities/configurations/store";
+} from "@/shared/ui/table";
+import { Badge } from "@/shared/ui/badge";
+import { ConfigurationCreateButton } from "@/features/configurations";
+import { ConfigurationActionButton } from "@/features/configurations";
+import { Separator } from "@/shared/ui/separator";
+import { useConfigStore } from "@/entities/configurations";
 
 export function ConfigSettingsPage() {
   const { configurations, fetchConfigs, isLoading, error } = useConfigStore();

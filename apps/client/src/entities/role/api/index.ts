@@ -1,5 +1,5 @@
 import { apiClient } from "@/shared/api";
-import { Role, CreateRolePayload, UpdateRolePayload } from "./types";
+import { Role, CreateRolePayload, UpdateRolePayload } from "../model/types";
 
 export const getRoles = () => apiClient.get<Role[]>("/roles");
 export const createRole = (data: CreateRolePayload) =>

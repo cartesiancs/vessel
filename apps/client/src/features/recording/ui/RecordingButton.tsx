@@ -1,15 +1,15 @@
 import { useEffect, useState } from "react";
 import { Circle, Square, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { useRecordingStore } from "@/entities/recording/store";
-import { cn } from "@/lib/utils";
+import { Button } from "@/shared/ui/button";
+import { useRecordingStore } from "@/entities/recording";
+import { cn } from "@/shared/lib/utils";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+} from "@/shared/ui/tooltip";
+import { DropdownMenuItem } from "@/shared/ui/dropdown-menu";
 
 interface RecordingButtonProps {
   topic: string;

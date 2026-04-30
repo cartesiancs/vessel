@@ -1,4 +1,4 @@
-import { Permission } from "@/entities/permission/types";
+import { Permission } from "@/entities/permission";
 
 export type Role = {
   id: number;

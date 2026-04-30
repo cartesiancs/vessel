@@ -2,10 +2,10 @@ import { useState } from "react";
 import { Plus, ChevronLeft, MoreHorizontal } from "lucide-react";
 
 import { LayerDialog } from "./LayerDialog";
-import { useMapDataStore } from "@/entities/map/store";
-import { MapLayer } from "@/entities/map/types";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { useMapDataStore } from "@/entities/map";
+import { MapLayer } from "@/entities/map";
+import { Button } from "@/shared/ui/button";
+import { cn } from "@/shared/lib/utils";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -15,14 +15,14 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+} from "@/shared/ui/alert-dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@/shared/ui/dropdown-menu";
 
 type LayerDialogState =
   | { kind: "closed" }

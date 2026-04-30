@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ConfigurationCreate } from "./ConfigurationCreate";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/shared/ui/button";
 import { PlusCircle } from "lucide-react";
 
 export function ConfigurationCreateButton() {

@@ -1,22 +1,22 @@
 import { useState } from "react";
-import { EntityAll } from "@/entities/entity/types";
+import { EntityAll } from "@/entities/entity";
 import {
   Card,
   CardHeader,
   CardDescription,
   CardTitle,
   CardFooter,
-} from "@/components/ui/card";
+} from "@/shared/ui/card";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
+} from "@/shared/ui/dropdown-menu";
+import { Button } from "@/shared/ui/button";
 import { MoreVertical } from "lucide-react";
-import { formatSimpleDateTime } from "@/lib/time";
-import { StreamReceiver } from "../rtc/StreamReceiver";
-import { RecordingMenuItem } from "../recording/RecordingButton";
+import { formatSimpleDateTime } from "@/shared/lib/time";
+import { StreamReceiver } from "../../rtc";
+import { RecordingMenuItem } from "../../recording";
 import { AnalyzeMenuItem } from "./AnalyzeMenuItem";
 import { StateHistorySheet } from "./StateHistorySheet";
 import { useNavigate } from "react-router";

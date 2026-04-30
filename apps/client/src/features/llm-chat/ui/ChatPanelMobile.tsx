@@ -1,12 +1,12 @@
-import { Button } from "@/components/ui/button";
+import { Button } from "@/shared/ui/button";
 import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
-} from "@/components/ui/sheet";
+} from "@/shared/ui/sheet";
 import { TrashIcon, MessageSquareIcon } from "lucide-react";
-import { useChatStore } from "./store";
+import { useChatStore } from "../model/store";
 import { ChatMessages } from "./ChatMessages";
 import { ChatInput } from "./ChatInput";
 

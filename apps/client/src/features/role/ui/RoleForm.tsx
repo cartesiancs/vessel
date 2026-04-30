@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+import { Button } from "@/shared/ui/button";
 import {
   Command,
   CommandEmpty,
@@ -6,23 +6,23 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from "@/components/ui/command";
-import { DialogFooter } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+} from "@/shared/ui/command";
+import { DialogFooter } from "@/shared/ui/dialog";
+import { Input } from "@/shared/ui/input";
+import { Label } from "@/shared/ui/label";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover";
-import { usePermissionStore } from "@/entities/permission/store";
-import { Permission } from "@/entities/permission/types";
+} from "@/shared/ui/popover";
+import { usePermissionStore } from "@/entities/permission";
+import { Permission } from "@/entities/permission";
 import {
   CreateRolePayload,
   Role,
   UpdateRolePayload,
-} from "@/entities/role/types";
-import { cn } from "@/lib/utils";
+} from "@/entities/role";
+import { cn } from "@/shared/lib/utils";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { FC, useEffect, useState } from "react";
 

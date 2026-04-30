@@ -1,11 +1,11 @@
-import { getAllEntitiesFilter } from "@/entities/entity/api";
-import { EntityAll } from "@/entities/entity/types";
+import { getAllEntitiesFilter } from "@/entities/entity";
+import { EntityAll } from "@/entities/entity";
 import L from "leaflet";
 import { MapPin } from "lucide-react";
 import { useState, useEffect, createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { parseGpsState } from "../gps/parseGps";
-import { useMapEntityStore } from "./store";
+import { parseGpsState } from "../../gps";
+import { useMapEntityStore } from "../model/store";
 import { Marker } from "react-leaflet";
 
 const MARKER_W = 32;

@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import type { DashboardItemDataMap } from "@/entities/dynamic-dashboard/store";
-import { isValidListenerId } from "@/entities/dynamic-dashboard/interaction";
+import { Input } from "@/shared/ui/input";
+import { Label } from "@/shared/ui/label";
+import type { DashboardItemDataMap } from "@/entities/dynamic-dashboard";
+import { isValidListenerId } from "@/entities/dynamic-dashboard";
 
 type ButtonPanelProps = {
   data?: DashboardItemDataMap["button"];

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useMemo } from "react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/shared/ui/button";
 import { useWebRTC } from "./WebRTCProvider";
-import { WebRTCManager } from "./rtc";
+import { WebRTCManager } from "../lib/rtc";
 import { AudioLevelBar } from "./AudioLevelBar";
 
 type StreamReceiverProps = {

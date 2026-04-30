@@ -4,17 +4,17 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { useUserStore } from "@/entities/user/store";
+} from "@/shared/ui/dialog";
+import { useUserStore } from "@/entities/user";
 import {
   User,
   UpdateUserPayload,
   CreateUserPayload,
-} from "@/entities/user/types";
+} from "@/entities/user";
 import { Edit } from "lucide-react";
 import { FC, useState } from "react";
 import { UserForm } from "./userForm";
-import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { DropdownMenuItem } from "@/shared/ui/dropdown-menu";
 
 interface EditUserProps {
   user: User;

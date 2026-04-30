@@ -1,4 +1,4 @@
-import { DirEntry } from "./types";
+import { DirEntry } from "../model/types";
 import { apiClient } from "@/shared/api";
 
 export const getDirectoryListing = async (

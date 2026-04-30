@@ -1,4 +1,4 @@
-import { FeatureWithVertices } from "@/entities/map/types";
+import { FeatureWithVertices } from "@/entities/map";
 
 interface GeometryProperties {
   location?: string;

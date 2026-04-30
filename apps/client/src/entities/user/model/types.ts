@@ -1,4 +1,4 @@
-import { Role } from "../role/types";
+import { Role } from "../../role/model/types";
 
 export type User = {
   id: number;

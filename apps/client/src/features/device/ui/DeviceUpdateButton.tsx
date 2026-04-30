@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/shared/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -8,13 +8,13 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+} from "@/shared/ui/dialog";
+import { Input } from "@/shared/ui/input";
+import { Label } from "@/shared/ui/label";
 import { Pencil } from "lucide-react";
-import { useDeviceStore } from "@/entities/device/store";
-import { Device, DevicePayload } from "@/entities/device/types";
-import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { useDeviceStore } from "@/entities/device";
+import { Device, DevicePayload } from "@/entities/device";
+import { DropdownMenuItem } from "@/shared/ui/dropdown-menu";
 
 interface Props {
   device: Device;

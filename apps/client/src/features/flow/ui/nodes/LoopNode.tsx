@@ -1,4 +1,4 @@
-import { LoopNodeType, Node } from "../flowTypes";
+import { LoopNodeType, Node } from "../../model/types";
 
 export function renderLoopNode(
   g: d3.Selection<SVGGElement, Node, null, undefined>,

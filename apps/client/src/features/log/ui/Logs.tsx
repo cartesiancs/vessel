@@ -2,18 +2,18 @@ import {
   getLatestLog,
   getLogFileList,
   getLogByFilename,
-} from "@/entities/log/api";
+} from "@/entities/log";
 import { useEffect, useState } from "react";
 import {
   ResizablePanelGroup,
   ResizablePanel,
   ResizableHandle,
-} from "@/components/ui/resizable";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+} from "@/shared/ui/resizable";
+import { ScrollArea } from "@/shared/ui/scroll-area";
+import { Button } from "@/shared/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
+import { Skeleton } from "@/shared/ui/skeleton";
+import { Alert, AlertDescription, AlertTitle } from "@/shared/ui/alert";
 import { Terminal } from "lucide-react";
 
 export function Logs() {

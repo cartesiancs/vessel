@@ -6,8 +6,8 @@ import {
   CapsuleRateLimitError,
 } from "@vessel/capsule-client";
 import type { HistoryMessage, ToolCallResult } from "@vessel/capsule-client";
-import { supabase } from "@/lib/supabase";
-import { storage } from "@/lib/storage";
+import { supabase } from "@/shared/lib/supabase";
+import { storage } from "@/shared/lib/storage";
 import type { ChatMessage, ChatPanelState } from "./types";
 
 function generateId(): string {

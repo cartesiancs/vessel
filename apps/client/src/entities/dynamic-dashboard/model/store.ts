@@ -1,6 +1,6 @@
 import { create } from "zustand";
-import * as api from "./api";
-import { clampItemPosition, itemsCollide } from "./layoutResolve";
+import * as api from "../api";
+import { clampItemPosition, itemsCollide } from "../lib/layoutResolve";
 
 export type DashboardItemType =
   | "entity-card"

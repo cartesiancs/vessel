@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/shared/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -9,13 +9,13 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
+} from "@/shared/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@/shared/ui/dropdown-menu";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,16 +25,16 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
-import { useConfigStore } from "@/entities/configurations/store";
+} from "@/shared/ui/alert-dialog";
+import { Input } from "@/shared/ui/input";
+import { Label } from "@/shared/ui/label";
+import { Switch } from "@/shared/ui/switch";
+import { Textarea } from "@/shared/ui/textarea";
+import { useConfigStore } from "@/entities/configurations";
 import {
   SystemConfiguration,
   SystemConfigurationPayload,
-} from "@/entities/configurations/types";
+} from "@/entities/configurations";
 
 interface Props {
   config: SystemConfiguration;

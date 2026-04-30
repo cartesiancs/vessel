@@ -8,17 +8,17 @@ import {
   useMemo,
 } from "react";
 import { toast } from "sonner";
-import { useWebSocket } from "../ws/WebSocketProvider";
-import { WebRTCManager } from "./rtc";
-import { isDemoMode } from "@/shared/demo";
-import { WebSocketChannel } from "../ws/ws";
+import { useWebSocket } from "../../ws";
+import { WebRTCManager } from "../lib/rtc";
+import { isDemoMode } from "@/shared/config/demo";
+import { WebSocketChannel } from "../../ws";
 import {
   ensureIceServers,
   onCredentialChange,
   onTurnCredentialError,
   stopAutoRenewal,
   DEFAULT_ICE_SERVERS,
-} from "./turnService";
+} from "../lib/turnService";
 
 type StreamInfo = {
   stream: MediaStream;

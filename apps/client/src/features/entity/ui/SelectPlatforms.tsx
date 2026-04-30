@@ -1,4 +1,4 @@
-import { SelectItem } from "@/components/ui/select";
+import { SelectItem } from "@/shared/ui/select";
 
 export function EntitySelectPlatforms() {
   return (

@@ -1,6 +1,6 @@
-import { CustomNode, CustomNodeDynamicData } from "@/entities/custom-nodes/types";
+import { CustomNode, CustomNodeDynamicData } from "@/entities/custom-nodes";
 import { DEFINITION_NODE } from "./flowNode";
-import { NodeTypes, Node, DataNodeTypeType } from "./flowTypes";
+import { NodeTypes, Node, DataNodeTypeType } from "../model/types";
 
 export function getDefalutValue(type: NodeTypes, id: string) {
   const value = JSON.parse(JSON.stringify(DEFINITION_NODE[type]));

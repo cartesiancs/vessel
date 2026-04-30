@@ -5,18 +5,18 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
-import { Separator } from "@/components/ui/separator";
+} from "@/shared/ui/breadcrumb";
+import { Separator } from "@/shared/ui/separator";
 import {
   SidebarInset,
   SidebarProvider,
   SidebarTrigger,
   useSidebar,
-} from "@/components/ui/sidebar";
+} from "@/shared/ui/sidebar";
 import { MapView } from "@/features/map";
-import { LayerSidebar } from "@/features/map-draw/LayerSidebar";
-import { MapToolbar } from "@/features/map-draw/MapToolbar";
-import { WebRTCProvider } from "@/features/rtc/WebRTCProvider";
+import { LayerSidebar } from "@/features/map-draw";
+import { MapToolbar } from "@/features/map-draw";
+import { WebRTCProvider } from "@/features/rtc";
 import { AppSidebar } from "@/features/sidebar";
 
 export function MapLayout() {

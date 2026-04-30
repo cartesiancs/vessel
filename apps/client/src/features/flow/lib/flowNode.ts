@@ -1,4 +1,4 @@
-import { Node } from "./flowTypes";
+import { Node } from "../model/types";
 
 export type DefaultValueType = {
   connectors: Node["connectors"];

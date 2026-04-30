@@ -4,12 +4,12 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { useRecordingStore } from "@/entities/recording/store";
-import { getRecordingStreamUrl } from "@/entities/recording/api";
-import { storage } from "@/lib/storage";
-import { AudioWaveformPlayer } from "./components/AudioWaveformPlayer";
-import { VideoControlBar } from "./components/VideoControlBar";
+} from "@/shared/ui/dialog";
+import { useRecordingStore } from "@/entities/recording";
+import { getRecordingStreamUrl } from "@/entities/recording";
+import { storage } from "@/shared/lib/storage";
+import { AudioWaveformPlayer } from "./AudioWaveformPlayer";
+import { VideoControlBar } from "./VideoControlBar";
 
 interface VideoPlaybackDialogProps {
   recordingId: number | null;

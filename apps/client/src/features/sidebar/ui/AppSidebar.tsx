@@ -13,8 +13,8 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
   SidebarRail,
-} from "@/components/ui/sidebar";
-import { AccountSwitcher } from "../account-switcher";
+} from "@/shared/ui/sidebar";
+import { AccountSwitcher } from "../../account-switcher";
 import { useLocation, useNavigate } from "react-router";
 import {
   LayoutDashboard,
@@ -29,11 +29,11 @@ import {
   Video,
 } from "lucide-react";
 import { NavFooter } from "./footer";
-import { isElectron } from "@/lib/electron";
-import { useDynamicDashboardStore } from "@/entities/dynamic-dashboard/store";
-import { useIntegrationStore } from "@/entities/integrations/store";
-import { useConfigStore } from "@/entities/configurations/store";
-import { getCodeServiceEnabled } from "@/entities/configurations/codeService";
+import { isElectron } from "@/shared/lib/electron";
+import { useDynamicDashboardStore } from "@/entities/dynamic-dashboard";
+import { useIntegrationStore } from "@/entities/integrations";
+import { useConfigStore } from "@/entities/configurations";
+import { getCodeServiceEnabled } from "@/entities/configurations";
 import {
   ComponentProps,
   useCallback,

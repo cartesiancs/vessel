@@ -1,5 +1,5 @@
 import type { Tool, ToolCallResult } from "@vessel/capsule-client";
-import type { ToolExecutionResult } from "@/features/flow/flow-chat";
+import type { ToolExecutionResult } from "@/features/flow";
 
 export interface ChatMessageImage {
   /** Object URL for local preview (revoke after use) */

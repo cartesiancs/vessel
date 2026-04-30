@@ -1,6 +1,6 @@
 import { useRef, useEffect, useCallback } from "react";
 import * as d3 from "d3";
-import { cn } from "@/lib/utils";
+import { cn } from "@/shared/lib/utils";
 
 interface WaveformCanvasProps {
   waveformData: number[];

@@ -6,7 +6,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from "@/shared/ui/card";
 import {
   Table,
   TableBody,
@@ -14,19 +14,19 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from "@/shared/ui/table";
 import { Loader2, MoreHorizontal } from "lucide-react";
-import { useDeviceStore } from "@/entities/device/store";
-import { useEntityStore } from "@/entities/entity/store";
-import { EntityCreateButton } from "@/features/entity/EntityCreateButton";
-import { EntityDeleteButton } from "@/features/entity/EntityDeleteButton";
-import { EntityUpdateButton } from "@/features/entity/EntityUpdateButton";
+import { useDeviceStore } from "@/entities/device";
+import { useEntityStore } from "@/entities/entity";
+import { EntityCreateButton } from "@/features/entity";
+import { EntityDeleteButton } from "@/features/entity";
+import { EntityUpdateButton } from "@/features/entity";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
+} from "@/shared/ui/dropdown-menu";
+import { Button } from "@/shared/ui/button";
 
 export function EntityList() {
   const { selectedDevice } = useDeviceStore();

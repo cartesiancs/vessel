@@ -1,4 +1,4 @@
-import type { DashboardGroup, DashboardItem } from "./store";
+import type { DashboardGroup, DashboardItem } from "../model/store";
 
 /** Clamp top-left grid position to group bounds (matches store behavior). */
 export function clampItemPosition(

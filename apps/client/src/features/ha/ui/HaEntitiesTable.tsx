@@ -4,7 +4,7 @@ import {
   CardHeader,
   CardTitle,
   CardDescription,
-} from "@/components/ui/card";
+} from "@/shared/ui/card";
 import {
   Table,
   TableBody,
@@ -12,9 +12,9 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { HaState } from "@/entities/ha/types";
+} from "@/shared/ui/table";
+import { Badge } from "@/shared/ui/badge";
+import { HaState } from "@/entities/ha";
 
 interface HaEntitiesTableProps {
   states: HaState[];

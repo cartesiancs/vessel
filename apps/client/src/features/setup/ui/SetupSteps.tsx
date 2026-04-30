@@ -1,7 +1,7 @@
-import { getDevices } from "@/entities/device/api";
-import { getAllEntities } from "@/entities/entity/api";
-import { getFlows } from "@/entities/flow/api";
-import { getIntegrationStatus } from "@/entities/integrations/api";
+import { getDevices } from "@/entities/device";
+import { getAllEntities } from "@/entities/entity";
+import { getFlows } from "@/entities/flow";
+import { getIntegrationStatus } from "@/entities/integrations";
 
 export type SetupStep = {
   id: string;

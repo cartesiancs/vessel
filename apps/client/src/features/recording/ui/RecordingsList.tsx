@@ -5,7 +5,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from "@/shared/ui/card";
 import {
   Table,
   TableBody,
@@ -13,9 +13,9 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+} from "@/shared/ui/table";
+import { Button } from "@/shared/ui/button";
+import { Badge } from "@/shared/ui/badge";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,12 +26,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+} from "@/shared/ui/alert-dialog";
 import { Play, Trash2, Loader2, RefreshCw, Square } from "lucide-react";
-import { useRecordingStore } from "@/entities/recording/store";
+import { useRecordingStore } from "@/entities/recording";
 import { VideoPlaybackDialog } from "./VideoPlaybackDialog";
-import { formatSimpleDateTime } from "@/lib/time";
-import type { Recording } from "@/entities/recording/types";
+import { formatSimpleDateTime } from "@/shared/lib/time";
+import type { Recording } from "@/entities/recording";
 
 export function RecordingsList() {
   const {

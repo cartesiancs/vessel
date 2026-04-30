@@ -1,5 +1,5 @@
 import { apiClient } from "@/shared/api";
-import { User, CreateUserPayload, UpdateUserPayload } from "./types";
+import { User, CreateUserPayload, UpdateUserPayload } from "../model/types";
 
 export const getUsers = () => apiClient.get<User[]>("/users");
 export const createUser = (data: CreateUserPayload) =>

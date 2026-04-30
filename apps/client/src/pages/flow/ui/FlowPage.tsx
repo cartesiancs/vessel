@@ -6,23 +6,23 @@ import {
   BreadcrumbLink,
   BreadcrumbSeparator,
   BreadcrumbPage,
-} from "@/components/ui/breadcrumb";
-import { Separator } from "@/components/ui/separator";
+} from "@/shared/ui/breadcrumb";
+import { Separator } from "@/shared/ui/separator";
 import {
   SidebarInset,
   SidebarProvider,
   SidebarTrigger,
-} from "@/components/ui/sidebar";
-import Flow, { FlowHeader, FlowSidebar } from "@/features/flow/Flow";
+} from "@/shared/ui/sidebar";
+import Flow, { FlowHeader, FlowSidebar } from "@/features/flow";
 import { AppSidebar } from "@/features/sidebar";
 import { useBeforeUnload, useBlocker } from "react-router";
-import { useFlowStore } from "@/entities/flow/store";
+import { useFlowStore } from "@/entities/flow";
 import { useChatStore } from "@/features/llm-chat";
 import {
   buildFlowSystemPrompt,
   FLOW_TOOLS,
   executeFlowToolCalls,
-} from "@/features/flow/flow-chat";
+} from "@/features/flow";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -32,7 +32,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+} from "@/shared/ui/alert-dialog";
 
 const UNSAVED_FLOW_MESSAGE =
   "You have unsaved changes in this flow. Leave without saving?";

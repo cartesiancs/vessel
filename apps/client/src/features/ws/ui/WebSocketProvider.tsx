@@ -7,9 +7,9 @@ import React, {
   ReactNode,
   useRef,
 } from "react";
-import { WebSocketChannel, WebSocketMessage } from "../ws/ws";
-import { isDemoMode } from "@/shared/demo";
-import { MockWebSocketChannel } from "./wsMock";
+import { WebSocketChannel, WebSocketMessage } from "../lib/ws";
+import { isDemoMode } from "@/shared/config/demo";
+import { MockWebSocketChannel } from "../lib/wsMock";
 
 type WebSocketManager = WebSocketChannel | MockWebSocketChannel;
 

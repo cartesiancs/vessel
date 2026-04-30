@@ -7,16 +7,16 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
-import { Separator } from "@/components/ui/separator";
+} from "@/shared/ui/breadcrumb";
+import { Separator } from "@/shared/ui/separator";
 import {
   SidebarInset,
   SidebarProvider,
   SidebarTrigger,
-} from "@/components/ui/sidebar";
+} from "@/shared/ui/sidebar";
 
 import { AppSidebar } from "@/features/sidebar";
-import { Intergration } from "@/features/integration/Integration";
+import { Intergration } from "@/features/integration";
 
 export function IntegrationSettingsPage(): React.ReactElement {
   return (

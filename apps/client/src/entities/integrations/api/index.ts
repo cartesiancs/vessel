@@ -1,5 +1,5 @@
 import { apiClient } from "@/shared/api";
-import type { IntegrationStatus, IntegrationRegisterPayload } from "./types";
+import type { IntegrationStatus, IntegrationRegisterPayload } from "../model/types";
 
 export const getIntegrationStatus = () =>
   apiClient.get<IntegrationStatus>("/integrations/status");

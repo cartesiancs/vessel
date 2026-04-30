@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { getRoles, createRole, updateRole, deleteRole } from "./api";
+import { getRoles, createRole, updateRole, deleteRole } from "../api";
 import { Role, CreateRolePayload, UpdateRolePayload } from "./types";
 
 type RoleState = {

@@ -1,4 +1,4 @@
-import { LogicOpetatorNodeType, Node } from "../flowTypes";
+import { LogicOpetatorNodeType, Node } from "../../model/types";
 
 export function renderLogicNode(
   g: d3.Selection<SVGGElement, Node, null, undefined>,

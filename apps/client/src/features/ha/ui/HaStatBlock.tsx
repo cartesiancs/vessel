@@ -1,5 +1,5 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { HaState } from "@/entities/ha/types";
+import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
+import { HaState } from "@/entities/ha";
 import { Lightbulb, Power, Router, Thermometer } from "lucide-react";
 import React, { useMemo } from "react";
 

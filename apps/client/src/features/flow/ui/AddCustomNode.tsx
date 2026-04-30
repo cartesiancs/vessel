@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/shared/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -8,7 +8,7 @@ import {
   DialogTitle,
   DialogTrigger,
   DialogFooter,
-} from "@/components/ui/dialog";
+} from "@/shared/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -18,10 +18,10 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
+} from "@/shared/ui/alert-dialog";
+import { Input } from "@/shared/ui/input";
+import { Label } from "@/shared/ui/label";
+import { Badge } from "@/shared/ui/badge";
 import {
   Blocks,
   Edit,
@@ -30,12 +30,12 @@ import {
   Loader2,
   Download,
 } from "lucide-react";
-import { useCustomNodeStore } from "@/entities/custom-nodes/store";
+import { useCustomNodeStore } from "@/entities/custom-nodes";
 import {
   CustomNode,
   CustomNodeDynamicData,
   CustomNodeFromApi,
-} from "@/entities/custom-nodes/types";
+} from "@/entities/custom-nodes";
 import {
   RHAI_PRESETS,
   getPresetCategories,
@@ -43,9 +43,9 @@ import {
   presetToApiPayload,
   type RhaiPreset,
   type PresetCategory,
-} from "@/entities/custom-nodes/presets";
+} from "@/entities/custom-nodes";
 import { toast } from "sonner";
-import { JsonCodeEditor } from "../json/JsonEditor";
+import { JsonCodeEditor } from "../../json";
 
 function CustomNodeForm({
   onSubmit,

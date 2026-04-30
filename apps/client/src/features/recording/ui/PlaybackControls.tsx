@@ -1,6 +1,6 @@
 import { Play, Pause, Square } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { Button } from "@/shared/ui/button";
+import { cn } from "@/shared/lib/utils";
 
 interface PlaybackControlsProps {
   isPlaying: boolean;

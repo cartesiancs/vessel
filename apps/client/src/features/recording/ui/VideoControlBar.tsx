@@ -1,7 +1,7 @@
 import { useRef, useState, useEffect, useCallback, RefObject } from "react";
-import { cn } from "@/lib/utils";
-import { useMediaPlayback } from "../hooks/useMediaPlayback";
-import { useVideoFrames } from "../hooks/useVideoFrames";
+import { cn } from "@/shared/lib/utils";
+import { useMediaPlayback } from "../model/useMediaPlayback";
+import { useVideoFrames } from "../model/useVideoFrames";
 import { PlaybackControls } from "./PlaybackControls";
 import { FrameTimeline } from "./FrameTimeline";
 import { TimeRuler } from "./TimeRuler";

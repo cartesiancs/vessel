@@ -12,15 +12,15 @@ import {
   Palette,
   Minus,
 } from "lucide-react";
-import { useMapDataStore, useMapInteractionStore } from "@/entities/map/store";
-import { Button } from "@/components/ui/button";
+import { useMapDataStore, useMapInteractionStore } from "@/entities/map";
+import { Button } from "@/shared/ui/button";
 import {
   Card,
   CardContent,
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from "@/shared/ui/card";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,10 +30,10 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { cn } from "@/lib/utils";
-import { MapVertex, UpdateFeaturePayload } from "@/entities/map/types";
-import { calculateFeatureGeometry } from "@/lib/geometry-precision";
+} from "@/shared/ui/alert-dialog";
+import { cn } from "@/shared/lib/utils";
+import { MapVertex, UpdateFeaturePayload } from "@/entities/map";
+import { calculateFeatureGeometry } from "@/shared/lib/geometry-precision";
 
 const FeatureIcon = ({ type }: { type: string }) => {
   switch (type) {

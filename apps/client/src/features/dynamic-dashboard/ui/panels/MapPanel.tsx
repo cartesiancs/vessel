@@ -1,17 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
 import { MapContainer, TileLayer, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "@/shared/ui/badge";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { useMapDataStore, useMapInteractionStore } from "@/entities/map/store";
-import { FeatureRenderer } from "@/features/map-draw/FeatureRenderer";
-import { DashboardItemDataMap } from "@/entities/dynamic-dashboard/store";
+} from "@/shared/ui/select";
+import { useMapDataStore, useMapInteractionStore } from "@/entities/map";
+import { FeatureRenderer } from "@/features/map-draw";
+import { DashboardItemDataMap } from "@/entities/dynamic-dashboard";
 
 type MapPanelProps = {
   data?: DashboardItemDataMap["map"];

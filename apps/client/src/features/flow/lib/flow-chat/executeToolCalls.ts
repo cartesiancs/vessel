@@ -1,5 +1,5 @@
 import type { ToolCallResult } from "@vessel/capsule-client";
-import type { Node, Edge, DataNodeType } from "@/features/flow/flowTypes";
+import type { Node, Edge, DataNodeType } from "../../model/types";
 
 export interface ToolExecutionResult {
   toolCallId: string;

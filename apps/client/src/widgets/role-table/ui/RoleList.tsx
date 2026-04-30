@@ -1,10 +1,10 @@
-import { Button } from "@/components/ui/button";
+import { Button } from "@/shared/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@/shared/ui/dropdown-menu";
 import {
   Table,
   TableHeader,
@@ -12,17 +12,17 @@ import {
   TableHead,
   TableBody,
   TableCell,
-} from "@/components/ui/table";
-import { useRoleStore } from "@/entities/role/store";
-import { Role } from "@/entities/role/types";
+} from "@/shared/ui/table";
+import { useRoleStore } from "@/entities/role";
+import { Role } from "@/entities/role";
 import {
   AddRoleDialog,
   DeleteRoleDialog,
   EditRoleDialog,
-} from "@/features/role/RoleDialogs";
+} from "@/features/role";
 import { Edit, MoreHorizontal, PlusCircle, Trash2 } from "lucide-react";
 import { FC, useEffect, useState } from "react";
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "@/shared/ui/badge";
 
 export const RoleTable: FC = () => {
   const { roles, isLoading, error, fetchRoles } = useRoleStore();

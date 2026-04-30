@@ -9,11 +9,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+} from "@/shared/ui/alert-dialog";
 import { Trash2 } from "lucide-react";
-import { useDeviceStore } from "@/entities/device/store";
-import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
+import { useDeviceStore } from "@/entities/device";
+import { DropdownMenuItem } from "@/shared/ui/dropdown-menu";
+import { Button } from "@/shared/ui/button";
 
 interface Props {
   deviceId: number;

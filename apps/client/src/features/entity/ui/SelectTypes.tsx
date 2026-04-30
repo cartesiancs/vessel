@@ -1,4 +1,4 @@
-import { SelectItem } from "@/components/ui/select";
+import { SelectItem } from "@/shared/ui/select";
 import { Baseline, Database, Locate, Play } from "lucide-react";
 
 export function EntitySelectTypes() {

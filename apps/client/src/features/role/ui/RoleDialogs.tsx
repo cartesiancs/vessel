@@ -4,17 +4,17 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from "@/shared/ui/dialog";
 import {
   CreateRolePayload,
   Role,
   UpdateRolePayload,
-} from "@/entities/role/types";
+} from "@/entities/role";
 import { FC, useState } from "react";
 import { RoleForm } from "./RoleForm";
-import { Button } from "@/components/ui/button";
-import { DialogFooter } from "@/components/ui/dialog";
-import { useRoleStore } from "@/entities/role/store";
+import { Button } from "@/shared/ui/button";
+import { DialogFooter } from "@/shared/ui/dialog";
+import { useRoleStore } from "@/entities/role";
 
 // Add Role Dialog
 export const AddRoleDialog: FC<{

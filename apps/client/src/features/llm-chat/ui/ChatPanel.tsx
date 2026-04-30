@@ -1,8 +1,8 @@
-import { Button } from "@/components/ui/button";
+import { Button } from "@/shared/ui/button";
 import { XIcon, TrashIcon } from "lucide-react";
-import { isElectron } from "@/lib/electron";
-import { cn } from "@/lib/utils";
-import { useChatStore } from "./store";
+import { isElectron } from "@/shared/lib/electron";
+import { cn } from "@/shared/lib/utils";
+import { useChatStore } from "../model/store";
 import { ChatMessages } from "./ChatMessages";
 import { ChatInput } from "./ChatInput";
 

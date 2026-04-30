@@ -4,7 +4,7 @@ import {
   NavigationMenuLink,
   NavigationMenuList,
   navigationMenuTriggerStyle,
-} from "@/components/ui/navigation-menu";
+} from "@/shared/ui/navigation-menu";
 import { Link, useNavigate } from "react-router";
 import { useEffect } from "react";
 

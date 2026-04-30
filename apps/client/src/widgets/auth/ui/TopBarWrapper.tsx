@@ -1,7 +1,7 @@
 import { PageWrapper } from "@/app/pageWrapper/page-wrapper";
 import { ErrorRender } from "@/features/error";
 import { TopBar } from "@/features/topbar";
-import { isElectron } from "@/lib/electron";
+import { isElectron } from "@/shared/lib/electron";
 import { PropsWithChildren } from "react";
 import { ErrorBoundary } from "react-error-boundary";
 

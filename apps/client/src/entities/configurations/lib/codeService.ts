@@ -1,4 +1,4 @@
-import type { SystemConfiguration } from "./types";
+import type { SystemConfiguration } from "../model/types";
 
 export const CODE_SERVICE_CONFIG_KEY = "code_service_enabled";
 

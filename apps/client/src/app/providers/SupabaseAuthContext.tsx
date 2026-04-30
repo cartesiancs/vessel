@@ -7,7 +7,7 @@ import {
   type ReactNode,
 } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/shared/lib/supabase";
 
 const isTauri = (): boolean => {
   return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;

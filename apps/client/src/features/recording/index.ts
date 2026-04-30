@@ -1,3 +1,3 @@
-export { RecordingButton } from "./RecordingButton";
-export { RecordingsList } from "./RecordingsList";
-export { VideoPlaybackDialog } from "./VideoPlaybackDialog";
+export { RecordingButton, RecordingMenuItem } from "./ui/RecordingButton";
+export { RecordingsList } from "./ui/RecordingsList";
+export { VideoPlaybackDialog } from "./ui/VideoPlaybackDialog";

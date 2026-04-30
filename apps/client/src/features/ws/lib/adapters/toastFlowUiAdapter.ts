@@ -1,5 +1,5 @@
 import { toast } from "sonner";
-import type { FlowUiEventPayload, FlowUiEventToastData } from "@/features/ws/ws";
+import type { FlowUiEventPayload, FlowUiEventToastData } from "@/features/ws";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;

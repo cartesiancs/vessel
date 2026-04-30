@@ -1,21 +1,21 @@
 import React, { useEffect, useMemo, useState } from "react";
 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Button } from "@/shared/ui/button";
+import { Input } from "@/shared/ui/input";
+import { Label } from "@/shared/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { storage } from "@/lib/storage";
+} from "@/shared/ui/select";
+import { storage } from "@/shared/lib/storage";
 import {
   getServerAddress,
   type ServerAddress,
   updateServerAddress,
-} from "@/shared/desktop";
+} from "@/shared/lib/desktop";
 
 const HOST_PRESETS = [
   { value: "0.0.0.0", label: "0.0.0.0  (LAN / external access)" },

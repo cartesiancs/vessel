@@ -4,9 +4,9 @@ import "./index.css";
 import "./font.css";
 
 import App from "./App.tsx";
-import { ThemeProvider } from "./app/providers/theme-provider.tsx";
-import { Toaster } from "./components/ui/sonner.tsx";
-import { SupabaseAuthProvider } from "./contexts/SupabaseAuthContext.tsx";
+import { ThemeProvider } from "@/app/providers/theme-provider.tsx";
+import { Toaster } from "@/shared/ui/sonner.tsx";
+import { SupabaseAuthProvider } from "@/app/providers/SupabaseAuthContext.tsx";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

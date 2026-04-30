@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Copy, Check, Key, AlertTriangle, RefreshCw } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/shared/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -8,7 +8,7 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from "@/components/ui/dialog";
+} from "@/shared/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,9 +19,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { Badge } from "@/components/ui/badge";
-import { useDeviceTokenStore } from "@/entities/device-token/store";
+} from "@/shared/ui/alert-dialog";
+import { Badge } from "@/shared/ui/badge";
+import { useDeviceTokenStore } from "@/entities/device-token";
 
 interface Props {
   deviceId: number;

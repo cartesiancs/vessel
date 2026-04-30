@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { X, ChevronDown, ChevronUp, Terminal } from "lucide-react";
-import { useWebSocketMessage } from "../ws/WebSocketProvider";
-import { WebSocketMessage } from "../ws/ws";
+import { useWebSocketMessage } from "../../ws";
+import { WebSocketMessage } from "../../ws";
 
 export function FlowLog() {
   const [logMessages, setLogMessages] = useState<string[]>([]);

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 
-import { Button } from "@/components/ui/button";
+import { Button } from "@/shared/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -9,24 +9,24 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+} from "@/shared/ui/dialog";
+import { Input } from "@/shared/ui/input";
+import { Label } from "@/shared/ui/label";
 import { AlertCircleIcon, PlusCircle } from "lucide-react";
-import { useDeviceStore } from "@/entities/device/store";
-import { useEntityStore } from "@/entities/entity/store";
-import { EntityPayload } from "@/entities/entity/types";
+import { useDeviceStore } from "@/entities/device";
+import { useEntityStore } from "@/entities/entity";
+import { EntityPayload } from "@/entities/entity";
 import {
   Select,
   SelectContent,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { JsonCodeEditor } from "../json/JsonEditor";
+} from "@/shared/ui/select";
+import { JsonCodeEditor } from "../../json";
 import { EntitySelectTypes } from "./SelectTypes";
 import { EntitySelectPlatforms } from "./SelectPlatforms";
 import { toast } from "sonner";
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { Alert, AlertTitle, AlertDescription } from "@/shared/ui/alert";
 
 export function EntityCreateButton() {
   const [isOpen, setIsOpen] = useState(false);

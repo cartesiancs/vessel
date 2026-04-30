@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import * as api from "./api";
+import * as api from "../api";
 import type { SystemConfiguration, SystemConfigurationPayload } from "./types";
 
 interface ConfigState {

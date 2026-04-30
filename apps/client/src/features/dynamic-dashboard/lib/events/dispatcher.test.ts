@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { createDashboardEventDispatcher } from "./dispatcher";
-import { DASHBOARD_COMPONENT_EVENT_VERSION } from "@/entities/dynamic-dashboard/interaction";
+import { DASHBOARD_COMPONENT_EVENT_VERSION } from "@/entities/dynamic-dashboard";
 
 describe("createDashboardEventDispatcher", () => {
   const baseCtx = {

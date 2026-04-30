@@ -6,10 +6,10 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
+} from "@/shared/ui/dialog";
 import { Key } from "lucide-react";
-import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
-import { DeviceTokenManager } from "@/features/device-token/DeviceTokenManager";
+import { DropdownMenuItem } from "@/shared/ui/dropdown-menu";
+import { DeviceTokenManager } from "@/features/device-token";
 
 interface Props {
   deviceId: number;

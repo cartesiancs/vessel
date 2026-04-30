@@ -1,4 +1,4 @@
-import { Node, NumberNodeType } from "../flowTypes";
+import { Node, NumberNodeType } from "../../model/types";
 
 export function renderNumberNode(
   g: d3.Selection<SVGGElement, Node, null, undefined>,

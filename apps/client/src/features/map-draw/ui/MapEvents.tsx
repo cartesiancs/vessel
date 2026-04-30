@@ -1,4 +1,4 @@
-import { useMapInteractionStore, useMapDataStore } from "@/entities/map/store";
+import { useMapInteractionStore, useMapDataStore } from "@/entities/map";
 import { useMapEvents } from "react-leaflet";
 
 export function MapEvents() {
