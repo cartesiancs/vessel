@@ -130,6 +130,7 @@ function LandingPage() {
             <div className='flex items-center gap-x-4 pt-2 self-center'>
               <Button
                 variant='default'
+                size={"lg"}
                 onClick={() => window.open("/docs/introduction")}
               >
                 <BookText /> Docs
@@ -138,7 +139,8 @@ function LandingPage() {
                 onClick={() =>
                   window.open("https://github.com/cartesiancs/vessel")
                 }
-                variant='outline'
+                size={"lg"}
+                variant='ghost'
               >
                 <FaGithub />
                 GitHub
@@ -148,7 +150,7 @@ function LandingPage() {
         </section>
 
         {/* <SubheadingSection /> */}
-        <FeaturesSection />
+        {/* <FeaturesSection />
         <ScrollTextRevealSection />
         <UsecaseSection />
         <ListCardsSection />
@@ -159,7 +161,7 @@ function LandingPage() {
         <SecurityCTASection />
         <CapsulePromoSection />
         <FAQSection />
-        <FooterCtaSection />
+        <FooterCtaSection /> */}
       </main>
       <Footer />
       <HeroSceneSection />
