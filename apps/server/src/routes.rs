@@ -134,6 +134,15 @@ pub async fn web_server(
             put(configurations::update_config).delete(configurations::delete_config),
         )
         .route("/streams/register", post(streams::register_stream))
+        .route("/streams/hls/:topic/token", post(streams::issue_hls_token))
+        .route(
+            "/streams/hls/:topic/playlist.m3u8",
+            get(streams::get_hls_playlist),
+        )
+        .route(
+            "/streams/hls/:topic/:segment",
+            get(streams::get_hls_segment),
+        )
         .route(
             "/devices/:id/token",
             post(device_tokens::issue_token)

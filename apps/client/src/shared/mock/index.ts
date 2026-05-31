@@ -1,0 +1,1 @@
+export { createMockAdapter } from "./mockAdapter";

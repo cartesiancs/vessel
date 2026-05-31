@@ -15,6 +15,7 @@ use dashmap::DashMap;
 
 use crate::flow::manager_state::FlowManagerCommand;
 use crate::recording::RecordingManager;
+use crate::streaming::HlsManager;
 use crate::{db::models::SystemConfiguration, tunnel_control::TunnelManager};
 
 #[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq)]
@@ -183,4 +184,5 @@ pub struct AppState {
     pub system_configs: Vec<SystemConfiguration>,
     pub tunnel_manager: Arc<TunnelManager>,
     pub recording_manager: Arc<RecordingManager>,
+    pub hls_manager: Arc<HlsManager>,
 }

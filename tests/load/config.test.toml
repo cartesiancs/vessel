@@ -1,0 +1,3 @@
+jwt_secret = "__JWT_SECRET__"
+listen_address = "__LISTEN_ADDRESS__"
+database_url = "__DATABASE_URL__"

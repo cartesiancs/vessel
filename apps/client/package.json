@@ -17,7 +17,6 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@vessel/capsule-client": "file:../../packages/capsule-client",
     "@codemirror/lang-json": "^6.0.2",
     "@emotion/react": "^11.14.0",
     "@monaco-editor/react": "^4.7.0",
@@ -42,12 +41,14 @@
     "@tauri-apps/api": "^2.2.0",
     "@tauri-apps/plugin-shell": "^2.3.4",
     "@uiw/react-codemirror": "^4.24.2",
+    "@vessel/capsule-client": "file:../../packages/capsule-client",
     "autoprefixer": "^10.4.21",
     "axios": "^1.11.0",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "d3": "^7.9.0",
     "electron": "^35.0.0",
+    "hls.js": "^1.5.0",
     "js-cookie": "^3.0.5",
     "leaflet": "^1.9.4",
     "maplibre-gl": "^5.6.2",
@@ -63,11 +64,13 @@
     "zustand": "^5.0.5"
   },
   "devDependencies": {
-    "vitest": "^3.0.0",
     "@eslint/js": "^9.21.0",
+    "@feature-sliced/steiger-plugin": "^0.5.7",
     "@types/d3": "^7.4.3",
     "@types/js-cookie": "^3.0.6",
     "@types/leaflet": "^1.9.20",
+    "steiger": "^0.5.11",
+    "vitest": "^3.0.0",
     "wait-on": "^8.0.3"
   }
 }

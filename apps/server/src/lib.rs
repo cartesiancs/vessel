@@ -7,6 +7,7 @@ pub mod logo;
 pub mod media;
 pub mod recording;
 pub mod state;
+pub mod streaming;
 pub mod tunnel_control;
 pub mod utils;
 

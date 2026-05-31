@@ -1,0 +1,43 @@
+import { MqttPublishNodeType, Node } from "../../model/types";
+
+function mqttLikeCenterLabel(d: Node): string {
+  if (d.nodeType === "DASHBOARD_EVENT_LISTENER") {
+    const id = (d.data as { listenerId?: string } | undefined)?.listenerId;
+    return id?.trim() ?? "";
+  }
+  return (d.data as MqttPublishNodeType)?.topic ?? "";
+}
+
+export function renderMQTTNode(
+  g: d3.Selection<SVGGElement, Node, null, undefined>,
+  d: Node,
+  onOpen: () => void,
+) {
+  const w = d.width;
+  const h = d.height;
+  const group = g
+    .append("g")
+    .attr("class", "node-content")
+    .style("cursor", "pointer");
+  group
+    .append("rect")
+    .attr("x", w / 2 - 40)
+    .attr("y", h / 2 - 10)
+    .attr("width", 80)
+    .attr("height", 20)
+    .attr("rx", 4)
+    .attr("fill", "#2a2c36");
+  group
+    .append("text")
+    .attr("x", w / 2)
+    .attr("y", h / 2 + 1)
+    .attr("text-anchor", "middle")
+    .attr("dominant-baseline", "middle")
+    .attr("font-size", 8)
+    .attr("fill", "#fff")
+    .text(mqttLikeCenterLabel(d));
+  group.on("click", (e) => {
+    e.stopPropagation();
+    onOpen();
+  });
+}

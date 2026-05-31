@@ -7,18 +7,18 @@ import {
   FeatureWithVertices,
   MapFeature,
   MapLayer,
-} from "@/entities/map/types";
+} from "@/entities/map";
 import {
   SystemConfiguration,
   SystemConfigurationPayload,
-} from "@/entities/configurations/types";
-import { CODE_SERVICE_CONFIG_KEY } from "@/entities/configurations/codeService";
-import { Device, DevicePayload } from "@/entities/device/types";
-import { EntityAll, EntityPayload } from "@/entities/entity/types";
-import { Role, CreateRolePayload } from "@/entities/role/types";
-import { User, CreateUserPayload, UpdateUserPayload } from "@/entities/user/types";
-import { Flow, FlowPayload } from "@/entities/flow/types";
-import { CustomNodeFromApi } from "@/entities/custom-nodes/types";
+} from "@/entities/configurations";
+import { CODE_SERVICE_CONFIG_KEY } from "@/entities/configurations";
+import { Device, DevicePayload } from "@/entities/device";
+import { EntityAll, EntityPayload } from "@/entities/entity";
+import { Role, CreateRolePayload } from "@/entities/role";
+import { User, CreateUserPayload, UpdateUserPayload } from "@/entities/user";
+import { Flow, FlowPayload } from "@/entities/flow";
+import { CustomNodeFromApi } from "@/entities/custom-nodes";
 import { createMockDb, MockDatabase } from "./mockData";
 
 const clone = <T>(data: T): T => JSON.parse(JSON.stringify(data));

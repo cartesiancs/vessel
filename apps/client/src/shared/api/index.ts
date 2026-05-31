@@ -1,7 +1,7 @@
 import axios from "axios";
-import { isDemoMode } from "../demo";
+import { isDemoMode } from "../config/demo";
 import { createMockAdapter } from "../mock/mockAdapter";
-import { storage } from "@/lib/storage";
+import { storage } from "@/shared/lib/storage";
 
 export const apiClient = axios.create({
   headers: {

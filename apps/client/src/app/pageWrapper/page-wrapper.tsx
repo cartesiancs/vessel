@@ -1,4 +1,4 @@
-import { isElectron } from "@/lib/electron";
+import { isElectron } from "@/shared/lib/electron";
 import type { PropsWithChildren } from "react";
 
 export function PageWrapper(props: PropsWithChildren) {

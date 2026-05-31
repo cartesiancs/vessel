@@ -1,0 +1,131 @@
+import { useEffect } from "react";
+import { Link } from "react-router";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/shared/ui/breadcrumb";
+import {
+  SidebarInset,
+  SidebarProvider,
+  SidebarTrigger,
+} from "@/shared/ui/sidebar";
+import { AppSidebar } from "@/features/sidebar";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/shared/ui/table";
+import { Badge } from "@/shared/ui/badge";
+import { ConfigurationCreateButton } from "@/features/configurations";
+import { ConfigurationActionButton } from "@/features/configurations";
+import { Separator } from "@/shared/ui/separator";
+import { useConfigStore } from "@/entities/configurations";
+
+export function ConfigSettingsPage() {
+  const { configurations, fetchConfigs, isLoading, error } = useConfigStore();
+
+  useEffect(() => {
+    fetchConfigs();
+  }, [fetchConfigs]);
+
+  return (
+    <SidebarProvider>
+      <AppSidebar />
+      <SidebarInset className='flex-1 min-w-0 h-full flex flex-col'>
+        <header className='flex h-12 shrink-0 items-center gap-2 border-b bg-background px-4'>
+          <SidebarTrigger className='-ml-1' />
+          <Separator
+            orientation='vertical'
+            className='mr-2 data-[orientation=vertical]:h-4'
+          />
+          <Breadcrumb className='hidden md:flex'>
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild>
+                  <Link to='/dashboard'>/</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild>
+                  <Link to='/settings'>Settings</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage>Config</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+          <div className='ml-auto'>
+            <ConfigurationCreateButton />
+          </div>
+        </header>
+
+        <main className='flex-1 overflow-y-auto p-4 md:p-6'>
+          <div className='flex flex-col mb-4'>
+            <div className='flex items-center mb-1'>
+              <h1 className='font-semibold text-lg md:text-2xl'>
+                Configurations
+              </h1>
+            </div>
+            <b className='text-neutral-500 font-light text-sm'>
+              If you change the configurations, you must restart the server.
+              **If a problem occurs due to an incorrect value, you will need to
+              activate debug mode to forcibly change the setting.**
+            </b>
+          </div>
+
+          {isLoading && <div>Loading configurations...</div>}
+          {error && <div className='text-red-500'>{error}</div>}
+
+          {!isLoading && !error && (
+            <div className='border shadow-sm  overflow-x-auto'>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className='w-[200px] min-w-[200px]'>
+                      Key
+                    </TableHead>
+                    <TableHead className='min-w-[250px]'>Value</TableHead>
+                    <TableHead className='w-[100px] min-w-[100px]'>
+                      Status
+                    </TableHead>
+                    <TableHead className='sticky right-0 bg-background w-[100px] min-w-[100px] text-right'>
+                      Actions
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {configurations.map((config) => (
+                    <TableRow key={config.id}>
+                      <TableCell className='font-mono'>{config.key}</TableCell>
+                      <TableCell className='font-mono max-w-xs truncate'>
+                        {config.value}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={config.enabled ? "default" : "outline"}>
+                          {config.enabled ? "Enabled" : "Disabled"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className='sticky right-0 bg-background text-right'>
+                        <ConfigurationActionButton config={config} />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </main>
+      </SidebarInset>
+    </SidebarProvider>
+  );
+}
