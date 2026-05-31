@@ -1,4 +1,4 @@
-import { useLayoutEffect, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { FeaturesSection } from "@/components/sections/Features";
@@ -17,6 +17,8 @@ import { CapsulePromoSection } from "@/components/sections/CapsulePromo";
 import { ScrollTextRevealSection } from "@/components/sections/ScrollTextReveal";
 import { HeroSceneSection } from "@/components/sections/HeroScene/HeroScene";
 import { UsecaseAIAssistantSection } from "@/components/sections/UsecaseAI";
+import { AnimatedHeading } from "@/components/AnimatedHeading";
+import { useStaggerReveal } from "@/hooks/useStaggerReveal";
 import { cn } from "@/lib/utils";
 
 // const HERO_BG_SRC = "/videos/back.webp";
@@ -36,6 +38,7 @@ const HERO_INSET_SCROLL_RANGE = 0.72;
 const MOBILE_BG_OFF_MEDIA = "(max-width: 767px)";
 
 function LandingPage() {
+  const heroContentRef = useRef<HTMLDivElement>(null);
   const [heroBgReady] = useState(false);
   const [heroBgFailed] = useState(false);
   const [heroInsetPx, setHeroInsetPx] = useState(40);
@@ -87,6 +90,8 @@ function LandingPage() {
     };
   }, []);
 
+  useStaggerReveal(heroContentRef);
+
   return (
     <>
       <Navbar />
@@ -123,28 +128,36 @@ function LandingPage() {
               </div>
             </div>
           )}
-          <div className='relative z-10 flex flex-col items-start gap-y-6'>
-            <h1 className='self-center text-4xl md:text-6xl lg:text-6xl md:leading-17 leading-10 md:font-bold font-semibold tracking-tight text-center'>
-              Personal C2 platform <br /> for Physical AI
-            </h1>
+          <div
+            ref={heroContentRef}
+            className='relative z-10 flex flex-col items-start gap-y-6'
+          >
+            <AnimatedHeading
+              lines={["Personal C2 platform", "for Physical AI"]}
+              className='self-center text-4xl md:text-6xl lg:text-6xl md:leading-17 leading-10 md:font-bold font-semibold tracking-tight text-center'
+            />
             <div className='flex items-center gap-x-4 pt-2 self-center'>
-              <Button
-                variant='default'
-                size={"lg"}
-                onClick={() => window.open("/docs/introduction")}
-              >
-                <BookText /> Docs
-              </Button>
-              <Button
-                onClick={() =>
-                  window.open("https://github.com/cartesiancs/vessel")
-                }
-                size={"lg"}
-                variant='ghost'
-              >
-                <FaGithub />
-                GitHub
-              </Button>
+              <span data-reveal className='inline-block will-change-transform'>
+                <Button
+                  variant='default'
+                  size={"lg"}
+                  onClick={() => window.open("/docs/introduction")}
+                >
+                  <BookText /> Docs
+                </Button>
+              </span>
+              <span data-reveal className='inline-block will-change-transform'>
+                <Button
+                  onClick={() =>
+                    window.open("https://github.com/cartesiancs/vessel")
+                  }
+                  size={"lg"}
+                  variant='ghost'
+                >
+                  <FaGithub />
+                  GitHub
+                </Button>
+              </span>
             </div>
           </div>
         </section>
