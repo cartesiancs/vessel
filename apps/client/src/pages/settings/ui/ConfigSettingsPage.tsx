@@ -11,7 +11,6 @@ import {
 import {
   SidebarInset,
   SidebarProvider,
-  SidebarTrigger,
 } from "@/shared/ui/sidebar";
 import { AppSidebar } from "@/features/sidebar";
 import {
@@ -25,7 +24,6 @@ import {
 import { Badge } from "@/shared/ui/badge";
 import { ConfigurationCreateButton } from "@/features/configurations";
 import { ConfigurationActionButton } from "@/features/configurations";
-import { Separator } from "@/shared/ui/separator";
 import { useConfigStore } from "@/entities/configurations";
 
 export function ConfigSettingsPage() {
@@ -40,11 +38,6 @@ export function ConfigSettingsPage() {
       <AppSidebar />
       <SidebarInset className='flex-1 min-w-0 h-full flex flex-col'>
         <header className='flex h-12 shrink-0 items-center gap-2 border-b bg-background px-4'>
-          <SidebarTrigger className='-ml-1' />
-          <Separator
-            orientation='vertical'
-            className='mr-2 data-[orientation=vertical]:h-4'
-          />
           <Breadcrumb className='hidden md:flex'>
             <BreadcrumbList>
               <BreadcrumbItem>

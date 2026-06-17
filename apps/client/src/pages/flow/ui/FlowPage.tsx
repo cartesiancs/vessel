@@ -7,11 +7,9 @@ import {
   BreadcrumbSeparator,
   BreadcrumbPage,
 } from "@/shared/ui/breadcrumb";
-import { Separator } from "@/shared/ui/separator";
 import {
   SidebarInset,
   SidebarProvider,
-  SidebarTrigger,
 } from "@/shared/ui/sidebar";
 import Flow, { FlowHeader, FlowSidebar } from "@/features/flow";
 import { AppSidebar } from "@/features/sidebar";
@@ -98,11 +96,6 @@ export function FlowPage() {
       <AppSidebar />
       <SidebarInset className='h-full'>
         <header className='flex h-12 shrink-0 items-center gap-2 border-b px-4 justify-between'>
-          <SidebarTrigger className='-ml-1' />
-          <Separator
-            orientation='vertical'
-            className='mr-2 data-[orientation=vertical]:h-4'
-          />
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem className='hidden md:block'>

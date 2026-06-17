@@ -6,13 +6,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/shared/ui/breadcrumb";
-import { Separator } from "@/shared/ui/separator";
-import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-  useSidebar,
-} from "@/shared/ui/sidebar";
+import { SidebarInset, SidebarProvider } from "@/shared/ui/sidebar";
 import { MapView } from "@/features/map";
 import { LayerSidebar } from "@/features/map-draw";
 import { MapToolbar } from "@/features/map-draw";
@@ -20,16 +14,9 @@ import { WebRTCProvider } from "@/features/rtc";
 import { AppSidebar } from "@/features/sidebar";
 
 export function MapLayout() {
-  const { open } = useSidebar();
-
   return (
     <SidebarInset>
       <header className='flex h-12 shrink-0 items-center gap-2 border-b px-4 fixed w-full bg-background/60 backdrop-blur-md z-[999]'>
-        <SidebarTrigger className='-ml-1' />
-        <Separator
-          orientation='vertical'
-          className='mr-2 data-[orientation=vertical]:h-4'
-        />
         <Breadcrumb>
           <BreadcrumbList>
             <BreadcrumbItem className='hidden md:block'>
@@ -45,7 +32,7 @@ export function MapLayout() {
       <main className='flex-1 p-0 overflow-hidden'>
         <LayerSidebar />
         <MapToolbar />
-        <MapView isSidebarCollapsed={open} />
+        <MapView isSidebarCollapsed={true} />
       </main>
     </SidebarInset>
   );
