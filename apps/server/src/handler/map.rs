@@ -1,7 +1,7 @@
 use crate::map::{geojson as map_geojson, kml as map_kml, FeatureWithVertices, MapLayer, Vertex};
 use crate::{error::AppError, handler::auth::AuthUser, state::AppState};
 use axum::{
-    extract::{Path, Query, State},
+    extract::{Multipart, Path, Query, State},
     http::{header, StatusCode},
     response::{IntoResponse, Response},
     Json,
@@ -45,12 +45,9 @@ pub struct ExportQuery {
     pub format: Option<String>,
 }
 
-#[derive(Deserialize)]
-pub struct ImportPayload {
-    pub name: Option<String>,
-    pub format: String,
-    pub content: String,
-}
+const IMPORT_FIELD_NAME: &str = "name";
+const IMPORT_FIELD_FORMAT: &str = "format";
+const IMPORT_FIELD_FILE: &str = "file";
 
 fn to_vertices(payload: Vec<VertexPayload>) -> Vec<Vertex> {
     payload
@@ -242,14 +239,43 @@ pub async fn export_layer(
 pub async fn import_layer(
     State(state): State<Arc<AppState>>,
     AuthUser(_user): AuthUser,
-    Json(payload): Json<ImportPayload>,
+    mut multipart: Multipart,
 ) -> Result<Response, AppError> {
-    let parsed = match payload.format.as_str() {
-        "geojson" | "json" => match serde_json::from_str(&payload.content) {
+    let mut name: Option<String> = None;
+    let mut format: Option<String> = None;
+    let mut content: Option<String> = None;
+
+    while let Some(field) = multipart.next_field().await? {
+        let field_name = field.name().map(|s| s.to_string());
+        match field_name.as_deref() {
+            Some(IMPORT_FIELD_NAME) => name = Some(field.text().await?),
+            Some(IMPORT_FIELD_FORMAT) => format = Some(field.text().await?),
+            Some(IMPORT_FIELD_FILE) => content = Some(field.text().await?),
+            _ => {
+                let _ = field.bytes().await?;
+            }
+        }
+    }
+
+    let format = match format {
+        Some(f) => f,
+        None => {
+            return Ok((StatusCode::BAD_REQUEST, "Missing 'format' field").into_response());
+        }
+    };
+    let content = match content {
+        Some(c) => c,
+        None => {
+            return Ok((StatusCode::BAD_REQUEST, "Missing 'file' field").into_response());
+        }
+    };
+
+    let parsed = match format.as_str() {
+        "geojson" | "json" => match serde_json::from_str(&content) {
             Ok(value) => map_geojson::from_value(value, "imported"),
             Err(e) => return Ok((StatusCode::BAD_REQUEST, format!("Invalid GeoJSON: {}", e)).into_response()),
         },
-        "kml" => map_kml::from_kml(&payload.content),
+        "kml" => map_kml::from_kml(&content),
         _ => return Ok((StatusCode::BAD_REQUEST, "Unsupported format").into_response()),
     };
 
@@ -258,7 +284,7 @@ pub async fn import_layer(
         Err(e) => return Ok((StatusCode::BAD_REQUEST, format!("Failed to parse file: {}", e)).into_response()),
     };
 
-    if let Some(name) = payload.name {
+    if let Some(name) = name {
         if !name.trim().is_empty() {
             layer.layer.name = name;
         }

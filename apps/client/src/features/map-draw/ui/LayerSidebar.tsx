@@ -60,9 +60,8 @@ export function LayerSidebar() {
 
     const lower = file.name.toLowerCase();
     const format = lower.endsWith(".kml") ? "kml" : "geojson";
-    const content = await file.text();
     const name = file.name.replace(/\.(geojson|json|kml)$/i, "");
-    await importLayer({ name, format, content });
+    await importLayer({ name, format, file });
   };
 
   const selectedLayerName =

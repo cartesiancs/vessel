@@ -107,6 +107,14 @@ export const exportLayer = async (
 export const importLayer = async (
   payload: ImportPayload,
 ): Promise<MapLayer> => {
-  const response = await apiClient.post<MapLayer>("/map/import", payload);
+  const form = new FormData();
+  if (payload.name) {
+    form.append("name", payload.name);
+  }
+  form.append("format", payload.format);
+  form.append("file", payload.file);
+  const response = await apiClient.post<MapLayer>("/map/import", form, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
   return response.data;
 };

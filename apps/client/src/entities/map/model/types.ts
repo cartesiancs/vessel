@@ -65,7 +65,7 @@ export type MapExportFormat = "geojson" | "kml";
 export interface ImportPayload {
   name?: string;
   format: "geojson" | "kml" | "json";
-  content: string;
+  file: File | Blob;
 }
 
 export type DrawingMode = "POINT" | "LINE" | "POLYGON" | null;

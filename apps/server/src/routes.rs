@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use anyhow::Result;
 use axum::{
+    extract::DefaultBodyLimit,
     http::{header, Method, StatusCode, Uri},
     response::IntoResponse,
     routing::{delete, get, post, put},
@@ -21,6 +22,8 @@ use crate::{
     state::AppState,
 };
 use rust_embed::Embed;
+
+const MAP_IMPORT_BODY_LIMIT: usize = 256 * 1024 * 1024;
 
 async fn get_server_info() -> Json<serde_json::Value> {
     Json(json!({
@@ -173,7 +176,10 @@ pub async fn web_server(
                 .delete(map::delete_layer),
         )
         .route("/map/layers/:id/export", get(map::export_layer))
-        .route("/map/import", post(map::import_layer))
+        .route(
+            "/map/import",
+            post(map::import_layer).layer(DefaultBodyLimit::max(MAP_IMPORT_BODY_LIMIT)),
+        )
         .route(
             "/map/layers/:layer_id/features",
             post(map::create_feature),
