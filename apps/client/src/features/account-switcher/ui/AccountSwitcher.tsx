@@ -94,7 +94,7 @@ export function AccountSwitcher() {
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent
-            className='w-(--radix-dropdown-menu-trigger-width)'
+            className='w-(--radix-dropdown-menu-trigger-width) w-50'
             align='start'
           >
             {servers.length === 0 && (
