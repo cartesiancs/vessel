@@ -1,9 +1,10 @@
-import { useState } from "react";
-import { Plus, ChevronLeft, MoreHorizontal } from "lucide-react";
+import { useRef, useState } from "react";
+import { Plus, ChevronLeft, MoreHorizontal, Upload } from "lucide-react";
 
 import { LayerDialog } from "./LayerDialog";
 import { useMapDataStore } from "@/entities/map";
 import { MapLayer } from "@/entities/map";
+import { exportLayer } from "@/entities/map";
 import { Button } from "@/shared/ui/button";
 import { cn } from "@/shared/lib/utils";
 import {
@@ -30,13 +31,14 @@ type LayerDialogState =
   | { kind: "edit"; layer: MapLayer };
 
 export function LayerSidebar() {
-  const { layers, activeLayerId, setActiveLayer, removeLayer } =
+  const { layers, activeLayerId, setActiveLayer, removeLayer, importLayer } =
     useMapDataStore();
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [layerToDelete, setLayerToDelete] = useState<number | null>(null);
+  const [layerToDelete, setLayerToDelete] = useState<string | null>(null);
   const [layerDialog, setLayerDialog] = useState<LayerDialogState>({
     kind: "closed",
   });
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const toggleSidebar = () => setIsCollapsed(!isCollapsed);
 
@@ -45,6 +47,22 @@ export function LayerSidebar() {
       removeLayer(layerToDelete);
       setLayerToDelete(null);
     }
+  };
+
+  const handleImportClick = () => fileInputRef.current?.click();
+
+  const handleFileSelected = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    const lower = file.name.toLowerCase();
+    const format = lower.endsWith(".kml") ? "kml" : "geojson";
+    const content = await file.text();
+    const name = file.name.replace(/\.(geojson|json|kml)$/i, "");
+    await importLayer({ name, format, content });
   };
 
   const selectedLayerName =
@@ -56,6 +74,13 @@ export function LayerSidebar() {
 
   return (
     <>
+      <input
+        ref={fileInputRef}
+        type='file'
+        accept='.geojson,.json,.kml'
+        className='hidden'
+        onChange={handleFileSelected}
+      />
       <div
         className={cn(
           "absolute top-[48px] left-0 border-r h-[calc(100%-48px)] w-64 bg-background/80 z-[999] p-4 flex flex-col shadow-lg backdrop-blur-sm transition-all duration-300 ease-in-out overflow-hidden",
@@ -65,6 +90,14 @@ export function LayerSidebar() {
         <div className='flex justify-between items-center mb-4'>
           <h2 className='text-md font-semibold'>Layers</h2>
           <div className='flex items-center'>
+            <Button
+              variant='ghost'
+              size='icon'
+              onClick={handleImportClick}
+              aria-label='Import layer'
+            >
+              <Upload className='h-4 w-4' />
+            </Button>
             <LayerDialog>
               <Button variant='ghost' size='icon'>
                 <Plus className='h-4 w-4' />
@@ -104,6 +137,16 @@ export function LayerSidebar() {
                       onSelect={() => setLayerDialog({ kind: "edit", layer })}
                     >
                       Edit layer
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onSelect={() => exportLayer(layer.id, "geojson")}
+                    >
+                      Export as GeoJSON
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onSelect={() => exportLayer(layer.id, "kml")}
+                    >
+                      Export as KML
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem

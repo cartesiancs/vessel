@@ -4,6 +4,7 @@ pub mod db;
 pub mod error;
 pub mod flow;
 pub mod logo;
+pub mod map;
 pub mod media;
 pub mod recording;
 pub mod state;

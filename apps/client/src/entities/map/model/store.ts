@@ -78,12 +78,18 @@ export const useMapDataStore = create<MapDataState>((set, get) => ({
       set({ error: "Failed to fetch map data" + err, isLoading: false });
     }
   },
+  importLayer: async (payload) => {
+    try {
+      const layer = await mapApi.importLayer(payload);
+      await get().fetchAllLayers();
+      await get().setActiveLayer(layer.id);
+    } catch (err) {
+      set({ error: "Failed to import layer" + err });
+    }
+  },
   addFeature: async (payload: FeaturePayload) => {
     try {
-      const newFeature = await mapApi.createFeature(payload);
-      const featureWithVertices = await mapApi.getFeatureWithVertices(
-        newFeature.id,
-      );
+      const featureWithVertices = await mapApi.createFeature(payload);
       const currentLayer = get().layer;
       if (currentLayer) {
         set({
@@ -98,8 +104,10 @@ export const useMapDataStore = create<MapDataState>((set, get) => ({
     }
   },
   removeFeature: async (featureId) => {
+    const layerId = get().activeLayerId;
+    if (!layerId) return;
     try {
-      await mapApi.deleteFeature(featureId);
+      await mapApi.deleteFeature(layerId, featureId);
       const currentLayer = get().layer;
       if (currentLayer) {
         set({
@@ -115,10 +123,13 @@ export const useMapDataStore = create<MapDataState>((set, get) => ({
     }
   },
   updateFeature: async (featureId, payload) => {
+    const layerId = get().activeLayerId;
+    if (!layerId) return;
     try {
-      const updatedFeatureData = await mapApi.updateFeature(featureId, payload);
-      const featureWithVertices = await mapApi.getFeatureWithVertices(
-        updatedFeatureData.id,
+      const featureWithVertices = await mapApi.updateFeature(
+        layerId,
+        featureId,
+        payload,
       );
       const currentLayer = get().layer;
       if (currentLayer) {

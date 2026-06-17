@@ -583,7 +583,7 @@ export function GroupCanvas({
     });
   };
 
-  const handleAddMapPanel = (layerId: number) => {
+  const handleAddMapPanel = (layerId: string) => {
     addItem(dashboardId, group.id, {
       type: "map",
       label: "Map",

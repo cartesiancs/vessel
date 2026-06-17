@@ -1,15 +1,15 @@
-use crate::db::models::{
-    FeatureWithVertices, LayerWithFeatures, MapFeature, MapLayer, NewMapFeature, NewMapLayer,
-    NewMapVertex, UpdateMapFeature, UpdateMapLayer,
-};
-use crate::{db, error::AppError, handler::auth::AuthUser, state::AppState};
+use crate::map::{geojson as map_geojson, kml as map_kml, FeatureWithVertices, MapLayer, Vertex};
+use crate::{error::AppError, handler::auth::AuthUser, state::AppState};
 use axum::{
-    extract::{Path, State},
+    extract::{Path, Query, State},
+    http::{header, StatusCode},
+    response::{IntoResponse, Response},
     Json,
 };
 use serde::Deserialize;
-use serde_json::{json, Value};
 use std::sync::Arc;
+
+const FILENAME_MAX_LEN: usize = 50;
 
 #[derive(Deserialize)]
 pub struct LayerPayload {
@@ -20,14 +20,13 @@ pub struct LayerPayload {
 
 #[derive(Deserialize, Clone)]
 pub struct VertexPayload {
-    pub latitude: f32,
-    pub longitude: f32,
-    pub altitude: Option<f32>,
+    pub latitude: f64,
+    pub longitude: f64,
+    pub altitude: Option<f64>,
 }
 
 #[derive(Deserialize)]
 pub struct FeaturePayload {
-    pub layer_id: i32,
     pub feature_type: String,
     pub name: Option<String>,
     pub style_properties: Option<String>,
@@ -41,139 +40,230 @@ pub struct UpdateFeaturePayload {
     pub vertices: Option<Vec<VertexPayload>>,
 }
 
-pub async fn create_layer(
-    State(state): State<Arc<AppState>>,
-    AuthUser(user): AuthUser,
-    Json(payload): Json<LayerPayload>,
-) -> Result<Json<MapLayer>, AppError> {
-    let new_layer = NewMapLayer {
-        name: &payload.name,
-        description: payload.description.as_deref(),
-        owner_user_id: user.id,
-        is_visible: Some(payload.is_visible.unwrap_or(true) as i32),
-    };
-    let layer = db::repository::create_map_layer(&state.pool, new_layer)?;
-    Ok(Json(layer))
+#[derive(Deserialize)]
+pub struct ExportQuery {
+    pub format: Option<String>,
+}
+
+#[derive(Deserialize)]
+pub struct ImportPayload {
+    pub name: Option<String>,
+    pub format: String,
+    pub content: String,
+}
+
+fn to_vertices(payload: Vec<VertexPayload>) -> Vec<Vertex> {
+    payload
+        .into_iter()
+        .enumerate()
+        .map(|(i, v)| Vertex {
+            latitude: v.latitude,
+            longitude: v.longitude,
+            altitude: v.altitude,
+            sequence: i as i32,
+        })
+        .collect()
+}
+
+fn sanitize_filename(name: &str) -> String {
+    let cleaned: String = name
+        .replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|'], "_")
+        .chars()
+        .take(FILENAME_MAX_LEN)
+        .collect();
+    let trimmed = cleaned.trim();
+    if trimmed.is_empty() {
+        "map".to_string()
+    } else {
+        trimmed.to_string()
+    }
 }
 
 pub async fn get_layers(
     State(state): State<Arc<AppState>>,
     AuthUser(_user): AuthUser,
 ) -> Result<Json<Vec<MapLayer>>, AppError> {
-    let layers = db::repository::get_all_map_layers(&state.pool)?;
+    let layers = state.map_store.list_layers()?;
     Ok(Json(layers))
+}
+
+pub async fn create_layer(
+    State(state): State<Arc<AppState>>,
+    AuthUser(_user): AuthUser,
+    Json(payload): Json<LayerPayload>,
+) -> Result<Json<MapLayer>, AppError> {
+    let layer = state
+        .map_store
+        .create_layer(payload.name, payload.description, payload.is_visible.unwrap_or(true))
+        .await?;
+    Ok(Json(layer))
 }
 
 pub async fn get_layer(
     State(state): State<Arc<AppState>>,
     AuthUser(_user): AuthUser,
-    Path(id): Path<i32>,
-) -> Result<Json<LayerWithFeatures>, AppError> {
-    let layer_with_features = db::repository::get_map_layer_with_features(&state.pool, id)?;
-    Ok(Json(layer_with_features))
+    Path(id): Path<String>,
+) -> Result<Response, AppError> {
+    if !state.map_store.layer_exists(&id) {
+        return Ok((StatusCode::NOT_FOUND, "Layer not found").into_response());
+    }
+    let layer = state.map_store.read_layer(&id)?;
+    Ok(Json(layer).into_response())
 }
 
 pub async fn update_layer(
     State(state): State<Arc<AppState>>,
     AuthUser(_user): AuthUser,
-    Path(id): Path<i32>,
+    Path(id): Path<String>,
     Json(payload): Json<LayerPayload>,
 ) -> Result<Json<MapLayer>, AppError> {
-    let update_data = UpdateMapLayer {
-        name: Some(payload.name),
-        description: payload.description,
-        is_visible: Some(payload.is_visible.unwrap_or(true) as i32),
-    };
-    let layer = db::repository::update_map_layer(&state.pool, id, &update_data)?;
+    let layer = state
+        .map_store
+        .update_layer(&id, payload.name, payload.description, payload.is_visible.unwrap_or(true))
+        .await?;
     Ok(Json(layer))
 }
 
 pub async fn delete_layer(
     State(state): State<Arc<AppState>>,
     AuthUser(_user): AuthUser,
-    Path(id): Path<i32>,
-) -> Result<Json<Value>, AppError> {
-    db::repository::delete_map_layer(&state.pool, id)?;
+    Path(id): Path<String>,
+) -> Result<Json<serde_json::Value>, AppError> {
+    state.map_store.delete_layer(&id).await?;
     Ok(Json(
-        json!({ "status": "success", "message": "Layer deleted" }),
+        serde_json::json!({ "status": "success", "message": "Layer deleted" }),
     ))
 }
 
 pub async fn create_feature(
     State(state): State<Arc<AppState>>,
-    AuthUser(user): AuthUser,
+    AuthUser(_user): AuthUser,
+    Path(layer_id): Path<String>,
     Json(payload): Json<FeaturePayload>,
-) -> Result<Json<MapFeature>, AppError> {
-    let new_feature = NewMapFeature {
-        layer_id: payload.layer_id,
-        feature_type: &payload.feature_type,
-        name: payload.name.as_deref(),
-        style_properties: payload.style_properties.as_deref(),
-        created_by_user_id: user.id,
-    };
-
-    let new_vertices = payload
-        .vertices
-        .into_iter()
-        .enumerate()
-        .map(|(i, v)| NewMapVertex {
-            feature_id: 0,
-            latitude: v.latitude,
-            longitude: v.longitude,
-            altitude: v.altitude,
-            sequence: i as i32,
-        })
-        .collect();
-
-    let feature = db::repository::create_map_feature(&state.pool, new_feature, new_vertices)?;
+) -> Result<Json<FeatureWithVertices>, AppError> {
+    let feature = state
+        .map_store
+        .add_feature(
+            &layer_id,
+            payload.feature_type,
+            payload.name,
+            payload.style_properties,
+            to_vertices(payload.vertices),
+        )
+        .await?;
     Ok(Json(feature))
 }
 
 pub async fn get_feature(
     State(state): State<Arc<AppState>>,
-    Path(id): Path<i32>,
     AuthUser(_user): AuthUser,
+    Path((layer_id, feature_id)): Path<(String, String)>,
 ) -> Result<Json<FeatureWithVertices>, AppError> {
-    let feature = db::repository::get_map_feature_with_vertices(&state.pool, id)?;
+    let layer = state.map_store.read_layer(&layer_id)?;
+    let feature = layer
+        .features
+        .into_iter()
+        .find(|f| f.id == feature_id)
+        .ok_or_else(|| anyhow::anyhow!("Feature not found: {}", feature_id))?;
     Ok(Json(feature))
 }
 
 pub async fn update_feature(
     State(state): State<Arc<AppState>>,
     AuthUser(_user): AuthUser,
-    Path(id): Path<i32>,
+    Path((layer_id, feature_id)): Path<(String, String)>,
     Json(payload): Json<UpdateFeaturePayload>,
-) -> Result<Json<MapFeature>, AppError> {
-    let update_data = UpdateMapFeature {
-        name: payload.name,
-        style_properties: payload.style_properties,
-    };
-
-    let new_vertices = payload.vertices.map(|vertices| {
-        vertices
-            .into_iter()
-            .enumerate()
-            .map(|(i, v)| NewMapVertex {
-                feature_id: 0,
-                latitude: v.latitude,
-                longitude: v.longitude,
-                altitude: v.altitude,
-                sequence: i as i32,
-            })
-            .collect()
-    });
-
-    let feature = db::repository::update_map_feature(&state.pool, id, &update_data, new_vertices)?;
+) -> Result<Json<FeatureWithVertices>, AppError> {
+    let feature = state
+        .map_store
+        .update_feature(
+            &layer_id,
+            &feature_id,
+            payload.name,
+            payload.style_properties,
+            payload.vertices.map(to_vertices),
+        )
+        .await?;
     Ok(Json(feature))
 }
 
 pub async fn delete_feature(
     State(state): State<Arc<AppState>>,
     AuthUser(_user): AuthUser,
-    Path(id): Path<i32>,
-) -> Result<Json<Value>, AppError> {
-    db::repository::delete_map_feature(&state.pool, id)?;
+    Path((layer_id, feature_id)): Path<(String, String)>,
+) -> Result<Json<serde_json::Value>, AppError> {
+    state.map_store.delete_feature(&layer_id, &feature_id).await?;
     Ok(Json(
-        json!({ "status": "success", "message": "Feature deleted" }),
+        serde_json::json!({ "status": "success", "message": "Feature deleted" }),
     ))
+}
+
+pub async fn export_layer(
+    State(state): State<Arc<AppState>>,
+    AuthUser(_user): AuthUser,
+    Path(id): Path<String>,
+    Query(query): Query<ExportQuery>,
+) -> Result<Response, AppError> {
+    if !state.map_store.layer_exists(&id) {
+        return Ok((StatusCode::NOT_FOUND, "Layer not found").into_response());
+    }
+
+    let layer = state.map_store.read_layer(&id)?;
+    let format = query.format.unwrap_or_else(|| "geojson".to_string());
+
+    let (body, content_type, ext) = match format.as_str() {
+        "kml" => (
+            map_kml::to_kml(&layer),
+            "application/vnd.google-earth.kml+xml",
+            "kml",
+        ),
+        "geojson" => (
+            state.map_store.read_raw_geojson(&id)?,
+            "application/geo+json",
+            "geojson",
+        ),
+        _ => return Ok((StatusCode::BAD_REQUEST, "Unsupported format").into_response()),
+    };
+
+    let filename = sanitize_filename(&layer.layer.name);
+    let disposition = format!("attachment; filename=\"{}.{}\"", filename, ext);
+
+    Ok((
+        StatusCode::OK,
+        [
+            (header::CONTENT_TYPE, content_type.to_string()),
+            (header::CONTENT_DISPOSITION, disposition),
+        ],
+        body,
+    )
+        .into_response())
+}
+
+pub async fn import_layer(
+    State(state): State<Arc<AppState>>,
+    AuthUser(_user): AuthUser,
+    Json(payload): Json<ImportPayload>,
+) -> Result<Response, AppError> {
+    let parsed = match payload.format.as_str() {
+        "geojson" | "json" => match serde_json::from_str(&payload.content) {
+            Ok(value) => map_geojson::from_value(value, "imported"),
+            Err(e) => return Ok((StatusCode::BAD_REQUEST, format!("Invalid GeoJSON: {}", e)).into_response()),
+        },
+        "kml" => map_kml::from_kml(&payload.content),
+        _ => return Ok((StatusCode::BAD_REQUEST, "Unsupported format").into_response()),
+    };
+
+    let mut layer = match parsed {
+        Ok(layer) => layer,
+        Err(e) => return Ok((StatusCode::BAD_REQUEST, format!("Failed to parse file: {}", e)).into_response()),
+    };
+
+    if let Some(name) = payload.name {
+        if !name.trim().is_empty() {
+            layer.layer.name = name;
+        }
+    }
+
+    let created = state.map_store.import_layer(layer).await?;
+    Ok((StatusCode::OK, Json(created)).into_response())
 }

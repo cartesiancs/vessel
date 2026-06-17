@@ -172,9 +172,14 @@ pub async fn web_server(
                 .put(map::update_layer)
                 .delete(map::delete_layer),
         )
-        .route("/map/features", post(map::create_feature))
+        .route("/map/layers/:id/export", get(map::export_layer))
+        .route("/map/import", post(map::import_layer))
         .route(
-            "/map/features/:id",
+            "/map/layers/:layer_id/features",
+            post(map::create_feature),
+        )
+        .route(
+            "/map/layers/:layer_id/features/:feature_id",
             get(map::get_feature)
                 .put(map::update_feature)
                 .delete(map::delete_feature),

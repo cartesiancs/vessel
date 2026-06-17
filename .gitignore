@@ -21,3 +21,4 @@ database.db-*
 /tests/chaos/.tmp
 /tests/load/config.test.toml.local
 /hls/*
+*.bak

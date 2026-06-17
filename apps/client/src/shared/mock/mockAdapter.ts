@@ -524,8 +524,7 @@ export const createMockAdapter = (): AxiosAdapter => {
         const isVisible = Boolean(body.is_visible ?? true);
         const payload = body as Partial<MapLayer>;
         const newLayer: MapLayer = {
-          id: counters.layer++,
-          owner_user_id: 1,
+          id: `layer-${counters.layer++}`,
           is_visible: isVisible ? 1 : 0,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
@@ -538,9 +537,9 @@ export const createMockAdapter = (): AxiosAdapter => {
       }
     }
 
-    const mapLayerMatch = match(path, /^\/map\/layers\/(\d+)$/);
+    const mapLayerMatch = match(path, /^\/map\/layers\/([^/]+)$/);
     if (mapLayerMatch) {
-      const layerId = Number(mapLayerMatch[0]);
+      const layerId = mapLayerMatch[0];
       if (method === "get") {
         const layer = db.mapLayers.find((l) => l.id === layerId);
         if (layer) {
@@ -579,12 +578,17 @@ export const createMockAdapter = (): AxiosAdapter => {
       }
     }
 
-    // Map features
-    if (path === "/map/features" && method === "post") {
-      const featureId = counters.feature++;
+    // Map features (nested under their layer)
+    const mapFeatureCreateMatch = match(
+      path,
+      /^\/map\/layers\/([^/]+)\/features$/,
+    );
+    if (mapFeatureCreateMatch && method === "post") {
+      const layerId = mapFeatureCreateMatch[0];
+      const featureId = `feature-${counters.feature++}`;
       const vertices = (body.vertices as VertexInput[] | undefined ?? []).map(
         (v, idx: number) => ({
-          id: counters.vertex++,
+          id: `vertex-${counters.vertex++}`,
           feature_id: featureId,
           sequence: idx,
           latitude: v.latitude,
@@ -592,35 +596,28 @@ export const createMockAdapter = (): AxiosAdapter => {
           altitude: v.altitude ?? 0,
         }),
       );
-      const newFeature: MapFeature = {
+      const featureWithVertices: FeatureWithVertices = {
         id: featureId,
-        layer_id: body.layer_id as number,
+        layer_id: layerId,
         feature_type: body.feature_type as MapFeature["feature_type"],
         name: (body.name as string | undefined) ?? "",
         style_properties: (body.style_properties as string | undefined) ?? "",
-        created_by_user_id: 1,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-      const featureWithVertices: FeatureWithVertices = {
-        ...newFeature,
         vertices,
       };
-      if (!db.mapFeatures[newFeature.layer_id]) {
-        db.mapFeatures[newFeature.layer_id] = [];
+      if (!db.mapFeatures[layerId]) {
+        db.mapFeatures[layerId] = [];
       }
-      db.mapFeatures[newFeature.layer_id].push(featureWithVertices);
-      return buildResponse(config, 200, newFeature);
+      db.mapFeatures[layerId].push(featureWithVertices);
+      return buildResponse(config, 200, featureWithVertices);
     }
 
-    const mapFeatureMatch = match(path, /^\/map\/features\/(\d+)$/);
+    const mapFeatureMatch = match(
+      path,
+      /^\/map\/layers\/([^/]+)\/features\/([^/]+)$/,
+    );
     if (mapFeatureMatch) {
-      const featureId = Number(mapFeatureMatch[0]);
-      const layerId = Number(
-        Object.entries(db.mapFeatures).find(([, features]) =>
-          features.some((f) => f.id === featureId),
-        )?.[0] ?? 0,
-      );
+      const layerId = mapFeatureMatch[0];
+      const featureId = mapFeatureMatch[1];
       const features = db.mapFeatures[layerId] ?? [];
       const idx = features.findIndex((f) => f.id === featureId);
       if (idx !== -1) {
@@ -633,7 +630,7 @@ export const createMockAdapter = (): AxiosAdapter => {
             ...body,
             vertices: body.vertices
               ? (body.vertices as VertexInput[]).map((v, i: number) => ({
-                  id: counters.vertex++,
+                  id: `vertex-${counters.vertex++}`,
                   feature_id: featureId,
                   sequence: i,
                   latitude: v.latitude,
