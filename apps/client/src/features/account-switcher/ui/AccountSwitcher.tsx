@@ -82,7 +82,7 @@ export function AccountSwitcher() {
               className='data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground'
             >
               <div className='bg-background text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center'>
-                <VesselLogo />
+                <VesselLogo className='w-6' />
               </div>
               <div className='flex min-w-0 flex-col gap-0.5 leading-none'>
                 <span className='font-medium'>Server</span>
