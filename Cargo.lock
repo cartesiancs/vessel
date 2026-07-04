@@ -6617,6 +6617,7 @@ dependencies = [
  "rust-embed",
  "serde",
  "serde_json",
+ "sha2",
  "sysinfo",
  "tempfile",
  "tokio",

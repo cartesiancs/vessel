@@ -10,11 +10,15 @@ use axum_extra::{
     headers::{authorization::Bearer, Authorization},
     TypedHeader,
 };
-use jsonwebtoken::{decode, DecodingKey, Validation};
+use base64::{engine::general_purpose, Engine as _};
+use chrono::{Duration, Utc};
+use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
+use rand::RngCore;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use sha2::{Digest, Sha256};
 use std::sync::Arc;
-use tracing::info;
+use tracing::{info, warn};
 
 use crate::{
     db::{
@@ -26,6 +30,11 @@ use crate::{
     utils::hash::verify_password,
     AppState,
 };
+
+const ACCESS_TOKEN_TTL_SECS: i64 = 900; // 15 minutes
+const REFRESH_TOKEN_TTL_SECS: i64 = 30 * 24 * 60 * 60; // 30 days
+const REFRESH_TOKEN_BYTES: usize = 32;
+const ACCESS_TOKEN_TYP: &str = "access";
 
 #[derive(Debug, Serialize)]
 pub struct ErrorResponse {
@@ -69,6 +78,40 @@ impl IntoResponse for AuthError {
 pub struct Claims {
     pub sub: String,
     pub exp: usize,
+    #[serde(default)]
+    pub typ: String,
+}
+
+#[derive(Deserialize)]
+pub struct RefreshPayload {
+    #[serde(rename = "refreshToken")]
+    refresh_token: String,
+}
+
+fn generate_refresh_token() -> String {
+    let mut buf = [0u8; REFRESH_TOKEN_BYTES];
+    rand::rng().fill_bytes(&mut buf);
+    general_purpose::URL_SAFE_NO_PAD.encode(buf)
+}
+
+fn hash_refresh_token(raw: &str) -> String {
+    let digest = Sha256::digest(raw.as_bytes());
+    general_purpose::URL_SAFE_NO_PAD.encode(digest)
+}
+
+fn build_access_token(secret: &str, username: &str) -> Result<String, AuthError> {
+    let claims = Claims {
+        sub: username.to_string(),
+        exp: (Utc::now() + Duration::seconds(ACCESS_TOKEN_TTL_SECS)).timestamp() as usize,
+        typ: ACCESS_TOKEN_TYP.to_string(),
+    };
+
+    encode(
+        &Header::default(),
+        &claims,
+        &EncodingKey::from_secret(secret.as_ref()),
+    )
+    .map_err(|_| AuthError::TokenCreation)
 }
 
 pub struct JwtAuth(pub Claims);
@@ -97,6 +140,10 @@ where
 
         let decoded = decode::<Claims>(&token, &decoding_key, &validation)
             .map_err(|_| AuthError::InvalidToken)?;
+
+        if decoded.claims.typ != ACCESS_TOKEN_TYP {
+            return Err(AuthError::InvalidToken);
+        }
 
         Ok(JwtAuth(decoded.claims))
     }
@@ -158,22 +205,30 @@ pub async fn auth_with_password(
             match verify_password(login_attempt_password, stored_hash) {
                 Ok(is_valid) => {
                     if is_valid {
-                        let claims = Claims {
-                            sub: payload.id,
-                            exp: (chrono::Utc::now() + chrono::Duration::hours(1)).timestamp()
-                                as usize,
-                        };
+                        let access_token = build_access_token(&state.jwt_secret, &user.username)?;
 
-                        let token = jsonwebtoken::encode(
-                            &jsonwebtoken::Header::default(),
-                            &claims,
-                            &jsonwebtoken::EncodingKey::from_secret(state.jwt_secret.as_ref()),
+                        let family_id = uuid::Uuid::new_v4().to_string();
+                        let raw_refresh = generate_refresh_token();
+                        let refresh_hash = hash_refresh_token(&raw_refresh);
+                        let expires_at =
+                            (Utc::now() + Duration::seconds(REFRESH_TOKEN_TTL_SECS)).naive_utc();
+
+                        db::repository::insert_refresh_token(
+                            &state.pool,
+                            user.id,
+                            &family_id,
+                            &refresh_hash,
+                            expires_at,
                         )
                         .map_err(|_| AuthError::TokenCreation)?;
 
-                        info!("Auth Success {}", claims.sub);
+                        info!("Auth Success {}", user.username);
 
-                        Ok(Json(json!({ "token": token })))
+                        Ok(Json(json!({
+                            "token": access_token,
+                            "refreshToken": raw_refresh,
+                            "expiresIn": ACCESS_TOKEN_TTL_SECS,
+                        })))
                     } else {
                         Err(AuthError::WrongCredentials)
                     }
@@ -183,6 +238,81 @@ pub async fn auth_with_password(
         }
         Err(_) => Err(AuthError::UserNotFound),
     }
+}
+
+pub async fn refresh_token(
+    State(state): State<Arc<AppState>>,
+    Json(payload): Json<RefreshPayload>,
+) -> Result<Json<serde_json::Value>, AuthError> {
+    let presented_hash = hash_refresh_token(&payload.refresh_token);
+
+    let existing = db::repository::find_refresh_token_by_hash(&state.pool, &presented_hash)
+        .map_err(|_| AuthError::InvalidToken)?
+        .ok_or(AuthError::InvalidToken)?;
+
+    // Reuse detection: an already-rotated token is being presented again.
+    if existing.used_at.is_some() {
+        if let Err(e) = db::repository::revoke_family(&state.pool, &existing.family_id) {
+            warn!("Failed to revoke refresh token family on reuse: {}", e);
+        }
+        return Err(AuthError::InvalidToken);
+    }
+
+    if existing.expires_at < Utc::now().naive_utc() {
+        return Err(AuthError::InvalidToken);
+    }
+
+    let user = db::repository::get_user_by_id(&state.pool, existing.user_id)
+        .map_err(|_| AuthError::UserNotFound)?;
+
+    let new_raw = generate_refresh_token();
+    let new_hash = hash_refresh_token(&new_raw);
+    let new_expiry = (Utc::now() + Duration::seconds(REFRESH_TOKEN_TTL_SECS)).naive_utc();
+
+    let rotated = db::repository::rotate_refresh_token(
+        &state.pool,
+        existing.id,
+        existing.user_id,
+        &existing.family_id,
+        &new_hash,
+        new_expiry,
+    )
+    .map_err(|_| AuthError::TokenCreation)?;
+
+    // None => the token was consumed by a concurrent request (reuse race).
+    if rotated.is_none() {
+        if let Err(e) = db::repository::revoke_family(&state.pool, &existing.family_id) {
+            warn!("Failed to revoke refresh token family on reuse race: {}", e);
+        }
+        return Err(AuthError::InvalidToken);
+    }
+
+    let access_token = build_access_token(&state.jwt_secret, &user.username)?;
+
+    Ok(Json(json!({
+        "token": access_token,
+        "refreshToken": new_raw,
+        "expiresIn": ACCESS_TOKEN_TTL_SECS,
+    })))
+}
+
+pub async fn logout(
+    State(state): State<Arc<AppState>>,
+    Json(payload): Json<RefreshPayload>,
+) -> Result<Json<serde_json::Value>, AuthError> {
+    let presented_hash = hash_refresh_token(&payload.refresh_token);
+
+    // Idempotent: unknown tokens still return success so logout never leaks
+    // whether a token was valid.
+    if let Ok(Some(existing)) =
+        db::repository::find_refresh_token_by_hash(&state.pool, &presented_hash)
+    {
+        if let Err(e) = db::repository::revoke_family(&state.pool, &existing.family_id) {
+            warn!("Failed to revoke refresh token family on logout: {}", e);
+        }
+    }
+
+    Ok(Json(json!({ "status": "success" })))
 }
 
 pub struct DeviceTokenAuth {

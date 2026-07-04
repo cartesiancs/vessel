@@ -162,6 +162,18 @@ diesel::table! {
 }
 
 diesel::table! {
+    refresh_tokens (id) {
+        id -> Integer,
+        user_id -> Integer,
+        family_id -> Text,
+        token_hash -> Text,
+        expires_at -> Timestamp,
+        used_at -> Nullable<Timestamp>,
+        created_at -> Timestamp,
+    }
+}
+
+diesel::table! {
     system_configurations (id) {
         id -> Integer,
         key -> Text,
@@ -197,6 +209,7 @@ diesel::joinable!(entities_configurations -> entities (entity_id));
 diesel::joinable!(flow_versions -> flows (flow_id));
 diesel::joinable!(role_permissions -> permissions (permission_id));
 diesel::joinable!(role_permissions -> roles (role_id));
+diesel::joinable!(refresh_tokens -> users (user_id));
 diesel::joinable!(states -> states_meta (metadata_id));
 diesel::joinable!(user_roles -> roles (role_id));
 diesel::joinable!(user_roles -> users (user_id));
@@ -213,6 +226,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     flows,
     permissions,
     recordings,
+    refresh_tokens,
     role_permissions,
     roles,
     states,

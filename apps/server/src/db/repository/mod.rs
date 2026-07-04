@@ -1,7 +1,13 @@
 pub mod dashboards;
 pub mod rbac;
 pub mod recordings;
+pub mod refresh_token;
 pub mod streams;
+
+pub use refresh_token::{
+    delete_expired_refresh_tokens, find_refresh_token_by_hash, insert_refresh_token, revoke_family,
+    rotate_refresh_token,
+};
 
 use std::collections::HashMap;
 

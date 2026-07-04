@@ -32,6 +32,7 @@ diesel = { version = "2.2.0", features = ["sqlite", "chrono", "r2d2", "returning
 libsqlite3-sys = { version = "*", features = ["bundled"] }
 diesel_migrations = "2.2.0"
 bcrypt = "0.17.0"
+sha2 = "0.10"
 r2d2 = "0.8"
 dashmap = "6.1.0"
 rtp = "0.13.0"

@@ -15,7 +15,8 @@ use tracing::info;
 
 use crate::{
     handler::{
-        auth::auth_with_password, configurations, custom_nodes, dashboards, device_tokens, devices,
+        auth::{auth_with_password, logout, refresh_token},
+        configurations, custom_nodes, dashboards, device_tokens, devices,
         entities, flows, ha, integration, log, map, permissions, recordings, roles, sdr, stat,
         state, storage, streams, tunnel, users, ws::ws_handler,
     },
@@ -71,6 +72,8 @@ pub async fn web_server(
 
     let api_routes = Router::new()
         .route("/auth", post(auth_with_password))
+        .route("/auth/refresh", post(refresh_token))
+        .route("/auth/logout", post(logout))
         .route(
             "/users",
             get(users::get_users_list).post(users::create_user),

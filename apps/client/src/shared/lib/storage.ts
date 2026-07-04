@@ -8,6 +8,7 @@ export type ServerConnection = {
   id: string;
   url: string;
   token: string;
+  refreshToken?: string;
   name?: string;
 };
 
@@ -106,17 +107,33 @@ export const storage = {
     writeBlob({ ...blob, activeId: id });
   },
 
-  addServer: (input: { url: string; token: string; name?: string }): string => {
+  addServer: (input: {
+    url: string;
+    token: string;
+    refreshToken?: string;
+    name?: string;
+  }): string => {
     const blob = readBlob();
     const existing = blob.servers.find((s) => s.url === input.url);
     if (existing) {
-      const updated = { ...existing, token: input.token, name: input.name ?? existing.name };
+      const updated = {
+        ...existing,
+        token: input.token,
+        refreshToken: input.refreshToken ?? existing.refreshToken,
+        name: input.name ?? existing.name,
+      };
       const servers = blob.servers.map((s) => (s.id === existing.id ? updated : s));
       writeBlob({ servers, activeId: existing.id });
       return existing.id;
     }
     const id = generateId();
-    const next: ServerConnection = { id, url: input.url, token: input.token, name: input.name };
+    const next: ServerConnection = {
+      id,
+      url: input.url,
+      token: input.token,
+      refreshToken: input.refreshToken,
+      name: input.name,
+    };
     writeBlob({ servers: [...blob.servers, next], activeId: id });
     return id;
   },
@@ -134,6 +151,19 @@ export const storage = {
   updateServerToken: (id: string, token: string): void => {
     const blob = readBlob();
     const servers = blob.servers.map((s) => (s.id === id ? { ...s, token } : s));
+    writeBlob({ ...blob, servers });
+  },
+
+  updateServerTokens: (
+    id: string,
+    tokens: { token: string; refreshToken?: string },
+  ): void => {
+    const blob = readBlob();
+    const servers = blob.servers.map((s) =>
+      s.id === id
+        ? { ...s, token: tokens.token, refreshToken: tokens.refreshToken ?? s.refreshToken }
+        : s,
+    );
     writeBlob({ ...blob, servers });
   },
 
@@ -165,9 +195,27 @@ export const storage = {
     const blob = readBlob();
     const active = getActive(blob);
     if (!active) return;
-    const servers = blob.servers.map((s) => (s.id === active.id ? { ...s, token: "" } : s));
+    const servers = blob.servers.map((s) =>
+      s.id === active.id ? { ...s, token: "", refreshToken: undefined } : s,
+    );
     writeBlob({ ...blob, servers });
   },
+
+  getRefreshToken: (): string | null => getActive(readBlob())?.refreshToken ?? null,
+
+  setActiveTokens: (tokens: { token: string; refreshToken?: string }): void => {
+    const blob = readBlob();
+    const active = getActive(blob);
+    if (!active) return;
+    const servers = blob.servers.map((s) =>
+      s.id === active.id
+        ? { ...s, token: tokens.token, refreshToken: tokens.refreshToken ?? s.refreshToken }
+        : s,
+    );
+    writeBlob({ ...blob, servers });
+  },
+
+  getActiveServerId: (): string | null => readBlob().activeId,
 
   getServerUrl: (): string | null => getActive(readBlob())?.url ?? null,
 

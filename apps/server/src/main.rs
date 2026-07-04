@@ -97,6 +97,11 @@ async fn main() -> Result<()> {
         seed_initial_permissions(&mut conn);
         create_hydrate_streams(&pool, &streams);
 
+        match db::repository::delete_expired_refresh_tokens(&pool) {
+            Ok(removed) => info!("Pruned {} expired refresh tokens.", removed),
+            Err(e) => error!("Failed to prune expired refresh tokens: {}", e),
+        }
+
         if let Err(e) = init::map_migration::migrate_map_db_to_files(&pool, &map_store) {
             error!("Map DB-to-file migration failed: {}", e);
         }

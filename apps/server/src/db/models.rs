@@ -1,6 +1,6 @@
 use crate::db::schema::{
     device_tokens, devices, entities, entities_configurations, events, flow_versions, flows,
-    recordings, states, states_meta, streams, system_configurations, users,
+    recordings, refresh_tokens, states, states_meta, streams, system_configurations, users,
 };
 use chrono::NaiveDateTime;
 use diesel::prelude::*;
@@ -246,6 +246,28 @@ pub struct DeviceToken {
 pub struct NewDeviceToken<'a> {
     pub device_id: i32,
     pub token_hash: &'a str,
+}
+
+#[derive(Queryable, Selectable, Identifiable, Serialize, Clone)]
+#[diesel(table_name = refresh_tokens)]
+pub struct RefreshToken {
+    pub id: i32,
+    pub user_id: i32,
+    pub family_id: String,
+    #[serde(skip_serializing)]
+    pub token_hash: String,
+    pub expires_at: NaiveDateTime,
+    pub used_at: Option<NaiveDateTime>,
+    pub created_at: NaiveDateTime,
+}
+
+#[derive(Insertable)]
+#[diesel(table_name = refresh_tokens)]
+pub struct NewRefreshToken<'a> {
+    pub user_id: i32,
+    pub family_id: &'a str,
+    pub token_hash: &'a str,
+    pub expires_at: NaiveDateTime,
 }
 
 #[derive(Queryable, Selectable, Identifiable, Serialize, Clone)]
