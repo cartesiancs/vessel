@@ -73,4 +73,43 @@ describe("Stream registration E2E", () => {
       }
     });
   });
+
+  describe("codec", () => {
+    it("accepts jpeg for video", async () => {
+      const res = await register({
+        topic: uniq("mjpeg"),
+        media_type: "video",
+        codec: "jpeg",
+      });
+      expect(res.status).toBe(200);
+    });
+
+    it("accepts opus for audio", async () => {
+      const res = await register({
+        topic: uniq("opus"),
+        media_type: "audio",
+        codec: "opus",
+      });
+      expect(res.status).toBe(200);
+    });
+
+    it.each([
+      ["audio", "jpeg"],
+      ["audio", "h264"],
+      ["video", "opus"],
+    ])("rejects %s with codec %s as 400", async (media_type, codec) => {
+      const res = await register({ topic: uniq("bad"), media_type, codec });
+      expect(res.status).toBe(400);
+      expect(res.body.error).toMatch(/codec/);
+    });
+
+    it("rejects an unknown codec", async () => {
+      const res = await register({
+        topic: uniq("vp8"),
+        media_type: "video",
+        codec: "vp8",
+      });
+      expect(res.status).toBe(422);
+    });
+  });
 });
