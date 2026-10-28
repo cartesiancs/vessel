@@ -31,6 +31,7 @@ constexpr uint32_t kBytesPerKb = 1024;
 constexpr uint32_t kFpsScale = 10;
 
 struct Stats {
+    uint32_t captured = 0;  // frames delivered by the camera, sent or not
     uint32_t frames = 0;
     uint64_t bytes = 0;
     uint32_t grab_failures = 0;
@@ -89,15 +90,21 @@ void send_frame(Stream& stream, const link_supervisor::StreamTarget& target, con
     stats.bytes += fb->len;
 }
 
+uint32_t per_second_x10(uint32_t count, int64_t elapsed_us) {
+    return static_cast<uint32_t>(static_cast<int64_t>(count) * kFpsScale * kUsPerSecond /
+                                 (elapsed_us > 0 ? elapsed_us : 1));
+}
+
 void log_stats(Stats& stats, int64_t elapsed_us) {
-    const uint32_t fps_x10 = static_cast<uint32_t>(static_cast<int64_t>(stats.frames) * kFpsScale * kUsPerSecond /
-                                                   (elapsed_us > 0 ? elapsed_us : 1));
+    const uint32_t fps_x10 = per_second_x10(stats.frames, elapsed_us);
+    const uint32_t captured_x10 = per_second_x10(stats.captured, elapsed_us);
     const uint32_t avg_kb = stats.frames != 0 ? static_cast<uint32_t>(stats.bytes / stats.frames / kBytesPerKb) : 0;
     ESP_LOGI(TAG,
-             "%" PRIu32 ".%" PRIu32 " fps, %" PRIu32 " KB/frame, dropped %" PRIu32 ", send errors %" PRIu32
-             ", parse errors %" PRIu32 ", grab failures %" PRIu32 ", rssi %d, heap %u KB, psram %u KB",
-             fps_x10 / kFpsScale, fps_x10 % kFpsScale, avg_kb, stats.dropped_frames, stats.send_failures,
-             stats.parse_errors, stats.grab_failures, wifi::rssi(),
+             "%" PRIu32 ".%" PRIu32 " fps (camera %" PRIu32 ".%" PRIu32 " fps), %" PRIu32
+             " KB/frame, dropped %" PRIu32 ", send errors %" PRIu32 ", parse errors %" PRIu32
+             ", grab failures %" PRIu32 ", rssi %d, heap %u KB, psram %u KB",
+             fps_x10 / kFpsScale, fps_x10 % kFpsScale, captured_x10 / kFpsScale, captured_x10 % kFpsScale, avg_kb,
+             stats.dropped_frames, stats.send_failures, stats.parse_errors, stats.grab_failures, wifi::rssi(),
              static_cast<unsigned>(heap_caps_get_free_size(MALLOC_CAP_INTERNAL) / kBytesPerKb),
              static_cast<unsigned>(heap_caps_get_free_size(MALLOC_CAP_SPIRAM) / kBytesPerKb));
     stats = Stats{};
@@ -134,6 +141,7 @@ void video_task(void*) {
             stats.grab_failures++;
             continue;
         }
+        stats.captured++;
         const int64_t now_us = esp_timer_get_time();
         if (now_us - last_sent_us >= kMinFrameIntervalUs) {
             last_sent_us = now_us;
