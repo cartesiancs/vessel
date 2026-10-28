@@ -2,7 +2,7 @@ use tracing::{error, info, warn};
 
 use crate::db::repository;
 use crate::media::{StreamActivation, StreamActivator};
-use crate::state::DbPool;
+use crate::state::{DbPool, StreamCodec};
 
 pub fn create_hydrate_streams(pool: &DbPool, activator: &StreamActivator) {
     info!("Hydrating streams from database...");
@@ -15,6 +15,7 @@ pub fn create_hydrate_streams(pool: &DbPool, activator: &StreamActivator) {
     };
 
     let mut hydrated = 0usize;
+    let mut deferred = 0usize;
     for stream in db_streams {
         let ssrc = stream.ssrc;
         let activation = match StreamActivation::try_from(stream) {
@@ -24,10 +25,20 @@ pub fn create_hydrate_streams(pool: &DbPool, activator: &StreamActivator) {
                 continue;
             }
         };
+        // A JPEG stream needs a GStreamer transcoder. Starting one per row at boot spun up a
+        // pipeline for every camera ever registered, most of them long gone. The RTP receiver
+        // rehydrates a stream from the database on its first packet instead.
+        if activation.codec == StreamCodec::Jpeg {
+            deferred += 1;
+            continue;
+        }
         match activator.activate(activation) {
             Ok(()) => hydrated += 1,
             Err(e) => warn!("Failed to hydrate stream with SSRC {}: {}", ssrc, e),
         }
     }
-    info!("Hydrated {} streams into memory.", hydrated);
+    info!(
+        "Hydrated {} streams into memory; {} JPEG streams start when their camera sends.",
+        hydrated, deferred
+    );
 }
