@@ -6,12 +6,11 @@
   "scripts": {
     "test": "jest",
     "client": "npm run dev --workspace=client",
-    "client:build": "npm run build --workspace=@vessel/capsule-client && npm run build --workspace=client",
+    "client:build": "npm run build --workspace=client",
     "server": "cargo run -p server",
     "server:prod": "cargo run -p server --release",
     "desktop": "npm run dev --workspace=desktop",
     "desktop:build": "npm run tauri build --workspace=desktop",
-    "capsule": "cd ./apps/capsule && cargo run -p capsule",
     "build": "cd ./apps/server && cargo build --release",
     "firmware:build": "idf.py -C apps/firmware/esp32-s3-cam build",
     "firmware:flash": "idf.py -C apps/firmware/esp32-s3-cam flash monitor"
