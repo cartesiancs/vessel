@@ -145,3 +145,27 @@ impl MediaAdapter for RtpPushAdapter {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn limiter_retries_same_ssrc_only_after_interval() {
+        let mut limiter = UnknownSsrcLimiter::new();
+        let start = Instant::now();
+        assert!(limiter.allow(7, start));
+        assert!(!limiter.allow(7, start + Duration::from_secs(1)));
+        assert!(limiter.allow(7, start + UNKNOWN_SSRC_RETRY + LOOKUP_WINDOW));
+    }
+
+    #[test]
+    fn limiter_caps_lookups_per_window() {
+        let mut limiter = UnknownSsrcLimiter::new();
+        let now = Instant::now();
+        for ssrc in 0..MAX_LOOKUPS_PER_WINDOW {
+            assert!(limiter.allow(ssrc, now));
+        }
+        assert!(!limiter.allow(MAX_LOOKUPS_PER_WINDOW, now));
+        assert!(limiter.allow(MAX_LOOKUPS_PER_WINDOW, now + LOOKUP_WINDOW));
+    }
+}
