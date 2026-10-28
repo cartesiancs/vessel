@@ -144,4 +144,38 @@ describe("Stream registration E2E", () => {
       expect(res.body.error).toMatch(/topic/);
     });
   });
+
+  describe("re-registration", () => {
+    it("gives the same topic a new SSRC each time", async () => {
+      const topic = uniq("rereg");
+      const first = await register({
+        topic,
+        media_type: "video",
+        codec: "jpeg",
+      });
+      const second = await register({
+        topic,
+        media_type: "video",
+        codec: "jpeg",
+      });
+      expect(first.status).toBe(200);
+      expect(second.status).toBe(200);
+      expect(second.body.ssrc).not.toBe(first.body.ssrc);
+    });
+
+    it("never hands out the same SSRC twice", async () => {
+      const seen = new Set();
+      for (let i = 0; i < 20; i++) {
+        const res = await register({
+          topic: uniq(`many_${i}`),
+          media_type: i % 2 === 0 ? "video" : "audio",
+          codec: i % 2 === 0 ? "jpeg" : "opus",
+        });
+        expect(res.status).toBe(200);
+        expect(seen.has(res.body.ssrc)).toBe(false);
+        seen.add(res.body.ssrc);
+      }
+      // Each registration verifies the device token with bcrypt.
+    }, 60000);
+  });
 });
