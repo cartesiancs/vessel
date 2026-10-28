@@ -60,9 +60,6 @@ rhai = { version = "1", features = ["serde"] }
 rhai-rand = "0.1"
 config = { version =  "0.15.15", features = ["toml"] }
 tokio-tungstenite = { version = "0.27", features = ["rustls-tls-native-roots"] }
-tungstenite = { version = "0.27", features = ["rustls-tls-native-roots"] }
-httparse = "1.9"
-http = "1"
 quick-xml = "0.37"
 
 
