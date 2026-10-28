@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use anyhow::Result;
 use axum::{
-    extract::DefaultBodyLimit,
+    extract::{DefaultBodyLimit, OriginalUri},
     http::{header, Method, StatusCode, Uri},
     response::IntoResponse,
     routing::{delete, get, post, put},
@@ -255,7 +255,7 @@ pub async fn web_server(
     let app = Router::new()
         .route("/info", get(get_server_info))
         .route("/signal", get(ws_handler))
-        .nest("/api", api_routes)
+        .nest("/api", api_routes.fallback(api_not_found))
         .with_state(app_state)
         .layer(cors)
         .fallback(static_handler);
@@ -269,4 +269,13 @@ pub async fn web_server(
         })
         .await?;
     Ok(())
+}
+
+/// Unknown API paths get a JSON 404. Without this they fell through to the SPA fallback and
+/// answered 200 with index.html, so a client calling a removed endpoint saw no error.
+async fn api_not_found(OriginalUri(uri): OriginalUri) -> impl IntoResponse {
+    (
+        StatusCode::NOT_FOUND,
+        Json(json!({ "error": format!("No API route for {}", uri.path()) })),
+    )
 }
