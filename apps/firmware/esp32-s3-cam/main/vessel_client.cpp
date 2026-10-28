@@ -97,8 +97,10 @@ esp_err_t post_json(const char* url, const char* body, char* response, size_t re
         err = esp_http_client_set_header(client, "X-Device-Id", net.device_id);
     }
     const int body_len = static_cast<int>(strlen(body));
+    bool opened = false;
     if (err == ESP_OK) {
         err = esp_http_client_open(client, body_len);
+        opened = err == ESP_OK;
     }
     if (err == ESP_OK && esp_http_client_write(client, body, body_len) != body_len) {
         err = ESP_FAIL;
@@ -116,9 +118,12 @@ esp_err_t post_json(const char* url, const char* body, char* response, size_t re
         }
     }
 
-    const esp_err_t close_err = esp_http_client_close(client);
-    if (close_err != ESP_OK) {
-        ESP_LOGW(TAG, "http close failed: %s", esp_err_to_name(close_err));
+    // Closing a connection that never opened fails and would add a warning to every retry.
+    if (opened) {
+        const esp_err_t close_err = esp_http_client_close(client);
+        if (close_err != ESP_OK) {
+            ESP_LOGW(TAG, "http close failed: %s", esp_err_to_name(close_err));
+        }
     }
     const esp_err_t cleanup_err = esp_http_client_cleanup(client);
     if (cleanup_err != ESP_OK) {
