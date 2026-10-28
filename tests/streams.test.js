@@ -339,5 +339,29 @@ describe("Stream registration E2E", () => {
       expect(recording.stream_ssrc).not.toBe(reg.body.ssrc);
       await expectH264(recording, VIDEO_FPS * 2);
     }, 30000);
+
+    it("recovers a stream that timed out while the device kept its SSRC", async () => {
+      const topic = uniq("rehydrate_cam");
+      const reg = await register({ topic, media_type: "video", codec: "jpeg" });
+      expect(reg.status).toBe(200);
+
+      // Stay silent past the server's 10 s idle timeout so the SSRC is dropped from memory.
+      await sleep(12000);
+      const gone = await auth(
+        request(API_BASE_URL).post(`/api/streams/hls/${topic}/token`),
+      );
+      expect(gone.status).toBe(404);
+
+      // The same SSRC must be restored from the database without registering again.
+      const sending = sendMjpeg(reg.body.ssrc, 8);
+      await sleep(2500);
+      const back = await auth(
+        request(API_BASE_URL).post(`/api/streams/hls/${topic}/token`),
+      );
+      expect(back.status).toBe(200);
+      const recording = await record(topic, 3000);
+      await sending;
+      await expectH264(recording, VIDEO_FPS);
+    }, 45000);
   });
 });
