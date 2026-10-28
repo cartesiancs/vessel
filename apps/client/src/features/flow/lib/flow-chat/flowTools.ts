@@ -1,4 +1,4 @@
-import type { Tool } from "@vessel/capsule-client";
+import type { Tool } from "@/shared/lib/llm/types";
 
 export const FLOW_TOOLS: Tool[] = [
   {
