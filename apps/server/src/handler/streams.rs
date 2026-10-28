@@ -21,6 +21,7 @@ use crate::{
 
 const HLS_TOKEN_AUDIENCE: &str = "hls";
 const HLS_TOKEN_TTL_SECS: i64 = 3600;
+const DEFAULT_RTP_PORT: u16 = 5004;
 
 #[derive(Deserialize)]
 pub struct RegisterStreamRequest {
@@ -32,6 +33,15 @@ pub struct RegisterStreamRequest {
 pub struct RegisterStreamResponse {
     ssrc: u32,
     rtp_port: u16,
+}
+
+/// `rtp_broker_port` holds a listen address such as "0.0.0.0:5004"; a bare port is accepted too.
+fn parse_rtp_port(value: &str) -> Option<u16> {
+    value
+        .parse::<std::net::SocketAddr>()
+        .map(|addr| addr.port())
+        .ok()
+        .or_else(|| value.parse::<u16>().ok())
 }
 
 pub async fn register_stream(
@@ -94,8 +104,8 @@ pub async fn register_stream(
     let rtp_port = configs
         .iter()
         .find(|c| c.key == "rtp_broker_port")
-        .and_then(|c| c.value.parse::<u16>().ok())
-        .unwrap_or(5004);
+        .and_then(|c| parse_rtp_port(&c.value))
+        .unwrap_or(DEFAULT_RTP_PORT);
 
     (
         StatusCode::OK,
