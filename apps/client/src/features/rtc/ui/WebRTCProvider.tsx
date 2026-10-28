@@ -9,7 +9,7 @@ import {
 } from "react";
 import { toast } from "sonner";
 import { useWebSocket } from "../../ws";
-import { WebRTCManager } from "../lib/rtc";
+import { WebRTCManager, type StreamKind } from "../lib/rtc";
 import { isDemoMode } from "@/shared/config/demo";
 import { WebSocketChannel } from "../../ws";
 import {
@@ -53,6 +53,10 @@ export function WebRTCProvider({ children }: WebRTCProviderProps) {
   const [demoMode] = useState(isDemoMode);
   const [iceServers, setIceServers] = useState<RTCIceServer[] | null>(null);
   const lastTurnErrorRef = useRef<string | null>(null);
+  // Outlives individual managers so a replacement can restore what the viewer subscribed to.
+  const subscriptionsRef = useRef(new Map<string, StreamKind>());
+  // Bumped when the peer connection fails, which replaces the manager.
+  const [rtcGeneration, setRtcGeneration] = useState(0);
 
   // Load ICE servers: try localStorage → server DB → Supabase → STUN fallback
   useEffect(() => {
@@ -138,6 +142,11 @@ export function WebRTCProvider({ children }: WebRTCProviderProps) {
 
       const manager = new WebRTCManager(wsManager, onStreamsChanged, {
         iceServers,
+        subscriptions: subscriptionsRef.current,
+        onConnectionFailed: () => {
+          console.warn("[WebRTC] Peer connection failed; reconnecting");
+          setRtcGeneration((generation) => generation + 1);
+        },
       });
       manager.connect();
       setRtcManager(manager);
@@ -147,7 +156,7 @@ export function WebRTCProvider({ children }: WebRTCProviderProps) {
         setRtcManager(null);
       };
     }
-  }, [demoMode, isConnected, wsManager, iceServers]);
+  }, [demoMode, isConnected, wsManager, iceServers, rtcGeneration]);
 
   const { audioStreamCount, videoStreamCount } = useMemo(() => {
     const counts = { audioStreamCount: 0, videoStreamCount: 0 };
