@@ -51,8 +51,7 @@ When everything is implemented, individuals will be able to protect themselves f
 - Map based UI
 - Home Assistant Integration
 - ROS2 Integration
-- External access support
-- Capsule (Zero-Knowledge LLM Call) security.
+- AI chat with any OpenAI-compatible endpoint, including local models.
 - Local-first design, Offline-first design.
 
 ## Develop
