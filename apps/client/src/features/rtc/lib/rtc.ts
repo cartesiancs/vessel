@@ -45,9 +45,7 @@ export class WebRTCManager {
     this.onStreamsChanged = onStreamsChanged;
     this.subscriptions = config?.subscriptions ?? new Map();
     this.onConnectionFailed = config?.onConnectionFailed;
-    const iceServers = config?.iceServers ?? [
-      { urls: "stun:stun.l.google.com:19302" },
-    ];
+    const iceServers = config?.iceServers ?? [];
     this.pc = new RTCPeerConnection({ iceServers });
     this.setupEvents();
   }
