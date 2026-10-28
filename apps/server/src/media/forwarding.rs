@@ -91,7 +91,9 @@ impl RtpRewriter {
     pub fn rewrite(&mut self, packet: &mut Packet, new_source: bool) {
         if new_source {
             if let Some((seq, ts)) = self.last_out {
-                self.seq_offset = seq.wrapping_add(1).wrapping_sub(packet.header.sequence_number);
+                self.seq_offset = seq
+                    .wrapping_add(1)
+                    .wrapping_sub(packet.header.sequence_number);
                 self.ts_offset = ts
                     .wrapping_add(self.switch_ticks)
                     .wrapping_sub(packet.header.timestamp);
@@ -309,7 +311,9 @@ mod tests {
         assert!(is_h264_keyframe(&[0x67, 0x42]));
         assert!(!is_h264_keyframe(&[0x41, 0x9a]));
         // STAP-A carrying SPS (size 2) then PPS.
-        assert!(is_h264_keyframe(&[0x78, 0x00, 0x02, 0x67, 0x42, 0x00, 0x01, 0x68]));
+        assert!(is_h264_keyframe(&[
+            0x78, 0x00, 0x02, 0x67, 0x42, 0x00, 0x01, 0x68
+        ]));
         assert!(!is_h264_keyframe(&[0x78, 0x00, 0x01, 0x68]));
         // FU-A: start fragment of an IDR vs a middle fragment.
         assert!(is_h264_keyframe(&[0x7c, 0x85, 0x00]));
@@ -396,7 +400,8 @@ mod tests {
     #[tokio::test]
     async fn subscription_waits_for_a_topic_that_does_not_exist_yet() {
         let registry: StreamManager = Arc::new(StreamRegistry::new());
-        let mut sub = TopicSubscription::new(registry.clone(), "late".to_string(), MediaType::Video);
+        let mut sub =
+            TopicSubscription::new(registry.clone(), "late".to_string(), MediaType::Video);
         let reg = registry.clone();
         tokio::spawn(async move {
             tokio::time::sleep(Duration::from_millis(400)).await;
@@ -409,6 +414,12 @@ mod tests {
         let delivery = tokio::time::timeout(Duration::from_secs(3), sub.next())
             .await
             .expect("subscription never attached");
-        assert!(matches!(delivery, Delivery::Packet { new_source: true, .. }));
+        assert!(matches!(
+            delivery,
+            Delivery::Packet {
+                new_source: true,
+                ..
+            }
+        ));
     }
 }
