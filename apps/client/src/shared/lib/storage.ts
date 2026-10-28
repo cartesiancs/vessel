@@ -1,8 +1,38 @@
+import type { LlmSettings } from "@/shared/lib/llm/types";
+
 const LEGACY_TOKEN_KEY = "vessel_token";
 const LEGACY_SERVER_URL_KEY = "vessel_server_url";
 const SERVERS_KEY = "vessel_servers";
 const RECENT_URLS_KEY = "vessel_recent_server_urls";
 const CAPSULE_URL_KEY = "vessel_capsule_url";
+const LLM_SETTINGS_KEY = "vessel_llm_settings";
+
+/** Ollama's OpenAI-compatible API on this machine; the model must still be chosen. */
+export const DEFAULT_LLM_SETTINGS: LlmSettings = {
+  baseUrl: "http://localhost:11434/v1",
+  model: "",
+  apiKey: "",
+};
+
+function parseLlmSettings(raw: string | null): LlmSettings {
+  if (!raw) return DEFAULT_LLM_SETTINGS;
+  try {
+    const value: unknown = JSON.parse(raw);
+    if (typeof value !== "object" || value === null)
+      return DEFAULT_LLM_SETTINGS;
+    const field = (key: keyof LlmSettings) => {
+      const v = Reflect.get(value, key);
+      return typeof v === "string" ? v : DEFAULT_LLM_SETTINGS[key];
+    };
+    return {
+      baseUrl: field("baseUrl"),
+      model: field("model"),
+      apiKey: field("apiKey"),
+    };
+  } catch {
+    return DEFAULT_LLM_SETTINGS;
+  }
+}
 
 export type ServerConnection = {
   id: string;
@@ -275,6 +305,14 @@ export const storage = {
 
   removeRecentUrls: (): void => {
     localStorage.removeItem(RECENT_URLS_KEY);
+  },
+
+  // ---------- AI chat endpoint (kept in this browser only) ----------
+  getLlmSettings: (): LlmSettings =>
+    parseLlmSettings(localStorage.getItem(LLM_SETTINGS_KEY)),
+
+  setLlmSettings: (settings: LlmSettings): void => {
+    localStorage.setItem(LLM_SETTINGS_KEY, JSON.stringify(settings));
   },
 
   // ---------- capsule URL (LLM chat; unrelated to server URL) ----------
