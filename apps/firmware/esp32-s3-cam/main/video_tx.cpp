@@ -7,6 +7,7 @@
 #include "esp_log.h"
 #include "esp_random.h"
 #include "esp_timer.h"
+#include "frame_pacer.hpp"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "link_supervisor.hpp"
@@ -117,7 +118,7 @@ void video_task(void*) {
     }
     Stats stats;
     int64_t stats_start_us = esp_timer_get_time();
-    int64_t last_sent_us = 0;
+    FramePacer pacer(kMinFrameIntervalUs);
     for (;;) {
         const int64_t loop_us = esp_timer_get_time();
         if (loop_us - stats_start_us >= kStatsIntervalUs) {
@@ -143,8 +144,7 @@ void video_task(void*) {
         }
         stats.captured++;
         const int64_t now_us = esp_timer_get_time();
-        if (now_us - last_sent_us >= kMinFrameIntervalUs) {
-            last_sent_us = now_us;
+        if (pacer.should_send(now_us)) {
             send_frame(stream, target, fb, now_us, stats);
         }
         esp_camera_fb_return(fb);
