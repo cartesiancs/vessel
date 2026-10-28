@@ -313,6 +313,13 @@ describe("Stream registration E2E", () => {
       fs.unlinkSync(file);
     };
 
+    it("exposes no H.264 stream for a topic nobody streams", async () => {
+      const hls = await auth(
+        request(API_BASE_URL).post(`/api/streams/hls/${uniq("silent")}/token`),
+      );
+      expect(hls.status).toBe(404);
+    });
+
     it("transcodes an MJPEG stream to H.264 under the registered topic", async () => {
       const topic = uniq("mjpeg_cam");
       const reg = await register({ topic, media_type: "video", codec: "jpeg" });
