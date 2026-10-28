@@ -112,4 +112,36 @@ describe("Stream registration E2E", () => {
       expect(res.status).toBe(422);
     });
   });
+
+  describe("topic validation", () => {
+    it("accepts every allowed character class", async () => {
+      const res = await register({
+        topic: uniq("Cam-1_front.v2/video"),
+        media_type: "video",
+      });
+      expect(res.status).toBe(200);
+    });
+
+    it("accepts a 128 character topic", async () => {
+      const res = await register({
+        topic: "t".repeat(128),
+        media_type: "video",
+      });
+      expect(res.status).toBe(200);
+    });
+
+    it.each([
+      ["empty", ""],
+      ["129 characters", "t".repeat(129)],
+      ["the reserved '::'", "cam::mjpeg"],
+      ["'..'", "cam/../etc"],
+      ["a space", "cam front"],
+      ["a non-ASCII letter", "카메라"],
+      ["a query string", "cam?x=1"],
+    ])("rejects a topic with %s as 400", async (_label, topic) => {
+      const res = await register({ topic, media_type: "video" });
+      expect(res.status).toBe(400);
+      expect(res.body.error).toMatch(/topic/);
+    });
+  });
 });
