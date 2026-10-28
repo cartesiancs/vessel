@@ -198,7 +198,7 @@ impl WSActor {
                     self.session_closed.send_replace(true);
                     self.session_closed = watch::channel(false).0;
 
-                    match create_peer_connection(Arc::clone(&self.ws_sender), &self.state.pool).await {
+                    match create_peer_connection(Arc::clone(&self.ws_sender)).await {
                         Ok(new_pc) => {
                             self.pc = new_pc;
                             info!("PeerConnection has been successfully reset.");
@@ -663,7 +663,7 @@ pub async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
 
     let (cmd_tx, cmd_rx) = mpsc::channel(10);
 
-    let initial_pc = match create_peer_connection(Arc::clone(&ws_sender), &state.pool).await {
+    let initial_pc = match create_peer_connection(Arc::clone(&ws_sender)).await {
         Ok(pc) => pc,
         Err(e) => {
             error!("Failed to create initial peer connection: {}", e);
