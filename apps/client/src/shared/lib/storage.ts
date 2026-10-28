@@ -122,7 +122,9 @@ export const storage = {
         refreshToken: input.refreshToken ?? existing.refreshToken,
         name: input.name ?? existing.name,
       };
-      const servers = blob.servers.map((s) => (s.id === existing.id ? updated : s));
+      const servers = blob.servers.map((s) =>
+        s.id === existing.id ? updated : s,
+      );
       writeBlob({ servers, activeId: existing.id });
       return existing.id;
     }
@@ -150,7 +152,9 @@ export const storage = {
 
   updateServerToken: (id: string, token: string): void => {
     const blob = readBlob();
-    const servers = blob.servers.map((s) => (s.id === id ? { ...s, token } : s));
+    const servers = blob.servers.map((s) =>
+      s.id === id ? { ...s, token } : s,
+    );
     writeBlob({ ...blob, servers });
   },
 
@@ -161,7 +165,11 @@ export const storage = {
     const blob = readBlob();
     const servers = blob.servers.map((s) =>
       s.id === id
-        ? { ...s, token: tokens.token, refreshToken: tokens.refreshToken ?? s.refreshToken }
+        ? {
+            ...s,
+            token: tokens.token,
+            refreshToken: tokens.refreshToken ?? s.refreshToken,
+          }
         : s,
     );
     writeBlob({ ...blob, servers });
@@ -187,7 +195,9 @@ export const storage = {
     const blob = readBlob();
     const active = getActive(blob);
     if (!active) return;
-    const servers = blob.servers.map((s) => (s.id === active.id ? { ...s, token } : s));
+    const servers = blob.servers.map((s) =>
+      s.id === active.id ? { ...s, token } : s,
+    );
     writeBlob({ ...blob, servers });
   },
 
@@ -201,7 +211,8 @@ export const storage = {
     writeBlob({ ...blob, servers });
   },
 
-  getRefreshToken: (): string | null => getActive(readBlob())?.refreshToken ?? null,
+  getRefreshToken: (): string | null =>
+    getActive(readBlob())?.refreshToken ?? null,
 
   setActiveTokens: (tokens: { token: string; refreshToken?: string }): void => {
     const blob = readBlob();
@@ -209,7 +220,11 @@ export const storage = {
     if (!active) return;
     const servers = blob.servers.map((s) =>
       s.id === active.id
-        ? { ...s, token: tokens.token, refreshToken: tokens.refreshToken ?? s.refreshToken }
+        ? {
+            ...s,
+            token: tokens.token,
+            refreshToken: tokens.refreshToken ?? s.refreshToken,
+          }
         : s,
     );
     writeBlob({ ...blob, servers });
@@ -223,7 +238,9 @@ export const storage = {
     const blob = readBlob();
     const active = getActive(blob);
     if (active) {
-      const servers = blob.servers.map((s) => (s.id === active.id ? { ...s, url } : s));
+      const servers = blob.servers.map((s) =>
+        s.id === active.id ? { ...s, url } : s,
+      );
       writeBlob({ ...blob, servers });
       return;
     }
