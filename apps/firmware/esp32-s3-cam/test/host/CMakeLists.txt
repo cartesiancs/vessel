@@ -16,3 +16,6 @@ target_include_directories(test_rtp_jpeg PRIVATE ${FIRMWARE_MAIN})
 
 add_executable(udp_send_jpeg udp_send_jpeg.cpp ${FIRMWARE_MAIN}/rtp_jpeg.cpp)
 target_include_directories(udp_send_jpeg PRIVATE ${FIRMWARE_MAIN})
+
+add_executable(test_frame_pacer test_frame_pacer.cpp)
+target_include_directories(test_frame_pacer PRIVATE ${FIRMWARE_MAIN})
