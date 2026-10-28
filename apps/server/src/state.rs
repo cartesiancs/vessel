@@ -124,7 +124,10 @@ impl StreamRegistry {
 
     pub fn remove(&self, ssrc: &u32) -> Option<(u32, StreamHandle)> {
         if let Some((key, handle)) = self.streams.remove(ssrc) {
-            self.topic_index.remove(&handle.descriptor.topic);
+            // A re-registered stream reuses the topic under a new SSRC; only drop the index
+            // entry if it still points at the stream being removed.
+            self.topic_index
+                .remove_if(&handle.descriptor.topic, |_, indexed| indexed == ssrc);
             Some((key, handle))
         } else {
             None
