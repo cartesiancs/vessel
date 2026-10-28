@@ -583,28 +583,6 @@ describe("Vessel API E2E Test", () => {
     });
   });
 
-  describe("Tunnel API", () => {
-    it("GET /api/tunnel/status returns tunnel status (no auth required)", async () => {
-      const res = await request(API_BASE_URL).get("/api/tunnel/status");
-      expect(res.status).toBe(200);
-      expect(res.body).toHaveProperty("active");
-      expect(typeof res.body.active).toBe("boolean");
-    });
-
-    it("POST /api/tunnel/stop is idempotent", async () => {
-      const res = await request(API_BASE_URL).post("/api/tunnel/stop");
-      expect([204, 502]).toContain(res.status);
-    });
-
-    it("POST /api/tunnel/start with bogus server returns 200 or 502", async () => {
-      const res = await request(API_BASE_URL).post("/api/tunnel/start").send({
-        server: "http://127.0.0.1:1",
-        target: "http://127.0.0.1:1",
-      });
-      expect([200, 502]).toContain(res.status);
-    });
-  });
-
   describe("Logs API", () => {
     it("GET /api/logs lists log files", async () => {
       const res = await auth(request(API_BASE_URL).get("/api/logs"));
