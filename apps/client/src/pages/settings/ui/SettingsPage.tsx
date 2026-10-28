@@ -15,7 +15,6 @@ import { AppSidebar } from "@/features/sidebar";
 import {
   Blocks,
   ChevronRight,
-  Cloud,
   Code,
   Network,
   ScrollText,
@@ -33,13 +32,6 @@ type Category = {
 };
 
 const categories: Category[] = [
-  {
-    id: "account",
-    title: "Account",
-    description: "Vessel Cloud, Capsule Server, TURN credentials",
-    icon: <Cloud className='h-5 w-5' />,
-    to: "/settings/account",
-  },
   {
     id: "ai",
     title: "AI",

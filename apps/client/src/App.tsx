@@ -18,7 +18,6 @@ import { useDesktopSidecar } from "@/shared/lib/hooks/useDesktopSidecar";
 import { usePreventBackNavigation } from "@/shared/lib/hooks/usePreventBackNavigation";
 import {
   SettingsPage,
-  AccountSettingsPage,
   AiSettingsPage,
   ServicesSettingsPage,
   UsersSettingsPage,
@@ -116,14 +115,6 @@ const router = createBrowserRouter([
         element: (
           <AuthInterceptor>
             <AiSettingsPage />
-          </AuthInterceptor>
-        ),
-      },
-      {
-        path: "/settings/account",
-        element: (
-          <AuthInterceptor>
-            <AccountSettingsPage />
           </AuthInterceptor>
         ),
       },
