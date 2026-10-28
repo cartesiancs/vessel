@@ -191,3 +191,30 @@ pub struct AppState {
     pub hls_manager: Arc<HlsManager>,
     pub map_store: Arc<MapStore>,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn descriptor(id: u32, topic: &str, media_type: MediaType) -> StreamDescriptor {
+        StreamDescriptor {
+            id,
+            topic: topic.to_string(),
+            user_id: "device".to_string(),
+            media_type,
+            protocol: Protocol::Udp,
+        }
+    }
+
+    #[test]
+    fn removing_stale_ssrc_keeps_topic_index_of_reregistered_stream() {
+        let registry = StreamRegistry::new();
+        registry.register(descriptor(1, "cam/video", MediaType::Video));
+        registry.register(descriptor(2, "cam/video", MediaType::Video));
+
+        registry.remove(&1);
+
+        let current = registry.get_by_topic("cam/video").map(|h| h.descriptor.id);
+        assert_eq!(current, Some(2));
+    }
+}
