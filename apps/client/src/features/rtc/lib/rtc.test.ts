@@ -45,22 +45,30 @@ class FakePeerConnection {
       if (this.signalingState !== "have-remote-offer") {
         throw new Error("Called in wrong state: stable");
       }
-      return { type: "answer" as const, sdp: `answer-to-${this.remoteDescription?.sdp}` };
+      return {
+        type: "answer" as const,
+        sdp: `answer-to-${this.remoteDescription?.sdp}`,
+      };
     });
   }
   setLocalDescription(desc: RTCSessionDescriptionInit) {
     return this.step(() => {
-      if (desc.type === "answer" && this.signalingState !== "have-remote-offer") {
+      if (
+        desc.type === "answer" &&
+        this.signalingState !== "have-remote-offer"
+      ) {
         throw new Error("Called in wrong state: stable");
       }
       this.localDescription = desc;
-      this.signalingState = desc.type === "offer" ? "have-local-offer" : "stable";
+      this.signalingState =
+        desc.type === "offer" ? "have-local-offer" : "stable";
     });
   }
   setRemoteDescription(desc: RTCSessionDescriptionInit) {
     return this.step(() => {
       this.remoteDescription = desc;
-      this.signalingState = desc.type === "offer" ? "have-remote-offer" : "stable";
+      this.signalingState =
+        desc.type === "offer" ? "have-remote-offer" : "stable";
     });
   }
   addIceCandidate() {
@@ -81,8 +89,10 @@ function fakeSignaling() {
   const listeners = new Set<(msg: WebSocketMessage) => void>();
   const channel = {
     send: (msg: WebSocketMessage) => sent.push(msg),
-    addMessageListener: (l: (msg: WebSocketMessage) => void) => listeners.add(l),
-    removeMessageListener: (l: (msg: WebSocketMessage) => void) => listeners.delete(l),
+    addMessageListener: (l: (msg: WebSocketMessage) => void) =>
+      listeners.add(l),
+    removeMessageListener: (l: (msg: WebSocketMessage) => void) =>
+      listeners.delete(l),
   };
   const deliver = (msg: WebSocketMessage) => listeners.forEach((l) => l(msg));
   return { channel: channel as unknown as WebSocketChannel, sent, deliver };
@@ -91,16 +101,22 @@ function fakeSignaling() {
 beforeEach(() => {
   FakePeerConnection.instances = [];
   vi.stubGlobal("RTCPeerConnection", FakePeerConnection);
-  vi.stubGlobal("RTCSessionDescription", class {
-    constructor(init: RTCSessionDescriptionInit) {
-      return init;
-    }
-  });
-  vi.stubGlobal("RTCIceCandidate", class {
-    constructor(init: RTCIceCandidateInit) {
-      return init;
-    }
-  });
+  vi.stubGlobal(
+    "RTCSessionDescription",
+    class {
+      constructor(init: RTCSessionDescriptionInit) {
+        return init;
+      }
+    },
+  );
+  vi.stubGlobal(
+    "RTCIceCandidate",
+    class {
+      constructor(init: RTCIceCandidateInit) {
+        return init;
+      }
+    },
+  );
 });
 
 afterEach(() => {
@@ -119,10 +135,9 @@ describe("WebRTCManager", () => {
     await manager.whenSignalingIdle();
 
     const answers = sent.filter((m) => m.type === "answer");
-    expect(answers.map((m) => (m.payload as RTCSessionDescriptionInit).sdp)).toEqual([
-      "answer-to-first",
-      "answer-to-second",
-    ]);
+    expect(
+      answers.map((m) => (m.payload as RTCSessionDescriptionInit).sdp),
+    ).toEqual(["answer-to-first", "answer-to-second"]);
     expect(pc.maxInFlight).toBe(1);
     expect(pc.signalingState).toBe("stable");
   });
@@ -132,7 +147,10 @@ describe("WebRTCManager", () => {
     const manager = new WebRTCManager(channel, () => {}, { iceServers: [] });
     const errors = vi.spyOn(console, "error").mockImplementation(() => {});
 
-    deliver({ type: "answer", payload: null as unknown as RTCSessionDescriptionInit });
+    deliver({
+      type: "answer",
+      payload: null as unknown as RTCSessionDescriptionInit,
+    });
     deliver({ type: "offer", payload: { type: "offer", sdp: "after-error" } });
     await manager.whenSignalingIdle();
 
@@ -143,7 +161,10 @@ describe("WebRTCManager", () => {
   it("subscribes again to remembered topics when a replacement manager connects", async () => {
     const subscriptions = new Map<string, StreamKind>();
     const first = fakeSignaling();
-    const manager = new WebRTCManager(first.channel, () => {}, { iceServers: [], subscriptions });
+    const manager = new WebRTCManager(first.channel, () => {}, {
+      iceServers: [],
+      subscriptions,
+    });
     manager.subscribe("cam/video", "video");
     manager.subscribe("cam/audio", "audio");
     manager.close();
@@ -160,16 +181,18 @@ describe("WebRTCManager", () => {
       "subscribe_stream",
       "subscribe_stream",
     ]);
-    expect(second.sent.slice(1).map((m) => (m.payload as { topic: string }).topic)).toEqual([
-      "cam/video",
-      "cam/audio",
-    ]);
+    expect(
+      second.sent.slice(1).map((m) => (m.payload as { topic: string }).topic),
+    ).toEqual(["cam/video", "cam/audio"]);
   });
 
   it("reports a failed peer connection once", () => {
     const { channel } = fakeSignaling();
     const onConnectionFailed = vi.fn();
-    new WebRTCManager(channel, () => {}, { iceServers: [], onConnectionFailed });
+    new WebRTCManager(channel, () => {}, {
+      iceServers: [],
+      onConnectionFailed,
+    });
     const pc = FakePeerConnection.instances[0];
 
     pc.fail();
@@ -181,7 +204,10 @@ describe("WebRTCManager", () => {
   it("does not report failure after it was closed on purpose", () => {
     const { channel } = fakeSignaling();
     const onConnectionFailed = vi.fn();
-    const manager = new WebRTCManager(channel, () => {}, { iceServers: [], onConnectionFailed });
+    const manager = new WebRTCManager(channel, () => {}, {
+      iceServers: [],
+      onConnectionFailed,
+    });
     manager.close();
     FakePeerConnection.instances[0].fail();
 

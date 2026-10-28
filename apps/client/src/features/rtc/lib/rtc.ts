@@ -75,7 +75,10 @@ export class WebRTCManager {
     this.pc.onicecandidate = (event) => {
       if (event.candidate) {
         const type = event.candidate.type ?? "unknown";
-        console.log(`[WebRTC] Local candidate [${type}]:`, event.candidate.candidate);
+        console.log(
+          `[WebRTC] Local candidate [${type}]:`,
+          event.candidate.candidate,
+        );
         this.signaling.send({
           type: "candidate",
           payload: event.candidate.toJSON(),

@@ -93,19 +93,19 @@ export function WebRTCProvider({ children }: WebRTCProviderProps) {
 
       if (error.code === "TURN_QUOTA_EXCEEDED") {
         toast.error("TURN relay quota exceeded", {
-          description:
-            error.usage?.periodEnd
-              ? `1 GB monthly limit reached. Quota resets ${new Date(
-                  error.usage.periodEnd,
-                ).toLocaleString()}.`
-              : "1 GB monthly limit reached for TURN relay traffic.",
+          description: error.usage?.periodEnd
+            ? `1 GB monthly limit reached. Quota resets ${new Date(
+                error.usage.periodEnd,
+              ).toLocaleString()}.`
+            : "1 GB monthly limit reached for TURN relay traffic.",
         });
         return;
       }
 
       if (error.code === "TURN_USAGE_UNAVAILABLE") {
         toast.error("TURN usage check unavailable", {
-          description: "TURN relay usage could not be verified, so the app is using STUN only.",
+          description:
+            "TURN relay usage could not be verified, so the app is using STUN only.",
         });
       }
     });
