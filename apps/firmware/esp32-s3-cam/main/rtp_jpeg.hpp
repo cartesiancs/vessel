@@ -18,6 +18,10 @@ inline constexpr uint32_t kMaxDimension = 255 * 8;
 inline constexpr size_t kQuantTableLen = 64;
 inline constexpr size_t kQuantTablesLen = 2 * kQuantTableLen;
 
+inline constexpr size_t kMainHeaderLen = 8;
+inline constexpr size_t kRestartHeaderLen = 4;
+inline constexpr size_t kQuantHeaderLen = 4;
+
 enum class Error {
     Ok,
     NotJpeg,                // no SOI, or a marker byte where one is required is missing
@@ -47,5 +51,23 @@ struct Frame {
 };
 
 Error parse(const uint8_t* jpeg, size_t len, Frame& out);
+
+// Produces the RTP payloads of one frame in order. The frame must outlive the packetizer.
+class Packetizer {
+public:
+    Packetizer(const Frame& frame, size_t max_payload);
+
+    // Writes the next payload into `dst` (capacity `cap`). Returns false when every payload has
+    // been produced or when `cap` cannot hold the headers plus at least one byte of scan data.
+    // `last` is set on the payload that must carry the RTP marker bit.
+    bool next(uint8_t* dst, size_t cap, size_t& written, bool& last);
+
+    bool done() const { return offset_ >= frame_.scan_len; }
+
+private:
+    const Frame& frame_;
+    size_t max_payload_;
+    size_t offset_ = 0;
+};
 
 }  // namespace rtp_jpeg

@@ -35,6 +35,10 @@ constexpr size_t kHuffmanCountsLen = 16;
 constexpr uint8_t kSamplingH2V1 = 0x21;
 constexpr uint8_t kSamplingH2V2 = 0x22;
 constexpr uint8_t kSamplingH1V1 = 0x11;
+constexpr uint8_t kPixelsPerUnit = 8;
+
+constexpr uint16_t kRestartCountUnaligned = 0x3FFF;  // with F = L = 1: packets don't align to intervals
+constexpr uint8_t kRestartFirstLastBits = 0xC0;
 
 // JPEG Annex K.3 tables. RFC 2435 receivers rebuild the JFIF header with exactly these.
 constexpr uint8_t kDcLumaCounts[kHuffmanCountsLen] = {0, 1, 5, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0};
@@ -333,6 +337,54 @@ Error parse(const uint8_t* jpeg, size_t len, Frame& out) {
         return Error::Ok;
     }
     return Error::Truncated;
+}
+
+Packetizer::Packetizer(const Frame& frame, size_t max_payload) : frame_(frame), max_payload_(max_payload) {}
+
+bool Packetizer::next(uint8_t* dst, size_t cap, size_t& written, bool& last) {
+    written = 0;
+    last = false;
+    if (done()) {
+        return false;
+    }
+    const bool has_restart = frame_.restart_interval != 0;
+    const bool first = offset_ == 0;
+    const size_t header_len = kMainHeaderLen + (has_restart ? kRestartHeaderLen : 0) +
+                              (first ? kQuantHeaderLen + kQuantTablesLen : 0);
+    const size_t limit = std::min(cap, max_payload_);
+    if (limit <= header_len) {
+        return false;
+    }
+
+    uint8_t* p = dst;
+    *p++ = 0;  // type-specific
+    *p++ = static_cast<uint8_t>(offset_ >> 16);
+    *p++ = static_cast<uint8_t>(offset_ >> 8);
+    *p++ = static_cast<uint8_t>(offset_);
+    *p++ = frame_.type;
+    *p++ = kQInBandTables;
+    *p++ = static_cast<uint8_t>((frame_.width + kPixelsPerUnit - 1) / kPixelsPerUnit);
+    *p++ = static_cast<uint8_t>((frame_.height + kPixelsPerUnit - 1) / kPixelsPerUnit);
+    if (has_restart) {
+        *p++ = static_cast<uint8_t>(frame_.restart_interval >> 8);
+        *p++ = static_cast<uint8_t>(frame_.restart_interval);
+        *p++ = static_cast<uint8_t>(kRestartFirstLastBits | (kRestartCountUnaligned >> 8));
+        *p++ = static_cast<uint8_t>(kRestartCountUnaligned & 0xFF);
+    }
+    if (first) {
+        *p++ = 0;  // MBZ
+        *p++ = 0;  // precision: both tables 8-bit
+        *p++ = static_cast<uint8_t>(kQuantTablesLen >> 8);
+        *p++ = static_cast<uint8_t>(kQuantTablesLen & 0xFF);
+        memcpy(p, frame_.quant_tables, kQuantTablesLen);
+        p += kQuantTablesLen;
+    }
+    const size_t chunk = std::min(limit - header_len, frame_.scan_len - offset_);
+    memcpy(p, frame_.scan + offset_, chunk);
+    offset_ += chunk;
+    written = header_len + chunk;
+    last = done();
+    return true;
 }
 
 }  // namespace rtp_jpeg
