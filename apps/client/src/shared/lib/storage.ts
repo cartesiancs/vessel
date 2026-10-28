@@ -4,7 +4,6 @@ const LEGACY_TOKEN_KEY = "vessel_token";
 const LEGACY_SERVER_URL_KEY = "vessel_server_url";
 const SERVERS_KEY = "vessel_servers";
 const RECENT_URLS_KEY = "vessel_recent_server_urls";
-const CAPSULE_URL_KEY = "vessel_capsule_url";
 const LLM_SETTINGS_KEY = "vessel_llm_settings";
 
 /** Ollama's OpenAI-compatible API on this machine; the model must still be chosen. */
@@ -315,24 +314,11 @@ export const storage = {
     localStorage.setItem(LLM_SETTINGS_KEY, JSON.stringify(settings));
   },
 
-  // ---------- capsule URL (LLM chat; unrelated to server URL) ----------
-  getCapsuleUrl: (): string | null => {
-    return localStorage.getItem(CAPSULE_URL_KEY);
-  },
-
-  setCapsuleUrl: (url: string): void => {
-    localStorage.setItem(CAPSULE_URL_KEY, url);
-  },
-
-  removeCapsuleUrl: (): void => {
-    localStorage.removeItem(CAPSULE_URL_KEY);
-  },
-
   clearAll: (): void => {
     localStorage.removeItem(SERVERS_KEY);
     localStorage.removeItem(LEGACY_TOKEN_KEY);
     localStorage.removeItem(LEGACY_SERVER_URL_KEY);
-    localStorage.removeItem(CAPSULE_URL_KEY);
+    localStorage.removeItem(LLM_SETTINGS_KEY);
     emit();
   },
 };
