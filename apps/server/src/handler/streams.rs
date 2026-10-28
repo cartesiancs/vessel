@@ -305,6 +305,14 @@ mod tests {
     use super::*;
 
     #[test]
+    fn parse_rtp_port_accepts_listen_address_and_bare_port() {
+        assert_eq!(parse_rtp_port("0.0.0.0:5004"), Some(5004));
+        assert_eq!(parse_rtp_port("[::]:6000"), Some(6000));
+        assert_eq!(parse_rtp_port("5006"), Some(5006));
+        assert_eq!(parse_rtp_port("not-a-port"), None);
+    }
+
+    #[test]
     fn rewrite_playlist_appends_token_to_segment_lines_only() {
         let input = "#EXTM3U\n#EXT-X-VERSION:6\n#EXTINF:2.0,\nseg_00001.ts\n#EXTINF:2.0,\nseg_00002.ts\n";
         let out = rewrite_playlist_with_token(input, "abc.def.ghi");
