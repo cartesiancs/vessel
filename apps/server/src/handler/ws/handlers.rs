@@ -211,6 +211,12 @@ impl WSActor {
                 }
             }
         }
+        // The WebSocket is gone: end the forwarding tasks and release the peer connection
+        // instead of leaving it to the ICE failure timeout.
+        self.session_closed.send_replace(true);
+        if let Err(e) = self.pc.close().await {
+            error!("Failed to close peer connection: {}", e);
+        }
         info!("WebRTC Actor finished.");
     }
 
