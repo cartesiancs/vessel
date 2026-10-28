@@ -2,6 +2,19 @@ import { WebSocketChannel, WebSocketMessage } from "../../ws";
 
 export type StreamKind = "audio" | "video";
 
+// The server names each forwarded track's media stream "webrtc-stream-<kind>-<topic>"
+// (apps/server/src/handler/ws/handlers.rs, add_forwarded_track).
+const SERVER_STREAM_ID_PREFIX = "webrtc-stream-";
+
+/** Topic a remote track carries, from the stream id the server gave it; null for other tracks. */
+export function topicOfTrack(
+  event: Pick<RTCTrackEvent, "track" | "streams">,
+): string | null {
+  const prefix = `${SERVER_STREAM_ID_PREFIX}${event.track.kind}-`;
+  const stream = event.streams.find((s) => s.id.startsWith(prefix));
+  return stream ? stream.id.slice(prefix.length) : null;
+}
+
 export interface WebRTCConfig {
   iceServers: RTCIceServer[];
   /**
@@ -20,7 +33,6 @@ export class WebRTCManager {
   private onStreamsChanged: (
     streams: Map<string, { stream: MediaStream; type: "audio" | "video" }>,
   ) => void;
-  private pendingTopics: Array<{ topic: string; type: "audio" | "video" }>;
   private candidateQueue: RTCIceCandidateInit[] = [];
   private subscriptions: Map<string, StreamKind>;
   private onConnectionFailed: (() => void) | undefined;
@@ -41,7 +53,6 @@ export class WebRTCManager {
   ) {
     this.signaling = signaling;
     this.streams = new Map();
-    this.pendingTopics = [];
     this.onStreamsChanged = onStreamsChanged;
     this.subscriptions = config?.subscriptions ?? new Map();
     this.onConnectionFailed = config?.onConnectionFailed;
@@ -87,13 +98,16 @@ export class WebRTCManager {
     };
 
     this.pc.ontrack = (event) => {
-      const pending = this.pendingTopics.shift();
-      if (!pending) {
+      const track = event.track;
+      const topic = topicOfTrack(event);
+      // The server's first answer marks every recvonly transceiver sendonly, which fires a track
+      // event per transceiver with no media and random ids. Matching tracks to subscriptions in
+      // arrival order let one of those claim a topic whenever a subscription was already pending
+      // (as when a replacement manager resubscribes), leaving the view black.
+      if (!topic || !this.subscriptions.has(topic)) {
         return;
       }
-      const { topic, type } = pending;
-
-      const track = event.track;
+      const type = this.subscriptions.get(topic) ?? (track.kind as StreamKind);
       const stream = new MediaStream([track]);
 
       console.log(` "${topic}": ${track.kind} : ${stream.id}`);
@@ -221,7 +235,6 @@ export class WebRTCManager {
 
   private requestStream(topic: string, streamType: StreamKind): void {
     console.log(`Subscribing to topic: ${topic} (${streamType})`);
-    this.pendingTopics.push({ topic, type: streamType });
 
     this.signaling.send({
       type: "subscribe_stream",

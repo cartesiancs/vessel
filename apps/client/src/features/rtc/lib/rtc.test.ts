@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { WebSocketChannel, WebSocketMessage } from "../../ws";
-import { WebRTCManager, type StreamKind } from "./rtc";
+import { WebRTCManager, topicOfTrack, type StreamKind } from "./rtc";
 
 const SIGNALING_DELAY_MS = 20;
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -101,6 +101,13 @@ function fakeSignaling() {
 beforeEach(() => {
   FakePeerConnection.instances = [];
   vi.stubGlobal("RTCPeerConnection", FakePeerConnection);
+  vi.stubGlobal(
+    "MediaStream",
+    class {
+      id = "local-stream";
+      constructor(public tracks: unknown[]) {}
+    },
+  );
   vi.stubGlobal(
     "RTCSessionDescription",
     class {
@@ -212,5 +219,71 @@ describe("WebRTCManager", () => {
     FakePeerConnection.instances[0].fail();
 
     expect(onConnectionFailed).not.toHaveBeenCalled();
+  });
+
+  it("binds a subscription to the server's track, not to placeholder tracks before it", () => {
+    const { channel } = fakeSignaling();
+    const changes: Array<
+      Map<string, { stream: MediaStream; type: StreamKind }>
+    > = [];
+    const subscriptions = new Map<string, StreamKind>([["cam/video", "video"]]);
+    new WebRTCManager(channel, (streams) => changes.push(streams), {
+      iceServers: [],
+      subscriptions,
+    });
+    const pc = FakePeerConnection.instances[0];
+
+    // What Chrome fires for the server's first answer: one muted track per transceiver.
+    const placeholder = { kind: "video", id: "243efcfe-987a" };
+    pc.ontrack?.({ track: placeholder, streams: [{ id: "baaa6506-62b3" }] });
+    expect(changes).toHaveLength(0);
+
+    const real = { kind: "video", id: "video-cam/video" };
+    pc.ontrack?.({
+      track: real,
+      streams: [{ id: "webrtc-stream-video-cam/video" }],
+    });
+    expect(changes).toHaveLength(1);
+    const bound = changes[0].get("cam/video") as unknown as {
+      stream: { tracks: unknown[] };
+      type: StreamKind;
+    };
+    expect(bound.type).toBe("video");
+    expect(bound.stream.tracks).toEqual([real]);
+  });
+
+  it("ignores tracks for topics this viewer did not subscribe to", () => {
+    const { channel } = fakeSignaling();
+    const onStreamsChanged = vi.fn();
+    new WebRTCManager(channel, onStreamsChanged, { iceServers: [] });
+    FakePeerConnection.instances[0].ontrack?.({
+      track: { kind: "audio", id: "audio-other" },
+      streams: [{ id: "webrtc-stream-audio-other" }],
+    });
+    expect(onStreamsChanged).not.toHaveBeenCalled();
+  });
+});
+
+describe("topicOfTrack", () => {
+  const event = (kind: string, ...streamIds: string[]) =>
+    ({
+      track: { kind } as MediaStreamTrack,
+      streams: streamIds.map((id) => ({ id }) as MediaStream),
+    }) as Pick<RTCTrackEvent, "track" | "streams">;
+
+  it("reads the topic from the server's stream id, slashes included", () => {
+    expect(
+      topicOfTrack(event("video", "webrtc-stream-video-xiao/cam/video")),
+    ).toBe("xiao/cam/video");
+    expect(topicOfTrack(event("audio", "x", "webrtc-stream-audio-mic"))).toBe(
+      "mic",
+    );
+  });
+
+  it("returns null for tracks the server did not name", () => {
+    expect(topicOfTrack(event("video", "baaa6506-62b3"))).toBeNull();
+    expect(topicOfTrack(event("video"))).toBeNull();
+    // A video track must not match an audio stream id.
+    expect(topicOfTrack(event("video", "webrtc-stream-audio-mic"))).toBeNull();
   });
 });
