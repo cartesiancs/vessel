@@ -290,3 +290,12 @@ fn push_packet(appsrc: &AppSrc, packet: &Packet) -> Result<()> {
     Ok(())
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn ingest_topic_appends_reserved_suffix() {
+        assert_eq!(ingest_topic("cam/front/video"), "cam/front/video::mjpeg");
+    }
+}
