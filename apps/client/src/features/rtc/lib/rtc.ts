@@ -1,7 +1,16 @@
 import { WebSocketChannel, WebSocketMessage } from "../../ws";
 
+export type StreamKind = "audio" | "video";
+
 export interface WebRTCConfig {
   iceServers: RTCIceServer[];
+  /**
+   * Topics this viewer wants, shared across manager instances. A replacement manager (after a
+   * WebSocket reconnect or a failed peer connection) subscribes to them again on connect.
+   */
+  subscriptions?: Map<string, StreamKind>;
+  /** Called once when the peer connection reaches "failed"; the owner should replace the manager. */
+  onConnectionFailed?: () => void;
 }
 
 export class WebRTCManager {
@@ -13,6 +22,8 @@ export class WebRTCManager {
   ) => void;
   private pendingTopics: Array<{ topic: string; type: "audio" | "video" }>;
   private candidateQueue: RTCIceCandidateInit[] = [];
+  private subscriptions: Map<string, StreamKind>;
+  private onConnectionFailed: (() => void) | undefined;
   // Signaling messages are applied one at a time. Two renegotiation offers sent back to back
   // (one per subscribe) otherwise interleave, and the second setLocalDescription fails with
   // "Called in wrong state: stable", leaving the server's offer unanswered.
@@ -32,6 +43,8 @@ export class WebRTCManager {
     this.streams = new Map();
     this.pendingTopics = [];
     this.onStreamsChanged = onStreamsChanged;
+    this.subscriptions = config?.subscriptions ?? new Map();
+    this.onConnectionFailed = config?.onConnectionFailed;
     const iceServers = config?.iceServers ?? [
       { urls: "stun:stun.l.google.com:19302" },
     ];
@@ -48,6 +61,11 @@ export class WebRTCManager {
 
     this.pc.onconnectionstatechange = () => {
       console.log("[WebRTC] Connection state:", this.pc.connectionState);
+      if (this.pc.connectionState === "failed") {
+        const notify = this.onConnectionFailed;
+        this.onConnectionFailed = undefined;
+        notify?.();
+      }
     };
 
     this.pc.onicegatheringstatechange = () => {
@@ -166,6 +184,10 @@ export class WebRTCManager {
         type: "offer",
         payload: this.pc.localDescription as RTCSessionDescriptionInit,
       });
+      // The server handles messages in order, so these follow the offer it is answering.
+      for (const [topic, type] of this.subscriptions) {
+        this.requestStream(topic, type);
+      }
     } catch (err) {
       console.error("Error creating initial offer:", err);
     }
@@ -192,6 +214,11 @@ export class WebRTCManager {
       return;
     }
 
+    this.subscriptions.set(topic, streamType);
+    this.requestStream(topic, streamType);
+  }
+
+  private requestStream(topic: string, streamType: StreamKind): void {
     console.log(`Subscribing to topic: ${topic} (${streamType})`);
     this.pendingTopics.push({ topic, type: streamType });
 
@@ -202,6 +229,7 @@ export class WebRTCManager {
   }
 
   public close(): void {
+    this.onConnectionFailed = undefined;
     this.signaling.send({ type: "hangup", payload: "" });
 
     this.signaling.removeMessageListener(this.handleSignalingMessage);
