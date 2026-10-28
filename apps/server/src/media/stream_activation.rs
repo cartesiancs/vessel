@@ -1,9 +1,11 @@
 use anyhow::{anyhow, Result};
+use std::sync::Arc;
 use tokio::sync::watch;
+use tracing::{debug, info, warn};
 
-use crate::db::models::Stream;
+use crate::db::{models::Stream, repository};
 use crate::media::mjpeg_transcoder::{ingest_topic, MjpegTranscoderManager};
-use crate::state::{MediaType, Protocol, StreamCodec, StreamDescriptor, StreamManager};
+use crate::state::{DbPool, MediaType, Protocol, StreamCodec, StreamDescriptor, StreamManager};
 
 #[derive(Clone, Debug)]
 pub struct StreamActivation {
@@ -34,17 +36,19 @@ impl TryFrom<Stream> for StreamActivation {
 }
 
 /// Single place that turns a registered stream into live in-memory state, used by the
-/// register API and boot-time hydration.
+/// register API, boot-time hydration and RTP rehydration.
 pub struct StreamActivator {
     streams: StreamManager,
+    pool: DbPool,
     transcoders: MjpegTranscoderManager,
 }
 
 impl StreamActivator {
-    pub fn new(streams: StreamManager, shutdown_rx: watch::Receiver<()>) -> Self {
+    pub fn new(streams: StreamManager, pool: DbPool, shutdown_rx: watch::Receiver<()>) -> Self {
         Self {
             transcoders: MjpegTranscoderManager::new(streams.clone(), shutdown_rx),
             streams,
+            pool,
         }
     }
 
@@ -98,5 +102,54 @@ impl StreamActivator {
             return Err(e);
         }
         Ok(())
+    }
+
+    /// Restores a stream whose SSRC was dropped by the idle checker while the device kept
+    /// sending (e.g. after a network outage longer than the timeout).
+    pub async fn rehydrate(self: Arc<Self>, ssrc: u32) {
+        let Ok(db_ssrc) = i32::try_from(ssrc) else {
+            return;
+        };
+        let pool = self.pool.clone();
+        let lookup = tokio::task::spawn_blocking(move || {
+            repository::streams::get_stream_by_ssrc(&pool, db_ssrc)
+        })
+        .await;
+        let row = match lookup {
+            Ok(Ok(Some(row))) => row,
+            Ok(Ok(None)) => {
+                debug!("Ignoring RTP from unregistered SSRC {}", ssrc);
+                return;
+            }
+            Ok(Err(e)) => {
+                warn!("Stream lookup for SSRC {} failed: {}", ssrc, e);
+                return;
+            }
+            Err(e) => {
+                warn!("Stream lookup task for SSRC {} failed: {}", ssrc, e);
+                return;
+            }
+        };
+        if self.streams.contains(ssrc) {
+            return;
+        }
+        let activation = match StreamActivation::try_from(row) {
+            Ok(activation) => activation,
+            Err(e) => {
+                warn!("Cannot rehydrate SSRC {}: {}", ssrc, e);
+                return;
+            }
+        };
+        let topic = activation.topic.clone();
+        match self.activate(activation) {
+            Ok(()) => info!(
+                "Rehydrated stream '{}' (SSRC {}) from database",
+                topic, ssrc
+            ),
+            Err(e) => warn!(
+                "Failed to rehydrate stream '{}' (SSRC {}): {}",
+                topic, ssrc, e
+            ),
+        }
     }
 }

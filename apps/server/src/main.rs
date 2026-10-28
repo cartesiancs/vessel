@@ -124,7 +124,11 @@ async fn main() -> Result<()> {
 
     let hls_manager = Arc::new(streaming::HlsManager::new(streams.clone()));
 
-    let stream_activator = Arc::new(StreamActivator::new(streams.clone(), shutdown_rx.clone()));
+    let stream_activator = Arc::new(StreamActivator::new(
+        streams.clone(),
+        pool.clone(),
+        shutdown_rx.clone(),
+    ));
     create_hydrate_streams(&pool, &stream_activator);
 
     let app_state = Arc::new(AppState {
