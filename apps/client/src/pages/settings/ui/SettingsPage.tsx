@@ -42,7 +42,7 @@ const categories: Category[] = [
   {
     id: "services",
     title: "Services",
-    description: "Code workspace, Tunnel",
+    description: "Code workspace, Live streaming",
     icon: <Code className='h-5 w-5' />,
     to: "/settings/services",
   },
