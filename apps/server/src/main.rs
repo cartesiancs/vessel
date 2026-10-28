@@ -95,7 +95,6 @@ async fn main() -> Result<()> {
         create_initial_admin(&mut conn);
         create_initial_configurations(&mut conn);
         seed_initial_permissions(&mut conn);
-        create_hydrate_streams(&pool, &streams);
 
         match db::repository::delete_expired_refresh_tokens(&pool) {
             Ok(removed) => info!("Pruned {} expired refresh tokens.", removed),
@@ -126,6 +125,7 @@ async fn main() -> Result<()> {
     let hls_manager = Arc::new(streaming::HlsManager::new(streams.clone()));
 
     let stream_activator = Arc::new(StreamActivator::new(streams.clone(), shutdown_rx.clone()));
+    create_hydrate_streams(&pool, &stream_activator);
 
     let app_state = Arc::new(AppState {
         streams: streams.clone(),
