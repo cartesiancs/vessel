@@ -27,7 +27,6 @@ function pageViewer({ wsUrl, topics }) {
     pc.addTransceiver("audio", { direction: "recvonly" });
   for (let i = 0; i < 4; i++)
     pc.addTransceiver("video", { direction: "recvonly" });
-  const pending = [];
   const trackTopic = {};
   const queue = [];
   let chain = Promise.resolve();
@@ -35,10 +34,14 @@ function pageViewer({ wsUrl, topics }) {
     ws.readyState === 1 && ws.send(JSON.stringify({ type, payload }));
 
   pc.ontrack = (e) => {
-    const p = pending.shift();
-    if (!p) return;
-    trackTopic[e.track.id] = p.topic;
-    log("track", { topic: p.topic, kind: e.track.kind });
+    // Like the client: the server names forwarded streams "webrtc-stream-<kind>-<topic>"; other
+    // track events (one per transceiver after the first answer) carry no media.
+    const prefix = `webrtc-stream-${e.track.kind}-`;
+    const named = e.streams.find((s) => s.id.startsWith(prefix));
+    const topic = named && named.id.slice(prefix.length);
+    if (!topic || !topics.some((t) => t.topic === topic)) return;
+    trackTopic[e.track.id] = topic;
+    log("track", { topic, kind: e.track.kind });
     const el = document.createElement(e.track.kind);
     el.srcObject = new MediaStream([e.track]);
     el.muted = true;
@@ -59,7 +62,6 @@ function pageViewer({ wsUrl, topics }) {
         if (!subscribed) {
           subscribed = true;
           for (const t of topics) {
-            pending.push(t);
             send("subscribe_stream", { topic: t.topic });
           }
         }
