@@ -178,4 +178,25 @@ describe("Stream registration E2E", () => {
       // Each registration verifies the device token with bcrypt.
     }, 60000);
   });
+
+  describe("device authentication", () => {
+    it("refuses registration without a valid token", async () => {
+      const res = await register(
+        { topic: uniq("noauth"), media_type: "video" },
+        "not-a-real-token",
+      );
+      expect(res.status).not.toBe(200);
+      expect(res.body).not.toHaveProperty("ssrc");
+    });
+
+    it("refuses a token presented for another device", async () => {
+      const res = await register(
+        { topic: uniq("wrongdev"), media_type: "video" },
+        deviceToken,
+        uniq("someone_else"),
+      );
+      expect(res.status).not.toBe(200);
+      expect(res.body).not.toHaveProperty("ssrc");
+    });
+  });
 });
