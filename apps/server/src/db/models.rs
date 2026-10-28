@@ -423,6 +423,7 @@ pub struct Stream {
     pub device_id: String,
     pub media_type: String,
     pub created_at: NaiveDateTime,
+    pub codec: String,
 }
 
 #[derive(Insertable)]
@@ -432,6 +433,7 @@ pub struct NewStream<'a> {
     pub topic: &'a str,
     pub device_id: &'a str,
     pub media_type: &'a str,
+    pub codec: &'a str,
 }
 
 #[derive(Queryable, Selectable, Identifiable, Serialize, Clone)]

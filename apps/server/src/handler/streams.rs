@@ -16,7 +16,7 @@ use tracing::{error, info, warn};
 use crate::{
     db::{self, models::NewStream},
     handler::auth::{AuthUser, DeviceTokenAuth},
-    state::{AppState, MediaType, Protocol, StreamDescriptor},
+    state::{AppState, MediaType, Protocol, StreamCodec, StreamDescriptor},
 };
 
 const HLS_TOKEN_AUDIENCE: &str = "hls";
@@ -56,6 +56,7 @@ pub async fn register_stream(
         topic: &payload.topic,
         device_id: &auth.device_id,
         media_type: payload.media_type.as_str(),
+        codec: StreamCodec::H264.as_str(),
     };
 
     let _db_stream = match db::repository::streams::upsert_stream(&state.pool, &new_stream_db) {
