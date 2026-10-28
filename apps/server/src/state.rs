@@ -18,7 +18,7 @@ use crate::map::MapStore;
 use crate::media::StreamActivator;
 use crate::recording::RecordingManager;
 use crate::streaming::HlsManager;
-use crate::{db::models::SystemConfiguration, tunnel_control::TunnelManager};
+use crate::db::models::SystemConfiguration;
 
 #[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
@@ -264,7 +264,6 @@ pub struct AppState {
     pub dashboard_ui_tx: broadcast::Sender<DashboardUiEvent>,
     pub broadcast_tx: broadcast::Sender<String>,
     pub system_configs: Vec<SystemConfiguration>,
-    pub tunnel_manager: Arc<TunnelManager>,
     pub recording_manager: Arc<RecordingManager>,
     pub hls_manager: Arc<HlsManager>,
     pub map_store: Arc<MapStore>,

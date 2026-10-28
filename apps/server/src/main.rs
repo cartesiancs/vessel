@@ -23,7 +23,6 @@ use crate::{
     media::{MediaAdapter, RtpPushAdapter, RtspPullAdapter, StreamActivator},
     routes::web_server,
     state::{AppState, MqttMessage, StreamManager, StreamRegistry},
-    tunnel_control::TunnelManager,
 };
 
 mod broker_mqtt;
@@ -32,7 +31,6 @@ mod handler;
 mod init;
 mod routes;
 mod state;
-mod tunnel_control;
 
 pub mod db;
 pub mod error;
@@ -112,7 +110,6 @@ async fn main() -> Result<()> {
     let (dashboard_ui_tx, _) = broadcast::channel::<crate::state::DashboardUiEvent>(1024);
     let (shutdown_tx, shutdown_rx) = watch::channel(());
     let (topic_map_notify_tx, topic_map_notify_rx) = watch::channel(());
-    let tunnel_manager = Arc::new(TunnelManager::new());
 
     let jwt_secret = settings.jwt_secret.clone();
     let configs = db::repository::get_all_system_configs(&pool)?;
@@ -142,7 +139,6 @@ async fn main() -> Result<()> {
         dashboard_ui_tx: dashboard_ui_tx.clone(),
         broadcast_tx,
         system_configs: configs.clone(),
-        tunnel_manager: tunnel_manager.clone(),
         recording_manager,
         hls_manager: hls_manager.clone(),
         map_store: map_store.clone(),
