@@ -54,6 +54,29 @@ const sendMjpeg = (ssrc, seconds) =>
     `port=${RTP_PORT}`,
   ]);
 
+// 16 kHz mono like the camera; Opus RTP always uses a 48 kHz clock.
+const sendOpus = (ssrc, seconds) =>
+  runGst([
+    "audiotestsrc",
+    "is-live=true",
+    "samplesperbuffer=320",
+    `num-buffers=${50 * seconds}`,
+    "!",
+    "audio/x-raw,rate=16000,channels=1",
+    "!",
+    "opusenc",
+    "bitrate=24000",
+    "frame-size=20",
+    "!",
+    "rtpopuspay",
+    `ssrc=${ssrc}`,
+    "pt=111",
+    "!",
+    "udpsink",
+    `host=${RTP_HOST}`,
+    `port=${RTP_PORT}`,
+  ]);
+
 function probe(file) {
   const out = spawnSync("ffprobe", [
     "-v",
@@ -363,5 +386,24 @@ describe("Stream registration E2E", () => {
       await sending;
       await expectH264(recording, VIDEO_FPS);
     }, 45000);
+
+    it("records an Opus audio stream", async () => {
+      const topic = uniq("opus_mic");
+      const reg = await register({ topic, media_type: "audio", codec: "opus" });
+      expect(reg.status).toBe(200);
+
+      const sending = sendOpus(reg.body.ssrc, 6);
+      await sleep(1500);
+      const recording = await record(topic, 3000);
+      await sending;
+      expect(recording.media_type).toBe("audio");
+      expect(recording.stream_ssrc).toBe(reg.body.ssrc);
+      expect(recording.file_size).toBeGreaterThan(0);
+      if (HAS_FFPROBE) {
+        const file = await download(recording);
+        expect(probe(file).codec_name).toBe("opus");
+        fs.unlinkSync(file);
+      }
+    }, 30000);
   });
 });
