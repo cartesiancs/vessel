@@ -341,6 +341,16 @@ mod tests {
     }
 
     #[test]
+    fn validate_topic_rejects_unsafe_values() {
+        assert!(validate_topic("esp32cam/front/video").is_ok());
+        assert!(validate_topic("").is_err());
+        assert!(validate_topic("cam::mjpeg").is_err());
+        assert!(validate_topic("../etc").is_err());
+        assert!(validate_topic("cam front").is_err());
+        assert!(validate_topic(&"a".repeat(MAX_TOPIC_LEN + 1)).is_err());
+    }
+
+    #[test]
     fn rewrite_playlist_appends_token_to_segment_lines_only() {
         let input = "#EXTM3U\n#EXT-X-VERSION:6\n#EXTINF:2.0,\nseg_00001.ts\n#EXTINF:2.0,\nseg_00002.ts\n";
         let out = rewrite_playlist_with_token(input, "abc.def.ghi");
