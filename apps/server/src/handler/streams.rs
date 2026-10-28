@@ -16,23 +16,35 @@ use tracing::{error, info, warn};
 use crate::{
     db::{self, models::NewStream},
     handler::auth::{AuthUser, DeviceTokenAuth},
-    state::{AppState, MediaType, Protocol, StreamCodec, StreamDescriptor},
+    media::StreamActivation,
+    state::{AppState, MediaType, StreamCodec},
 };
 
 const HLS_TOKEN_AUDIENCE: &str = "hls";
 const HLS_TOKEN_TTL_SECS: i64 = 3600;
+
 const DEFAULT_RTP_PORT: u16 = 5004;
 
 #[derive(Deserialize)]
 pub struct RegisterStreamRequest {
     pub topic: String,
     pub media_type: MediaType,
+    #[serde(default)]
+    pub codec: StreamCodec,
 }
 
 #[derive(Serialize)]
 pub struct RegisterStreamResponse {
     ssrc: u32,
     rtp_port: u16,
+}
+
+fn bad_request(message: &str) -> Response {
+    (
+        StatusCode::BAD_REQUEST,
+        Json(serde_json::json!({ "error": message })),
+    )
+        .into_response()
 }
 
 /// `rtp_broker_port` holds a listen address such as "0.0.0.0:5004"; a bare port is accepted too.
@@ -48,51 +60,42 @@ pub async fn register_stream(
     State(state): State<Arc<AppState>>,
     DeviceTokenAuth { device: auth }: DeviceTokenAuth,
     Json(payload): Json<RegisterStreamRequest>,
-) -> impl IntoResponse {
-    let ssrc = rand::rngs::ThreadRng::default().random_range(0..=i32::MAX) as u32;
+) -> Response {
+    if !payload.codec.supports(payload.media_type) {
+        return bad_request("codec does not match media_type");
+    }
+
+    let ssrc = rand::rng().random_range(0..=i32::MAX as u32);
 
     let new_stream_db = NewStream {
         ssrc: ssrc as i32,
         topic: &payload.topic,
         device_id: &auth.device_id,
         media_type: payload.media_type.as_str(),
-        codec: StreamCodec::H264.as_str(),
+        codec: payload.codec.as_str(),
     };
 
-    let _db_stream = match db::repository::streams::upsert_stream(&state.pool, &new_stream_db) {
-        Ok(stream) => stream,
-        Err(e) => {
-            tracing::error!("Failed to upsert stream to database: {}", e);
-            return (StatusCode::INTERNAL_SERVER_ERROR).into_response();
-        }
-    };
+    if let Err(e) = db::repository::streams::upsert_stream(&state.pool, &new_stream_db) {
+        error!("Failed to upsert stream to database: {}", e);
+        return (StatusCode::INTERNAL_SERVER_ERROR).into_response();
+    }
 
-    let descriptor = StreamDescriptor {
-        id: ssrc,
-        topic: payload.topic.clone(),
-        user_id: auth.device_id,
-        media_type: payload.media_type,
-        protocol: Protocol::Udp,
-    };
-
-    state.streams.register(descriptor);
-
-    info!(
-        "[API] SSRC {} for topic '{}' inserted. Manager size: {}",
+    let activation = StreamActivation {
         ssrc,
-        payload.topic,
-        state.streams.len()
-    );
-
-    info!(
-        "New stream registered. Topic: '{}', SSRC: {}, Port: 5004",
-        payload.topic, ssrc
-    );
+        topic: payload.topic.clone(),
+        device_id: auth.device_id,
+        media_type: payload.media_type,
+        codec: payload.codec,
+    };
+    if let Err(e) = state.stream_activator.activate(activation) {
+        error!("Failed to activate stream '{}': {}", payload.topic, e);
+        return (StatusCode::INTERNAL_SERVER_ERROR).into_response();
+    }
 
     let configs = match db::repository::get_all_system_configs(&state.pool) {
         Ok(configs) => configs,
         Err(e) => {
-            tracing::error!("Failed to get system configs: {}", e);
+            error!("Failed to get system configs: {}", e);
             return (StatusCode::INTERNAL_SERVER_ERROR).into_response();
         }
     };
@@ -102,6 +105,15 @@ pub async fn register_stream(
         .find(|c| c.key == "rtp_broker_port")
         .and_then(|c| parse_rtp_port(&c.value))
         .unwrap_or(DEFAULT_RTP_PORT);
+
+    info!(
+        "Stream registered. Topic: '{}', SSRC: {}, codec: {}, RTP port: {}. Manager size: {}",
+        payload.topic,
+        ssrc,
+        payload.codec.as_str(),
+        rtp_port,
+        state.streams.len()
+    );
 
     (
         StatusCode::OK,
