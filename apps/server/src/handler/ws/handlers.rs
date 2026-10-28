@@ -456,6 +456,8 @@ impl WSActor {
             MediaType::Audio => (MIME_TYPE_OPUS, "audio"),
             MediaType::Video => (MIME_TYPE_H264, "video"),
         };
+        // The client tells forwarded tracks apart from placeholder transceivers by this stream
+        // id ("webrtc-stream-<kind>-<topic>"); see topicOfTrack in the client's rtc.ts.
         let track = Arc::new(TrackLocalStaticRTP::new(
             RTCRtpCodecCapability {
                 mime_type: mime_type.to_owned(),
