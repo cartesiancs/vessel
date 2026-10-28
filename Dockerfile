@@ -1,6 +1,7 @@
 FROM rust:latest AS builder
 
-RUN apt-get update && apt-get install -y cmake build-essential libglib2.0-dev pkg-config musl-tools libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev python3-dev
+RUN apt-get update && apt-get install -y cmake build-essential libglib2.0-dev pkg-config musl-tools libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev python3-dev \
+    gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly
 
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
     apt-get install -y nodejs
