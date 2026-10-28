@@ -25,6 +25,7 @@ const HLS_TOKEN_TTL_SECS: i64 = 3600;
 
 const DEFAULT_RTP_PORT: u16 = 5004;
 const MAX_TOPIC_LEN: usize = 128;
+const SSRC_ALLOCATION_ATTEMPTS: usize = 16;
 
 #[derive(Deserialize)]
 pub struct RegisterStreamRequest {
@@ -73,6 +74,13 @@ fn parse_rtp_port(value: &str) -> Option<u16> {
         .or_else(|| value.parse::<u16>().ok())
 }
 
+fn allocate_ssrc(state: &AppState) -> Option<u32> {
+    let mut rng = rand::rng();
+    (0..SSRC_ALLOCATION_ATTEMPTS)
+        .map(|_| rng.random_range(0..=i32::MAX as u32))
+        .find(|candidate| !state.streams.contains(*candidate))
+}
+
 pub async fn register_stream(
     State(state): State<Arc<AppState>>,
     DeviceTokenAuth { device: auth }: DeviceTokenAuth,
@@ -85,10 +93,17 @@ pub async fn register_stream(
         return bad_request("codec does not match media_type");
     }
 
-    let ssrc = rand::rng().random_range(0..=i32::MAX as u32);
+    let Some(ssrc) = allocate_ssrc(&state) else {
+        error!("Failed to allocate a free SSRC");
+        return (StatusCode::INTERNAL_SERVER_ERROR).into_response();
+    };
+    let Ok(db_ssrc) = i32::try_from(ssrc) else {
+        error!("Allocated SSRC {} does not fit the database column", ssrc);
+        return (StatusCode::INTERNAL_SERVER_ERROR).into_response();
+    };
 
     let new_stream_db = NewStream {
-        ssrc: ssrc as i32,
+        ssrc: db_ssrc,
         topic: &payload.topic,
         device_id: &auth.device_id,
         media_type: payload.media_type.as_str(),
