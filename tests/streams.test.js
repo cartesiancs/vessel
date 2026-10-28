@@ -1,8 +1,15 @@
-const { spawn, spawnSync } = require("child_process");
+const { spawnSync } = require("child_process");
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
 const request = require("supertest");
+const {
+  HAS_GST,
+  RTP_PORT,
+  VIDEO_FPS,
+  sendMjpeg,
+  sendOpus,
+} = require("./support/rtpSender");
 
 const API_BASE_URL = process.env.VESSEL_API_URL || "http://localhost:6174";
 const ADMIN_PASSWORD = process.env.VESSEL_ADMIN_PASSWORD || "admin1";
@@ -14,68 +21,9 @@ const MAX_PORT = 65535;
 
 // Media tests push real RTP with GStreamer, so they need gst-launch-1.0 and the server's RTP
 // port (VESSEL_RTP_PORT). ffprobe, when present, checks what was recorded.
-const RTP_HOST = process.env.VESSEL_RTP_HOST || "127.0.0.1";
-const RTP_PORT = Number(process.env.VESSEL_RTP_PORT || 0);
-const hasTool = (cmd, arg) => spawnSync(cmd, [arg]).status === 0;
-const HAS_GST = hasTool("gst-launch-1.0", "--version");
-const HAS_FFPROBE = hasTool("ffprobe", "-version");
+const HAS_FFPROBE = spawnSync("ffprobe", ["-version"]).status === 0;
 const describeMedia = HAS_GST && RTP_PORT > 0 ? describe : describe.skip;
-
-const VIDEO_FPS = 15;
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
-function runGst(args) {
-  return new Promise((resolve, reject) => {
-    const child = spawn("gst-launch-1.0", ["-q", ...args], { stdio: "ignore" });
-    child.on("error", reject);
-    child.on("exit", (code) =>
-      code === 0 ? resolve() : reject(new Error(`gst-launch exited ${code}`)),
-    );
-  });
-}
-
-// I420 so jpegenc emits 4:2:0, which RFC 2435 can carry (its default 4:4:4 cannot).
-const sendMjpeg = (ssrc, seconds) =>
-  runGst([
-    "videotestsrc",
-    "is-live=true",
-    `num-buffers=${VIDEO_FPS * seconds}`,
-    "!",
-    `video/x-raw,format=I420,width=640,height=480,framerate=${VIDEO_FPS}/1`,
-    "!",
-    "jpegenc",
-    "!",
-    "rtpjpegpay",
-    `ssrc=${ssrc}`,
-    "pt=26",
-    "!",
-    "udpsink",
-    `host=${RTP_HOST}`,
-    `port=${RTP_PORT}`,
-  ]);
-
-// 16 kHz mono like the camera; Opus RTP always uses a 48 kHz clock.
-const sendOpus = (ssrc, seconds) =>
-  runGst([
-    "audiotestsrc",
-    "is-live=true",
-    "samplesperbuffer=320",
-    `num-buffers=${50 * seconds}`,
-    "!",
-    "audio/x-raw,rate=16000,channels=1",
-    "!",
-    "opusenc",
-    "bitrate=24000",
-    "frame-size=20",
-    "!",
-    "rtpopuspay",
-    `ssrc=${ssrc}`,
-    "pt=111",
-    "!",
-    "udpsink",
-    `host=${RTP_HOST}`,
-    `port=${RTP_PORT}`,
-  ]);
 
 function probe(file) {
   const out = spawnSync("ffprobe", [
