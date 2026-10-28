@@ -5,6 +5,7 @@
   "private": true,
   "scripts": {
     "test": "jest",
+    "soak:webrtc": "node tests/soak/webrtc-soak.js",
     "client": "npm run dev --workspace=client",
     "client:build": "npm run build --workspace=client",
     "server": "cargo run -p server",
