@@ -20,7 +20,7 @@ use crate::{
     init::streams::create_hydrate_streams,
     utils::{entity_map::remap_topics, stream_checker::stream_status_checker},
     logo::print_logo,
-    media::{MediaAdapter, RtpPushAdapter, RtspPullAdapter},
+    media::{MediaAdapter, RtpPushAdapter, RtspPullAdapter, StreamActivator},
     routes::web_server,
     state::{AppState, MqttMessage, StreamManager, StreamRegistry},
     tunnel_control::TunnelManager,
@@ -125,6 +125,8 @@ async fn main() -> Result<()> {
 
     let hls_manager = Arc::new(streaming::HlsManager::new(streams.clone()));
 
+    let stream_activator = Arc::new(StreamActivator::new(streams.clone(), shutdown_rx.clone()));
+
     let app_state = Arc::new(AppState {
         streams: streams.clone(),
         mqtt_tx: mqtt_tx.clone(),
@@ -140,6 +142,7 @@ async fn main() -> Result<()> {
         recording_manager,
         hls_manager: hls_manager.clone(),
         map_store: map_store.clone(),
+        stream_activator: stream_activator.clone(),
     });
 
     let mut set = JoinSet::new();

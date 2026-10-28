@@ -15,6 +15,7 @@ use dashmap::DashMap;
 
 use crate::flow::manager_state::FlowManagerCommand;
 use crate::map::MapStore;
+use crate::media::StreamActivator;
 use crate::recording::RecordingManager;
 use crate::streaming::HlsManager;
 use crate::{db::models::SystemConfiguration, tunnel_control::TunnelManager};
@@ -267,6 +268,7 @@ pub struct AppState {
     pub recording_manager: Arc<RecordingManager>,
     pub hls_manager: Arc<HlsManager>,
     pub map_store: Arc<MapStore>,
+    pub stream_activator: Arc<StreamActivator>,
 }
 
 #[cfg(test)]
