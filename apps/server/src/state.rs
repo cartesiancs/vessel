@@ -190,6 +190,27 @@ impl StreamRegistry {
         }
     }
 
+    /// Removes every stream registered under `topic` with `media_type` and returns their SSRCs.
+    pub fn remove_by_topic(&self, topic: &str, media_type: MediaType) -> Vec<u32> {
+        let stale: Vec<u32> = self
+            .streams
+            .iter()
+            .filter(|entry| {
+                entry.value().descriptor.topic == topic
+                    && entry.value().descriptor.media_type == media_type
+            })
+            .map(|entry| *entry.key())
+            .collect();
+        for ssrc in &stale {
+            self.remove(ssrc);
+        }
+        stale
+    }
+
+    pub fn contains(&self, ssrc: u32) -> bool {
+        self.streams.contains_key(&ssrc)
+    }
+
     pub fn len(&self) -> usize {
         self.streams.len()
     }
@@ -272,6 +293,17 @@ mod tests {
 
         let current = registry.get_by_topic("cam/video").map(|h| h.descriptor.id);
         assert_eq!(current, Some(2));
+    }
+
+    #[test]
+    fn remove_by_topic_only_drops_matching_media_type() {
+        let registry = StreamRegistry::new();
+        registry.register(descriptor(1, "cam", MediaType::Video));
+        registry.register(descriptor(2, "cam", MediaType::Audio));
+
+        assert_eq!(registry.remove_by_topic("cam", MediaType::Video), vec![1]);
+        assert!(!registry.contains(1));
+        assert!(registry.contains(2));
     }
 
     #[test]
