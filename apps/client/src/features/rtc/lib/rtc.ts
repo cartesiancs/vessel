@@ -13,6 +13,10 @@ export class WebRTCManager {
   ) => void;
   private pendingTopics: Array<{ topic: string; type: "audio" | "video" }>;
   private candidateQueue: RTCIceCandidateInit[] = [];
+  // Signaling messages are applied one at a time. Two renegotiation offers sent back to back
+  // (one per subscribe) otherwise interleave, and the second setLocalDescription fails with
+  // "Called in wrong state: stable", leaving the server's offer unanswered.
+  private signalingChain: Promise<void> = Promise.resolve();
 
   public static readonly MAX_AUDIO_STREAMS = 2;
   public static readonly MAX_VIDEO_STREAMS = 4;
@@ -82,7 +86,18 @@ export class WebRTCManager {
     };
   }
 
-  private handleSignalingMessage = async (msg: WebSocketMessage) => {
+  private handleSignalingMessage = (msg: WebSocketMessage) => {
+    this.signalingChain = this.signalingChain.then(() =>
+      this.applySignalingMessage(msg),
+    );
+  };
+
+  /** Resolves once every signaling message received so far has been applied. */
+  public whenSignalingIdle(): Promise<void> {
+    return this.signalingChain;
+  }
+
+  private applySignalingMessage = async (msg: WebSocketMessage) => {
     try {
       switch (msg.type) {
         case "answer":
