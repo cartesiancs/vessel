@@ -51,16 +51,11 @@ pub async fn register_stream(
 ) -> impl IntoResponse {
     let ssrc = rand::rngs::ThreadRng::default().random_range(0..=i32::MAX) as u32;
 
-    let media_type_str = match payload.media_type {
-        MediaType::Audio => "audio",
-        MediaType::Video => "video",
-    };
-
     let new_stream_db = NewStream {
         ssrc: ssrc as i32,
         topic: &payload.topic,
         device_id: &auth.device_id,
-        media_type: media_type_str,
+        media_type: payload.media_type.as_str(),
     };
 
     let _db_stream = match db::repository::streams::upsert_stream(&state.pool, &new_stream_db) {

@@ -11,10 +11,9 @@ pub fn create_hydrate_streams(pool: &DbPool, streams: &StreamManager) {
         Ok(db_streams) => {
             for stream in db_streams {
                 let (packet_tx, _) = broadcast::channel::<Packet>(8192);
-                let media_type = match stream.media_type.as_str() {
-                    "audio" => MediaType::Audio,
-                    "video" => MediaType::Video,
-                    _ => {
+                let media_type = match MediaType::from_db(&stream.media_type) {
+                    Some(media_type) => media_type,
+                    None => {
                         warn!(
                             "Unknown media type '{}' for SSRC {}",
                             stream.media_type, stream.ssrc

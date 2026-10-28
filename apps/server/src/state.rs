@@ -26,6 +26,23 @@ pub enum MediaType {
     Video,
 }
 
+impl MediaType {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            MediaType::Audio => "audio",
+            MediaType::Video => "video",
+        }
+    }
+
+    pub fn from_db(value: &str) -> Option<Self> {
+        match value {
+            "audio" => Some(MediaType::Audio),
+            "video" => Some(MediaType::Video),
+            _ => None,
+        }
+    }
+}
+
 #[derive(Serialize, Clone, Debug, PartialEq, Eq)]
 pub enum Protocol {
     MQTT,
