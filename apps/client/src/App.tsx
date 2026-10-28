@@ -19,6 +19,7 @@ import { usePreventBackNavigation } from "@/shared/lib/hooks/usePreventBackNavig
 import {
   SettingsPage,
   AccountSettingsPage,
+  AiSettingsPage,
   ServicesSettingsPage,
   UsersSettingsPage,
   NetworksSettingsPage,
@@ -107,6 +108,14 @@ const router = createBrowserRouter([
         element: (
           <AuthInterceptor>
             <SettingsPage />
+          </AuthInterceptor>
+        ),
+      },
+      {
+        path: "/settings/ai",
+        element: (
+          <AuthInterceptor>
+            <AiSettingsPage />
           </AuthInterceptor>
         ),
       },

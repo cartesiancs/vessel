@@ -1,4 +1,5 @@
 export { SettingsPage } from "./ui/SettingsPage";
+export { AiSettingsPage } from "./ui/AiSettingsPage";
 export { AccountSettingsPage } from "./ui/AccountSettingsPage";
 export { ConfigSettingsPage } from "./ui/ConfigSettingsPage";
 export { IntegrationSettingsPage } from "./ui/IntegrationSettingsPage";
