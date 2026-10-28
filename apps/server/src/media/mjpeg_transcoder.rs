@@ -83,6 +83,7 @@ impl MjpegTranscoderManager {
         let task = TranscoderTask {
             id,
             topic: topic.to_string(),
+            ingest_ssrc: ingest.descriptor.id,
             out_ssrc,
             pipeline,
             appsrc,
@@ -208,6 +209,7 @@ fn install_output_callback(
 struct TranscoderTask {
     id: u64,
     topic: String,
+    ingest_ssrc: u32,
     out_ssrc: u32,
     pipeline: gstreamer::Pipeline,
     appsrc: AppSrc,
@@ -221,7 +223,10 @@ struct TranscoderTask {
 impl TranscoderTask {
     async fn run(mut self) {
         if let Err(e) = self.drive().await {
-            error!("MJPEG transcoder for '{}' failed: {}", self.topic, e);
+            error!(
+                "MJPEG transcoder for '{}' (ingest SSRC {}) failed: {}",
+                self.topic, self.ingest_ssrc, e
+            );
         }
         if let Err(e) = self.pipeline.set_state(gstreamer::State::Null) {
             warn!(
@@ -234,7 +239,10 @@ impl TranscoderTask {
         let id = self.id;
         self.running
             .remove_if(&self.topic, |_, running| running.id == id);
-        info!("MJPEG transcoder for '{}' stopped", self.topic);
+        info!(
+            "MJPEG transcoder for '{}' (ingest SSRC {}) stopped",
+            self.topic, self.ingest_ssrc
+        );
     }
 
     async fn drive(&mut self) -> Result<()> {
@@ -257,7 +265,10 @@ impl TranscoderTask {
                         warn!("MJPEG transcoder for '{}' lagged, skipped {} packets", self.topic, skipped);
                     }
                     Err(broadcast::error::RecvError::Closed) => {
-                        info!("Ingest stream for '{}' closed", self.topic);
+                        info!(
+                            "Ingest stream for '{}' (SSRC {}) closed",
+                            self.topic, self.ingest_ssrc
+                        );
                         return Ok(());
                     }
                 },
