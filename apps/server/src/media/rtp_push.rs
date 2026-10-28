@@ -1,25 +1,85 @@
 use anyhow::Result;
 use async_trait::async_trait;
+use std::collections::HashMap;
+use std::sync::Arc;
+use std::time::Duration;
 use tokio::{net::UdpSocket, sync::watch, time::Instant};
 use tracing::{info, warn};
 use webrtc::{rtp::packet::Packet, util::Unmarshal};
 
 use crate::media::adapter::MediaAdapter;
+use crate::media::StreamActivator;
 use crate::state::{Protocol, StreamManager};
+
+const MAX_DATAGRAM_BYTES: usize = 65535;
+/// How long to wait before asking the database again about the same unknown SSRC.
+const UNKNOWN_SSRC_RETRY: Duration = Duration::from_secs(5);
+/// Caps database lookups so a flood of random SSRCs cannot overload the pool.
+const MAX_LOOKUPS_PER_WINDOW: u32 = 16;
+const LOOKUP_WINDOW: Duration = Duration::from_secs(1);
+const MAX_TRACKED_UNKNOWN_SSRCS: usize = 1024;
 
 pub struct RtpPushAdapter {
     addr: String,
     streams: StreamManager,
+    activator: Arc<StreamActivator>,
+}
+
+/// Rate limiter for rehydration lookups. Owned by the single receive loop, so no locking.
+struct UnknownSsrcLimiter {
+    last_lookup: HashMap<u32, Instant>,
+    window_start: Instant,
+    lookups_in_window: u32,
+}
+
+impl UnknownSsrcLimiter {
+    fn new() -> Self {
+        Self {
+            last_lookup: HashMap::new(),
+            window_start: Instant::now(),
+            lookups_in_window: 0,
+        }
+    }
+
+    fn allow(&mut self, ssrc: u32, now: Instant) -> bool {
+        if now.duration_since(self.window_start) >= LOOKUP_WINDOW {
+            self.window_start = now;
+            self.lookups_in_window = 0;
+        }
+        if self.lookups_in_window >= MAX_LOOKUPS_PER_WINDOW {
+            return false;
+        }
+        if let Some(last) = self.last_lookup.get(&ssrc) {
+            if now.duration_since(*last) < UNKNOWN_SSRC_RETRY {
+                return false;
+            }
+        }
+        if self.last_lookup.len() >= MAX_TRACKED_UNKNOWN_SSRCS {
+            self.last_lookup
+                .retain(|_, last| now.duration_since(*last) < UNKNOWN_SSRC_RETRY);
+            if self.last_lookup.len() >= MAX_TRACKED_UNKNOWN_SSRCS {
+                return false;
+            }
+        }
+        self.last_lookup.insert(ssrc, now);
+        self.lookups_in_window += 1;
+        true
+    }
 }
 
 impl RtpPushAdapter {
-    pub fn new(addr: String, streams: StreamManager) -> Self {
-        Self { addr, streams }
+    pub fn new(addr: String, streams: StreamManager, activator: Arc<StreamActivator>) -> Self {
+        Self {
+            addr,
+            streams,
+            activator,
+        }
     }
 
     async fn run(&self, mut shutdown_rx: watch::Receiver<()>) -> Result<()> {
         let sock = UdpSocket::bind(&self.addr).await?;
-        let mut buf = vec![0u8; 65535];
+        let mut buf = vec![0u8; MAX_DATAGRAM_BYTES];
+        let mut limiter = UnknownSsrcLimiter::new();
 
         loop {
             tokio::select! {
@@ -58,6 +118,8 @@ impl RtpPushAdapter {
                                 }
 
                                 let _ = handle.packet_tx.send(packet);
+                            } else if limiter.allow(ssrc, Instant::now()) {
+                                tokio::spawn(self.activator.clone().rehydrate(ssrc));
                             }
                         }
                         Err(e) => {
@@ -82,3 +144,4 @@ impl MediaAdapter for RtpPushAdapter {
         self.run(shutdown).await
     }
 }
+

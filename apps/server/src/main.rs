@@ -177,8 +177,11 @@ async fn main() -> Result<()> {
                     &rtp_config.value
                 );
                 let rtp_listen_address = rtp_config.value.clone();
-                let rtp_adapter =
-                    Arc::new(RtpPushAdapter::new(rtp_listen_address, streams.clone()));
+                let rtp_adapter = Arc::new(RtpPushAdapter::new(
+                    rtp_listen_address,
+                    streams.clone(),
+                    stream_activator.clone(),
+                ));
                 let shutdown_rx_clone = shutdown_rx.clone();
                 let rtp_task = rtp_adapter.clone();
                 set.spawn(async move { rtp_task.start(shutdown_rx_clone).await });
