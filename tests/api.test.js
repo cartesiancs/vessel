@@ -1,6 +1,7 @@
 const request = require("supertest");
 
-const API_BASE_URL = "http://localhost:6174";
+const API_BASE_URL = process.env.VESSEL_API_URL || "http://localhost:6174";
+const ADMIN_PASSWORD = process.env.VESSEL_ADMIN_PASSWORD || "admin1";
 const RUN_ID = Date.now();
 const uniq = (s) => `${s}_${RUN_ID}`;
 
@@ -10,7 +11,7 @@ describe("Vessel API E2E Test", () => {
   beforeAll(async () => {
     const response = await request(API_BASE_URL).post("/api/auth").send({
       id: "admin",
-      password: "admin1",
+      password: ADMIN_PASSWORD,
     });
 
     expect(response.status).toBe(200);
