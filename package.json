@@ -12,7 +12,9 @@
     "desktop": "npm run dev --workspace=desktop",
     "desktop:build": "npm run tauri build --workspace=desktop",
     "capsule": "cd ./apps/capsule && cargo run -p capsule",
-    "build": "cd ./apps/server && cargo build --release"
+    "build": "cd ./apps/server && cargo build --release",
+    "firmware:build": "idf.py -C apps/firmware/esp32-s3-cam build",
+    "firmware:flash": "idf.py -C apps/firmware/esp32-s3-cam flash monitor"
   },
   "workspaces": [
     "apps/*",
