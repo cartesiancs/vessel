@@ -1,0 +1,1 @@
+ALTER TABLE streams DROP COLUMN codec;
