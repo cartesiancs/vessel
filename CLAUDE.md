@@ -13,8 +13,7 @@ Cargo + npm workspaces (monorepo).
 - `apps/server` — Rust (axum, tokio) backend. SQLite via Diesel (`migrations/`, schema in `src/db/schema.rs`). MQTT broker (rumqttd) + client (rumqttc), WebRTC, RTP/RTSP via GStreamer, ONNX inference (ort/tract). Entry: `src/main.rs`. Routes wired in `src/routes.rs`, handlers under `src/handler/`. Flow engine in `src/flow/` (engine, manager, nodes). Built-in flow nodes live in `src/flow/nodes/`. The compiled server embeds the client `dist/` via `rust-embed`.
 - `apps/client` — React 19 + Vite + TypeScript + Tailwind v4 + Radix + Zustand. FSD-ish layout: `app/`, `pages/`, `widgets/`, `features/`, `entities/`, `shared/`, plus `components/ui` (shadcn) and `hooks/`, `contexts/`, `lib/`. Routing in `src/App.tsx` (react-router v7).
 - `apps/desktop` — Tauri v2 shell. The Tauri build runs `cargo build --release -p server` and bundles the server binary as a sidecar; frontend served from `apps/client/dist`. Crate at `apps/desktop/src-tauri`.
-- `apps/capsule` — Standalone Rust service for "Capsule" zero-knowledge LLM proxy (X25519 + ChaCha20-Poly1305). Has its own Dockerfile/docker-compose.
-- `packages/capsule-client` — TS client SDK for Capsule (`@vessel/capsule-client`). Built before `client` in the build chain.
+- `apps/firmware/esp32-s3-cam` — ESP-IDF 5.5 C++ firmware for ESP32-S3 + OV3660 (XIAO ESP32-S3 Sense). Registers via `POST /api/streams/register` (device token), then pushes MJPEG as RFC 2435 RTP (`codec: "jpeg"`, transcoded to H.264 server-side in `src/media/mjpeg_transcoder.rs`) and Opus audio over UDP. Credentials in gitignored `main/secrets.h`. Build: `idf.py -C apps/firmware/esp32-s3-cam build` (needs ESP-IDF env); host tests in `test/host/`.
 - `packages/custom-node-utils` — Python helpers for user-authored custom flow nodes.
 - `packages/shared-types` — empty placeholder.
 - Website and docs are not in this repo: they live in the cartesiancs.com repo and are served at cartesiancs.com/vessel and cartesiancs.com/vessel/docs.
@@ -28,22 +27,24 @@ Run from repo root unless noted.
 
 - `npm run server` — `cargo run -p server` (debug). `npm run server:prod` for release.
 - `npm run client` — Vite dev server for the React client.
-- `npm run desktop` — Tauri dev (builds capsule-client + client + release server, then launches shell). `npm run desktop:build` to package.
-- `npm run capsule` — capsule service.
+- `npm run desktop` — Tauri dev (builds client + release server, then launches shell). `npm run desktop:build` to package.
 - `npm run build` — `cargo build --release` of the server only. Output: `target/release/server` (needs a `.env` next to it to run).
-- `npm run client:build` — builds capsule-client then the client.
-- `npm test` — Jest E2E in `tests/`. Server must already be running on `:6174` with seeded admin.
+- `npm run client:build` — builds the client.
+- `npm test` — Jest E2E in `tests/`. Server must already be running (`VESSEL_API_URL`, default `:6174`); media/WebRTC suites also need `VESSEL_RTP_PORT`, `gst-launch-1.0` and Chrome (see `tests/TEST.md`). `npm run soak:webrtc` runs a long WebRTC soak.
 - Diesel: `cd apps/server && diesel setup && diesel migration run` (requires diesel_cli). Migrations are also embedded and auto-run on server boot via `MIGRATIONS`.
 
 ## Architecture notes
 
-- The server is the integration point: HTTP/WS API, embedded client UI, MQTT broker + client, RTP receiver, RTSP puller, WebRTC, recording manager, flow engine, tunnel manager. All share `Arc<AppState>` (`apps/server/src/state.rs`). Background tasks are spawned into a `JoinSet` driven by a `watch` shutdown channel — prefer that pattern for new long-running tasks.
+- The server is the integration point: HTTP/WS API, embedded client UI, MQTT broker + client, RTP receiver, RTSP puller, WebRTC, recording manager, flow engine. All share `Arc<AppState>` (`apps/server/src/state.rs`). Background tasks are spawned into a `JoinSet` driven by a `watch` shutdown channel — prefer that pattern for new long-running tasks.
 - Flow runtime: `FlowManagerActor` (mpsc-driven) owns the live engine. New node types go in `src/flow/nodes/` and are registered in `mod.rs`. Engine/types in `src/flow/engine.rs` and `src/flow/types.rs`.
 - DB access uses Diesel with an r2d2 pool. Repositories in `src/db/repository/`. When adding tables, add a migration *and* update `schema.rs` (`diesel print-schema`) and models.
 - Auth is JWT (`jsonwebtoken`). Initial admin is seeded by `init::db_record::create_initial_admin`. RBAC tables created by the `2025-09-08_create_rbac_tables` migration; permissions seeded on boot.
 - Client follows feature-sliced design. New screens: add a route in `src/App.tsx`, page under `pages/`, feature logic under `features/<name>/`, domain models under `entities/<name>/`, reusable UI in `components/ui` (shadcn-style) or `widgets/`. State is Zustand; data fetching is axios in `shared/api`.
 - Maps use MapLibre/Leaflet. Code editor uses Monaco + CodeMirror. Charts via d3.
 - Desktop sidecar: `apps/desktop/src-tauri/src/main.rs` launches the bundled server binary; client detects desktop via `useDesktopSidecar`. A separate `desktop_settings` window is dispatched in `App.tsx` based on URL params.
+
+- Local-first: no cloud sign-in, relays, telemetry or public STUN/TURN. WebRTC uses host candidates only; AI chat calls the user-configured OpenAI-compatible endpoint directly from the client (`shared/lib/llm`). `tests/local-first.test.js` guards against regressions.
+- WebRTC forwarding follows topics, not stream handles (`src/media/forwarding.rs`), so viewers survive a camera re-registering or a stream being rehydrated. The client reconnects the signaling WebSocket with backoff and restores subscriptions on a new peer connection.
 
 ## Coding rules (enforced by `CODE_RULE.md`)
 

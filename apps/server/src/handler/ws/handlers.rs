@@ -1,10 +1,10 @@
 use anyhow::{anyhow, Result};
 use axum::extract::ws::{Message, WebSocket};
-use futures_util::{future::join_all, stream::SplitSink, FutureExt, SinkExt, StreamExt};
+use futures_util::{future::join_all, stream::SplitSink, SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, sync::Arc, time::Instant};
 use sysinfo::System;
-use tokio::sync::{mpsc, oneshot, Mutex};
+use tokio::sync::{mpsc, oneshot, watch, Mutex};
 use tracing::{error, info, warn};
 use webrtc::{
     api::media_engine::{MIME_TYPE_H264, MIME_TYPE_OPUS},
@@ -20,7 +20,7 @@ use webrtc::{
     rtp_transceiver::rtp_codec::RTCRtpCodecCapability,
     track::track_local::{
         track_local_static_rtp::TrackLocalStaticRTP,
-        TrackLocal, TrackLocalWriter,
+        TrackLocal,
     },
 };
 
@@ -34,8 +34,11 @@ use crate::{
     },
     handler::ws::dashboard_component_event,
     handler::ws::webrtc::create_peer_connection,
+    media::forwarding::{forward_topic, TopicSubscription},
     state::{AppState, MediaType},
 };
+
+const RTCP_BUFFER_LEN: usize = 1500;
 
 #[derive(Deserialize)]
 struct WsMessageIn {
@@ -123,6 +126,8 @@ struct WSActor {
     active_tracks: HashMap<String, Arc<dyn TrackLocal + Send + Sync>>,
     /// Per-connection rate limit for `dashboard_component_event` keys.
     dashboard_event_rate: HashMap<String, Instant>,
+    /// Set to true when the current peer connection goes away, which ends its forwarding tasks.
+    session_closed: watch::Sender<bool>,
 }
 
 impl WSActor {
@@ -190,8 +195,10 @@ impl WSActor {
                         error!("Failed to close peer connection: {}", e);
                     }
                     self.active_tracks.clear();
+                    self.session_closed.send_replace(true);
+                    self.session_closed = watch::channel(false).0;
 
-                    match create_peer_connection(Arc::clone(&self.ws_sender), &self.state.pool).await {
+                    match create_peer_connection(Arc::clone(&self.ws_sender)).await {
                         Ok(new_pc) => {
                             self.pc = new_pc;
                             info!("PeerConnection has been successfully reset.");
@@ -203,6 +210,12 @@ impl WSActor {
                     }
                 }
             }
+        }
+        // The WebSocket is gone: end the forwarding tasks and release the peer connection
+        // instead of leaving it to the ICE failure timeout.
+        self.session_closed.send_replace(true);
+        if let Err(e) = self.pc.close().await {
+            error!("Failed to close peer connection: {}", e);
         }
         info!("WebRTC Actor finished.");
     }
@@ -436,279 +449,99 @@ impl WSActor {
         result
     }
 
-    /// H.264 RTP 패킷이 키프레임(IDR)을 포함하는지 감지.
-    /// NAL 유닛 타입을 검사: Single NAL(5=IDR, 7=SPS), STAP-A(24), FU-A(28).
-    fn is_h264_keyframe(pkt: &webrtc::rtp::packet::Packet) -> bool {
-        if pkt.payload.is_empty() {
+    /// Adds a track for `topic` and starts forwarding the topic's packets to it. The forwarding
+    /// task follows the topic across stream replacements and ends with the peer connection.
+    async fn add_forwarded_track(&mut self, topic: &str, media_type: MediaType) -> bool {
+        let (mime_type, kind) = match media_type {
+            MediaType::Audio => (MIME_TYPE_OPUS, "audio"),
+            MediaType::Video => (MIME_TYPE_H264, "video"),
+        };
+        // The client tells forwarded tracks apart from placeholder transceivers by this stream
+        // id ("webrtc-stream-<kind>-<topic>"); see topicOfTrack in the client's rtc.ts.
+        let track = Arc::new(TrackLocalStaticRTP::new(
+            RTCRtpCodecCapability {
+                mime_type: mime_type.to_owned(),
+                ..Default::default()
+            },
+            format!("{}-{}", kind, topic),
+            format!("webrtc-stream-{}-{}", kind, topic),
+        ));
+
+        let rtp_sender = match self
+            .pc
+            .add_track(Arc::clone(&track) as Arc<dyn TrackLocal + Send + Sync>)
+            .await
+        {
+            Ok(sender) => sender,
+            Err(e) => {
+                error!("Failed to add {} track for '{}': {}", kind, topic, e);
+                return false;
+            }
+        };
+
+        // RTCP must be read for the interceptors (NACK, reports) to keep working.
+        let rtcp_reader = Arc::clone(&rtp_sender);
+        tokio::spawn(async move {
+            let mut rtcp_buf = vec![0u8; RTCP_BUFFER_LEN];
+            while rtcp_reader.read(&mut rtcp_buf).await.is_ok() {}
+        });
+
+        let parameters = rtp_sender.get_parameters().await;
+        let Some(payload_type) = parameters
+            .rtp_parameters
+            .codecs
+            .first()
+            .map(|codec| codec.payload_type)
+        else {
+            error!("No negotiated {} codec for '{}'", kind, topic);
             return false;
-        }
-        let nal_type = pkt.payload[0] & 0x1F;
-        match nal_type {
-            5 | 7 => true, // IDR slice or SPS
-            24 => {
-                // STAP-A: 내부 NAL 중 IDR(5) 또는 SPS(7) 포함 여부
-                let mut offset = 1;
-                while offset + 2 < pkt.payload.len() {
-                    let nalu_size =
-                        ((pkt.payload[offset] as usize) << 8) | (pkt.payload[offset + 1] as usize);
-                    offset += 2;
-                    if offset < pkt.payload.len() {
-                        let inner_nal_type = pkt.payload[offset] & 0x1F;
-                        if inner_nal_type == 5 || inner_nal_type == 7 {
-                            return true;
-                        }
-                    }
-                    offset += nalu_size;
-                }
-                false
-            }
-            28 => {
-                // FU-A: fragmented NAL — start bit + IDR type
-                if pkt.payload.len() > 1 {
-                    let fu_header = pkt.payload[1];
-                    let start_bit = fu_header & 0x80 != 0;
-                    let fu_nal_type = fu_header & 0x1F;
-                    start_bit && (fu_nal_type == 5 || fu_nal_type == 7)
-                } else {
-                    false
-                }
-            }
-            _ => false,
-        }
+        };
+        let Some(ssrc) = parameters.encodings.first().map(|encoding| encoding.ssrc) else {
+            error!("No {} encoding for '{}'", kind, topic);
+            return false;
+        };
+
+        self.active_tracks.insert(
+            topic.to_string(),
+            Arc::clone(&track) as Arc<dyn TrackLocal + Send + Sync>,
+        );
+        let subscription =
+            TopicSubscription::new(self.state.streams.clone(), topic.to_string(), media_type);
+        tokio::spawn(forward_topic(
+            subscription,
+            track,
+            payload_type,
+            ssrc,
+            self.session_closed.subscribe(),
+        ));
+        info!(
+            "[{}] Forwarding '{}' (PT {}, SSRC {})",
+            kind, topic, payload_type, ssrc
+        );
+        true
     }
 
     async fn handle_subscribe(&mut self, topic: String) {
-        let mut subscribed = false;
-
         if self.active_tracks.contains_key(&topic) {
             warn!("Topic '{}' is already subscribed.", topic);
             return;
         }
 
-        let audio_stream_info = self
-            .state
-            .streams
-            .iter()
-            .find(|entry| {
+        let has_stream = |media_type: MediaType| {
+            self.state.streams.iter().any(|entry| {
                 entry.value().descriptor.topic == topic
-                    && entry.value().descriptor.media_type == MediaType::Audio
+                    && entry.value().descriptor.media_type == media_type
             })
-            .map(|entry| (*entry.key(), entry.value().clone()));
+        };
+        let has_audio = has_stream(MediaType::Audio);
+        let has_video = has_stream(MediaType::Video);
 
-        let video_stream_info = self
-            .state
-            .streams
-            .iter()
-            .find(|entry| {
-                entry.value().descriptor.topic == topic
-                    && entry.value().descriptor.media_type == MediaType::Video
-            })
-            .map(|entry| (*entry.key(), entry.value().clone()));
-
-        if let Some((ssrc, info)) = audio_stream_info {
-            subscribed = true;
-            info!(
-                "[Audio] Subscribing to topic '{}' with SSRC {}",
-                topic, ssrc
-            );
-
-            let new_audio_track = Arc::new(TrackLocalStaticRTP::new(
-                RTCRtpCodecCapability {
-                    mime_type: MIME_TYPE_OPUS.to_owned(),
-                    ..Default::default()
-                },
-                format!("audio-{}", &topic),
-                format!("webrtc-stream-audio-{}", &topic),
-            ));
-
-            let rtp_sender = self
-                .pc
-                .add_track(Arc::clone(&new_audio_track) as Arc<dyn TrackLocal + Send + Sync>)
-                .await
-                .unwrap();
-
-            self.active_tracks.insert(
-                topic.clone(),
-                new_audio_track.clone() as Arc<dyn TrackLocal + Send + Sync>,
-            );
-
-            tokio::spawn(async move {
-                let mut rtcp_buf = vec![0u8; 1500];
-                while rtp_sender.read(&mut rtcp_buf).await.is_ok() {}
-            });
-
-            let mut rx = info.packet_tx.subscribe();
-
-            let audio_sender = self.pc
-                .get_senders()
-                .await
-                .into_iter()
-                .find(|s| {
-                    if let Some(track) = s.track().now_or_never().and_then(|t| t) {
-                        track.id() == new_audio_track.id()
-                    } else {
-                        false
-                    }
-                })
-                .expect("Audio sender not found for the specific track");
-
-            let parameters = audio_sender.get_parameters().await;
-            let negotiated_pt = parameters
-                .rtp_parameters
-                .codecs
-                .get(0)
-                .unwrap()
-                .payload_type;
-            let negotiated_ssrc = parameters.encodings.get(0).unwrap().ssrc;
-
-            info!(
-                "[Audio] RTP forwarding ready. Negotiated PT: {}, SSRC: {}",
-                negotiated_pt, negotiated_ssrc
-            );
-
-            tokio::spawn(async move {
-                let mut lag_count: u64 = 0;
-                loop {
-                    match rx.recv().await {
-                        Ok(mut pkt) => {
-                            pkt.header.payload_type = negotiated_pt;
-                            pkt.header.ssrc = negotiated_ssrc;
-
-                            if let Err(e) = new_audio_track.write_rtp(&pkt).await {
-                                warn!(
-                                    "[Audio] write_rtp failed for SSRC {}: {}. Stopping.",
-                                    ssrc, e
-                                );
-                                break;
-                            }
-                        }
-                        Err(tokio::sync::broadcast::error::RecvError::Lagged(n)) => {
-                            lag_count += n;
-                            warn!(
-                                "[Audio] Broadcast receiver lagged {} packets (total: {}) for SSRC {}",
-                                n, lag_count, ssrc
-                            );
-                            continue;
-                        }
-                        Err(tokio::sync::broadcast::error::RecvError::Closed) => {
-                            info!("[Audio] Broadcast channel closed for SSRC {}", ssrc);
-                            break;
-                        }
-                    }
-                }
-                info!("[Audio] RTP packet forwarding stopped for SSRC: {} (total lagged: {})", ssrc, lag_count);
-            });
+        let mut subscribed = false;
+        if has_audio {
+            subscribed |= self.add_forwarded_track(&topic, MediaType::Audio).await;
         }
-
-        if let Some((ssrc, info)) = video_stream_info {
-            subscribed = true;
-            info!(
-                "[Video-UDP] Subscribing to topic '{}' with SSRC {}",
-                topic, ssrc
-            );
-
-            let new_udp_video_track = Arc::new(TrackLocalStaticRTP::new(
-                RTCRtpCodecCapability {
-                    mime_type: MIME_TYPE_H264.to_owned(),
-                    ..Default::default()
-                },
-                format!("video-udp-{}", &topic),
-                format!("webrtc-stream-udp-{}", &topic),
-            ));
-
-            let rtp_sender = self
-                .pc
-                .add_track(Arc::clone(&new_udp_video_track) as Arc<dyn TrackLocal + Send + Sync>)
-                .await
-                .unwrap();
-
-            self.active_tracks.insert(
-                topic.clone(),
-                new_udp_video_track.clone() as Arc<dyn TrackLocal + Send + Sync>,
-            );
-
-            tokio::spawn(async move {
-                let mut rtcp_buf = vec![0u8; 1500];
-                while rtp_sender.read(&mut rtcp_buf).await.is_ok() {}
-            });
-
-            let mut rx = info.packet_tx.subscribe();
-
-            let video_sender = self.pc
-                .get_senders()
-                .await
-                .into_iter()
-                .find(|s| {
-                    if let Some(track) = s.track().now_or_never().and_then(|t| t) {
-                        track.id() == new_udp_video_track.id()
-                    } else {
-                        false
-                    }
-                })
-                .expect("Video sender not found for the specific UDP track");
-
-            let parameters = video_sender.get_parameters().await;
-            let negotiated_pt = parameters
-                .rtp_parameters
-                .codecs
-                .get(0)
-                .unwrap()
-                .payload_type;
-            let negotiated_ssrc = parameters.encodings.get(0).unwrap().ssrc;
-
-            info!(
-                "[Video-UDP] RTP forwarding ready. Negotiated PT: {}, SSRC: {}",
-                negotiated_pt, negotiated_ssrc
-            );
-
-            tokio::spawn(async move {
-                let mut lag_count: u64 = 0;
-                // 새 구독자는 키프레임(IDR)을 받을 때까지 대기
-                let mut waiting_for_keyframe = true;
-                info!("[Video-UDP] Waiting for keyframe before forwarding SSRC {}", ssrc);
-                loop {
-                    match rx.recv().await {
-                        Ok(mut pkt) => {
-                            if waiting_for_keyframe {
-                                if WSActor::is_h264_keyframe(&pkt) {
-                                    waiting_for_keyframe = false;
-                                    info!("[Video-UDP] Keyframe detected, starting forwarding for SSRC {}", ssrc);
-                                } else {
-                                    continue; // 키프레임이 아니면 스킵
-                                }
-                            }
-
-                            pkt.header.payload_type = negotiated_pt;
-                            pkt.header.ssrc = negotiated_ssrc;
-
-                            if let Err(e) = new_udp_video_track.write_rtp(&pkt).await {
-                                warn!(
-                                    "[Video-UDP] write_rtp failed for SSRC {}: {}. Stopping.",
-                                    ssrc, e
-                                );
-                                break;
-                            }
-                        }
-                        Err(tokio::sync::broadcast::error::RecvError::Lagged(n)) => {
-                            lag_count += n;
-                            waiting_for_keyframe = true; // 패킷 드롭 후 키프레임 대기
-                            warn!(
-                                "[Video-UDP] Broadcast receiver lagged {} packets (total: {}) for SSRC {}, waiting for keyframe",
-                                n, lag_count, ssrc
-                            );
-                            continue;
-                        }
-                        Err(tokio::sync::broadcast::error::RecvError::Closed) => {
-                            info!("[Video-UDP] Broadcast channel closed for SSRC {}", ssrc);
-                            break;
-                        }
-                    }
-                }
-                info!(
-                    "[Video-UDP] RTP packet forwarding stopped for SSRC: {} (total lagged: {})",
-                    ssrc, lag_count
-                );
-            });
+        if has_video {
+            subscribed |= self.add_forwarded_track(&topic, MediaType::Video).await;
         }
 
         if subscribed {
@@ -832,7 +665,7 @@ pub async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
 
     let (cmd_tx, cmd_rx) = mpsc::channel(10);
 
-    let initial_pc = match create_peer_connection(Arc::clone(&ws_sender), &state.pool).await {
+    let initial_pc = match create_peer_connection(Arc::clone(&ws_sender)).await {
         Ok(pc) => pc,
         Err(e) => {
             error!("Failed to create initial peer connection: {}", e);
@@ -852,6 +685,7 @@ pub async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                 state: Arc::clone(&state),
                 active_tracks: HashMap::new(),
                 dashboard_event_rate: HashMap::new(),
+                session_closed: watch::channel(false).0,
             };
             actor.run().await;
         }

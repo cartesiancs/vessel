@@ -1,7 +1,29 @@
 import { WebSocketChannel, WebSocketMessage } from "../../ws";
 
+export type StreamKind = "audio" | "video";
+
+// The server names each forwarded track's media stream "webrtc-stream-<kind>-<topic>"
+// (apps/server/src/handler/ws/handlers.rs, add_forwarded_track).
+const SERVER_STREAM_ID_PREFIX = "webrtc-stream-";
+
+/** Topic a remote track carries, from the stream id the server gave it; null for other tracks. */
+export function topicOfTrack(
+  event: Pick<RTCTrackEvent, "track" | "streams">,
+): string | null {
+  const prefix = `${SERVER_STREAM_ID_PREFIX}${event.track.kind}-`;
+  const stream = event.streams.find((s) => s.id.startsWith(prefix));
+  return stream ? stream.id.slice(prefix.length) : null;
+}
+
 export interface WebRTCConfig {
   iceServers: RTCIceServer[];
+  /**
+   * Topics this viewer wants, shared across manager instances. A replacement manager (after a
+   * WebSocket reconnect or a failed peer connection) subscribes to them again on connect.
+   */
+  subscriptions?: Map<string, StreamKind>;
+  /** Called once when the peer connection reaches "failed"; the owner should replace the manager. */
+  onConnectionFailed?: () => void;
 }
 
 export class WebRTCManager {
@@ -11,8 +33,13 @@ export class WebRTCManager {
   private onStreamsChanged: (
     streams: Map<string, { stream: MediaStream; type: "audio" | "video" }>,
   ) => void;
-  private pendingTopics: Array<{ topic: string; type: "audio" | "video" }>;
   private candidateQueue: RTCIceCandidateInit[] = [];
+  private subscriptions: Map<string, StreamKind>;
+  private onConnectionFailed: (() => void) | undefined;
+  // Signaling messages are applied one at a time. Two renegotiation offers sent back to back
+  // (one per subscribe) otherwise interleave, and the second setLocalDescription fails with
+  // "Called in wrong state: stable", leaving the server's offer unanswered.
+  private signalingChain: Promise<void> = Promise.resolve();
 
   public static readonly MAX_AUDIO_STREAMS = 2;
   public static readonly MAX_VIDEO_STREAMS = 4;
@@ -26,11 +53,10 @@ export class WebRTCManager {
   ) {
     this.signaling = signaling;
     this.streams = new Map();
-    this.pendingTopics = [];
     this.onStreamsChanged = onStreamsChanged;
-    const iceServers = config?.iceServers ?? [
-      { urls: "stun:stun.l.google.com:19302" },
-    ];
+    this.subscriptions = config?.subscriptions ?? new Map();
+    this.onConnectionFailed = config?.onConnectionFailed;
+    const iceServers = config?.iceServers ?? [];
     this.pc = new RTCPeerConnection({ iceServers });
     this.setupEvents();
   }
@@ -44,6 +70,11 @@ export class WebRTCManager {
 
     this.pc.onconnectionstatechange = () => {
       console.log("[WebRTC] Connection state:", this.pc.connectionState);
+      if (this.pc.connectionState === "failed") {
+        const notify = this.onConnectionFailed;
+        this.onConnectionFailed = undefined;
+        notify?.();
+      }
     };
 
     this.pc.onicegatheringstatechange = () => {
@@ -53,7 +84,10 @@ export class WebRTCManager {
     this.pc.onicecandidate = (event) => {
       if (event.candidate) {
         const type = event.candidate.type ?? "unknown";
-        console.log(`[WebRTC] Local candidate [${type}]:`, event.candidate.candidate);
+        console.log(
+          `[WebRTC] Local candidate [${type}]:`,
+          event.candidate.candidate,
+        );
         this.signaling.send({
           type: "candidate",
           payload: event.candidate.toJSON(),
@@ -64,13 +98,16 @@ export class WebRTCManager {
     };
 
     this.pc.ontrack = (event) => {
-      const pending = this.pendingTopics.shift();
-      if (!pending) {
+      const track = event.track;
+      const topic = topicOfTrack(event);
+      // The server's first answer marks every recvonly transceiver sendonly, which fires a track
+      // event per transceiver with no media and random ids. Matching tracks to subscriptions in
+      // arrival order let one of those claim a topic whenever a subscription was already pending
+      // (as when a replacement manager resubscribes), leaving the view black.
+      if (!topic || !this.subscriptions.has(topic)) {
         return;
       }
-      const { topic, type } = pending;
-
-      const track = event.track;
+      const type = this.subscriptions.get(topic) ?? (track.kind as StreamKind);
       const stream = new MediaStream([track]);
 
       console.log(` "${topic}": ${track.kind} : ${stream.id}`);
@@ -82,7 +119,18 @@ export class WebRTCManager {
     };
   }
 
-  private handleSignalingMessage = async (msg: WebSocketMessage) => {
+  private handleSignalingMessage = (msg: WebSocketMessage) => {
+    this.signalingChain = this.signalingChain.then(() =>
+      this.applySignalingMessage(msg),
+    );
+  };
+
+  /** Resolves once every signaling message received so far has been applied. */
+  public whenSignalingIdle(): Promise<void> {
+    return this.signalingChain;
+  }
+
+  private applySignalingMessage = async (msg: WebSocketMessage) => {
     try {
       switch (msg.type) {
         case "answer":
@@ -151,6 +199,10 @@ export class WebRTCManager {
         type: "offer",
         payload: this.pc.localDescription as RTCSessionDescriptionInit,
       });
+      // The server handles messages in order, so these follow the offer it is answering.
+      for (const [topic, type] of this.subscriptions) {
+        this.requestStream(topic, type);
+      }
     } catch (err) {
       console.error("Error creating initial offer:", err);
     }
@@ -177,8 +229,12 @@ export class WebRTCManager {
       return;
     }
 
+    this.subscriptions.set(topic, streamType);
+    this.requestStream(topic, streamType);
+  }
+
+  private requestStream(topic: string, streamType: StreamKind): void {
     console.log(`Subscribing to topic: ${topic} (${streamType})`);
-    this.pendingTopics.push({ topic, type: streamType });
 
     this.signaling.send({
       type: "subscribe_stream",
@@ -187,6 +243,7 @@ export class WebRTCManager {
   }
 
   public close(): void {
+    this.onConnectionFailed = undefined;
     this.signaling.send({ type: "hangup", payload: "" });
 
     this.signaling.removeMessageListener(this.handleSignalingMessage);

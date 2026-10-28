@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use anyhow::Result;
 use axum::{
-    extract::DefaultBodyLimit,
+    extract::{DefaultBodyLimit, OriginalUri},
     http::{header, Method, StatusCode, Uri},
     response::IntoResponse,
     routing::{delete, get, post, put},
@@ -18,7 +18,7 @@ use crate::{
         auth::{auth_with_password, logout, refresh_token},
         configurations, custom_nodes, dashboards, device_tokens, devices,
         entities, flows, ha, integration, log, map, permissions, recordings, roles, sdr, stat,
-        state, storage, streams, tunnel, users, ws::ws_handler,
+        state, storage, streams, users, ws::ws_handler,
     },
     state::AppState,
 };
@@ -165,9 +165,6 @@ pub async fn web_server(
             post(flows::create_flow_version).get(flows::get_flow_versions),
         )
         .route("/stat", get(stat::get_stats))
-        .route("/tunnel/start", post(tunnel::start_tunnel))
-        .route("/tunnel/stop", post(tunnel::stop_tunnel))
-        .route("/tunnel/status", get(tunnel::status_tunnel))
         .route("/logs", get(log::list_log_files_handler))
         .route("/logs/:filename", get(log::get_log_by_filename_handler))
         .route("/logs/latest", get(log::get_latest_log_handler))
@@ -258,7 +255,7 @@ pub async fn web_server(
     let app = Router::new()
         .route("/info", get(get_server_info))
         .route("/signal", get(ws_handler))
-        .nest("/api", api_routes)
+        .nest("/api", api_routes.fallback(api_not_found))
         .with_state(app_state)
         .layer(cors)
         .fallback(static_handler);
@@ -272,4 +269,13 @@ pub async fn web_server(
         })
         .await?;
     Ok(())
+}
+
+/// Unknown API paths get a JSON 404. Without this they fell through to the SPA fallback and
+/// answered 200 with index.html, so a client calling a removed endpoint saw no error.
+async fn api_not_found(OriginalUri(uri): OriginalUri) -> impl IntoResponse {
+    (
+        StatusCode::NOT_FOUND,
+        Json(json!({ "error": format!("No API route for {}", uri.path()) })),
+    )
 }

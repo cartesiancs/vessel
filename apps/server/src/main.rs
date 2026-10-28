@@ -20,10 +20,9 @@ use crate::{
     init::streams::create_hydrate_streams,
     utils::{entity_map::remap_topics, stream_checker::stream_status_checker},
     logo::print_logo,
-    media::{MediaAdapter, RtpPushAdapter, RtspPullAdapter},
+    media::{MediaAdapter, RtpPushAdapter, RtspPullAdapter, StreamActivator},
     routes::web_server,
     state::{AppState, MqttMessage, StreamManager, StreamRegistry},
-    tunnel_control::TunnelManager,
 };
 
 mod broker_mqtt;
@@ -32,7 +31,6 @@ mod handler;
 mod init;
 mod routes;
 mod state;
-mod tunnel_control;
 
 pub mod db;
 pub mod error;
@@ -95,7 +93,6 @@ async fn main() -> Result<()> {
         create_initial_admin(&mut conn);
         create_initial_configurations(&mut conn);
         seed_initial_permissions(&mut conn);
-        create_hydrate_streams(&pool, &streams);
 
         match db::repository::delete_expired_refresh_tokens(&pool) {
             Ok(removed) => info!("Pruned {} expired refresh tokens.", removed),
@@ -113,7 +110,6 @@ async fn main() -> Result<()> {
     let (dashboard_ui_tx, _) = broadcast::channel::<crate::state::DashboardUiEvent>(1024);
     let (shutdown_tx, shutdown_rx) = watch::channel(());
     let (topic_map_notify_tx, topic_map_notify_rx) = watch::channel(());
-    let tunnel_manager = Arc::new(TunnelManager::new());
 
     let jwt_secret = settings.jwt_secret.clone();
     let configs = db::repository::get_all_system_configs(&pool)?;
@@ -124,6 +120,13 @@ async fn main() -> Result<()> {
     ));
 
     let hls_manager = Arc::new(streaming::HlsManager::new(streams.clone()));
+
+    let stream_activator = Arc::new(StreamActivator::new(
+        streams.clone(),
+        pool.clone(),
+        shutdown_rx.clone(),
+    ));
+    create_hydrate_streams(&pool, &stream_activator);
 
     let app_state = Arc::new(AppState {
         streams: streams.clone(),
@@ -136,10 +139,10 @@ async fn main() -> Result<()> {
         dashboard_ui_tx: dashboard_ui_tx.clone(),
         broadcast_tx,
         system_configs: configs.clone(),
-        tunnel_manager: tunnel_manager.clone(),
         recording_manager,
         hls_manager: hls_manager.clone(),
         map_store: map_store.clone(),
+        stream_activator: stream_activator.clone(),
     });
 
     let mut set = JoinSet::new();
@@ -170,8 +173,11 @@ async fn main() -> Result<()> {
                     &rtp_config.value
                 );
                 let rtp_listen_address = rtp_config.value.clone();
-                let rtp_adapter =
-                    Arc::new(RtpPushAdapter::new(rtp_listen_address, streams.clone()));
+                let rtp_adapter = Arc::new(RtpPushAdapter::new(
+                    rtp_listen_address,
+                    streams.clone(),
+                    stream_activator.clone(),
+                ));
                 let shutdown_rx_clone = shutdown_rx.clone();
                 let rtp_task = rtp_adapter.clone();
                 set.spawn(async move { rtp_task.start(shutdown_rx_clone).await });

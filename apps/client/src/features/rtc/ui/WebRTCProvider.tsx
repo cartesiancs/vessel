@@ -7,18 +7,14 @@ import {
   ReactNode,
   useMemo,
 } from "react";
-import { toast } from "sonner";
 import { useWebSocket } from "../../ws";
-import { WebRTCManager } from "../lib/rtc";
+import { WebRTCManager, type StreamKind } from "../lib/rtc";
 import { isDemoMode } from "@/shared/config/demo";
 import { WebSocketChannel } from "../../ws";
-import {
-  ensureIceServers,
-  onCredentialChange,
-  onTurnCredentialError,
-  stopAutoRenewal,
-  DEFAULT_ICE_SERVERS,
-} from "../lib/turnService";
+
+// Host candidates only: viewers and server share a LAN, and Vessel makes no calls to external
+// STUN/TURN services.
+const LOCAL_ICE_SERVERS: RTCIceServer[] = [];
 
 type StreamInfo = {
   stream: MediaStream;
@@ -51,63 +47,12 @@ export function WebRTCProvider({ children }: WebRTCProviderProps) {
   const [rtcManager, setRtcManager] = useState<WebRTCManager | null>(null);
   const [streams, setStreams] = useState<Map<string, StreamInfo>>(new Map());
   const [demoMode] = useState(isDemoMode);
-  const [iceServers, setIceServers] = useState<RTCIceServer[] | null>(null);
-  const lastTurnErrorRef = useRef<string | null>(null);
+  // Outlives individual managers so a replacement can restore what the viewer subscribed to.
+  const subscriptionsRef = useRef(new Map<string, StreamKind>());
+  // Bumped when the peer connection fails, which replaces the manager.
+  const [rtcGeneration, setRtcGeneration] = useState(0);
 
-  // Load ICE servers: try localStorage → server DB → Supabase → STUN fallback
-  useEffect(() => {
-    if (demoMode) {
-      setIceServers(DEFAULT_ICE_SERVERS);
-      return;
-    }
-
-    let cancelled = false;
-
-    ensureIceServers().then((servers) => {
-      if (!cancelled) setIceServers(servers);
-    });
-
-    const unsubscribe = onCredentialChange((servers) => {
-      if (!cancelled) setIceServers(servers);
-    });
-
-    return () => {
-      cancelled = true;
-      unsubscribe();
-      stopAutoRenewal();
-    };
-  }, [demoMode, isConnected]);
-
-  useEffect(() => {
-    if (demoMode) return;
-
-    return onTurnCredentialError((error) => {
-      const fingerprint = `${error.code}:${error.message}:${error.usage?.periodEnd ?? ""}`;
-      if (lastTurnErrorRef.current === fingerprint) return;
-
-      lastTurnErrorRef.current = fingerprint;
-
-      if (error.code === "TURN_QUOTA_EXCEEDED") {
-        toast.error("TURN relay quota exceeded", {
-          description:
-            error.usage?.periodEnd
-              ? `1 GB monthly limit reached. Quota resets ${new Date(
-                  error.usage.periodEnd,
-                ).toLocaleString()}.`
-              : "1 GB monthly limit reached for TURN relay traffic.",
-        });
-        return;
-      }
-
-      if (error.code === "TURN_USAGE_UNAVAILABLE") {
-        toast.error("TURN usage check unavailable", {
-          description: "TURN relay usage could not be verified, so the app is using STUN only.",
-        });
-      }
-    });
-  }, [demoMode]);
-
-  // Create WebRTCManager when connected and ICE servers are ready
+  // Create WebRTCManager when connected
   useEffect(() => {
     if (demoMode) {
       setRtcManager(null);
@@ -115,29 +60,26 @@ export function WebRTCProvider({ children }: WebRTCProviderProps) {
       return;
     }
 
-    if (isConnected && wsManager && iceServers) {
+    if (isConnected && wsManager) {
       if (!(wsManager instanceof WebSocketChannel)) {
         setRtcManager(null);
         setStreams(new Map());
         return;
       }
 
-      console.log(
-        "WebSocket connected, initializing WebRTCManager with",
-        iceServers.length,
-        "ICE servers:",
-        iceServers.map((s) => ({
-          urls: s.urls,
-          hasCredentials: !!s.username,
-        })),
-      );
+      console.log("WebSocket connected, initializing WebRTCManager");
 
       const onStreamsChanged = (newStreams: Map<string, StreamInfo>) => {
         setStreams(newStreams);
       };
 
       const manager = new WebRTCManager(wsManager, onStreamsChanged, {
-        iceServers,
+        iceServers: LOCAL_ICE_SERVERS,
+        subscriptions: subscriptionsRef.current,
+        onConnectionFailed: () => {
+          console.warn("[WebRTC] Peer connection failed; reconnecting");
+          setRtcGeneration((generation) => generation + 1);
+        },
       });
       manager.connect();
       setRtcManager(manager);
@@ -147,7 +89,7 @@ export function WebRTCProvider({ children }: WebRTCProviderProps) {
         setRtcManager(null);
       };
     }
-  }, [demoMode, isConnected, wsManager, iceServers]);
+  }, [demoMode, isConnected, wsManager, rtcGeneration]);
 
   const { audioStreamCount, videoStreamCount } = useMemo(() => {
     const counts = { audioStreamCount: 0, videoStreamCount: 0 };

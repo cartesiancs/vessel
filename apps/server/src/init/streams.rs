@@ -1,42 +1,44 @@
-use tokio::sync::broadcast;
 use tracing::{error, info, warn};
-use webrtc::rtp::packet::Packet;
 
 use crate::db::repository;
-use crate::state::{DbPool, MediaType, Protocol, StreamDescriptor, StreamManager};
+use crate::media::{StreamActivation, StreamActivator};
+use crate::state::{DbPool, StreamCodec};
 
-pub fn create_hydrate_streams(pool: &DbPool, streams: &StreamManager) {
+pub fn create_hydrate_streams(pool: &DbPool, activator: &StreamActivator) {
     info!("Hydrating streams from database...");
-    match repository::streams::get_all_streams(&pool) {
-        Ok(db_streams) => {
-            for stream in db_streams {
-                let (packet_tx, _) = broadcast::channel::<Packet>(8192);
-                let media_type = match stream.media_type.as_str() {
-                    "audio" => MediaType::Audio,
-                    "video" => MediaType::Video,
-                    _ => {
-                        warn!(
-                            "Unknown media type '{}' for SSRC {}",
-                            stream.media_type, stream.ssrc
-                        );
-                        continue;
-                    }
-                };
-
-                let descriptor = StreamDescriptor {
-                    id: stream.ssrc as u32,
-                    topic: stream.topic,
-                    user_id: stream.device_id,
-                    media_type,
-                    protocol: Protocol::Udp,
-                };
-
-                streams.insert_with_sender(descriptor, packet_tx);
-            }
-            info!("Hydrated {} streams into memory.", streams.len());
-        }
+    let db_streams = match repository::streams::get_all_streams(pool) {
+        Ok(db_streams) => db_streams,
         Err(e) => {
             error!("Failed to hydrate streams from database: {}", e);
+            return;
+        }
+    };
+
+    let mut hydrated = 0usize;
+    let mut deferred = 0usize;
+    for stream in db_streams {
+        let ssrc = stream.ssrc;
+        let activation = match StreamActivation::try_from(stream) {
+            Ok(activation) => activation,
+            Err(e) => {
+                warn!("Skipping stream with SSRC {}: {}", ssrc, e);
+                continue;
+            }
+        };
+        // A JPEG stream needs a GStreamer transcoder. Starting one per row at boot spun up a
+        // pipeline for every camera ever registered, most of them long gone. The RTP receiver
+        // rehydrates a stream from the database on its first packet instead.
+        if activation.codec == StreamCodec::Jpeg {
+            deferred += 1;
+            continue;
+        }
+        match activator.activate(activation) {
+            Ok(()) => hydrated += 1,
+            Err(e) => warn!("Failed to hydrate stream with SSRC {}: {}", ssrc, e),
         }
     }
+    info!(
+        "Hydrated {} streams into memory; {} JPEG streams start when their camera sends.",
+        hydrated, deferred
+    );
 }

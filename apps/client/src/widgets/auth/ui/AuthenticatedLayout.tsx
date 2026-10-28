@@ -15,6 +15,26 @@ import { useIsMobile } from "@/shared/lib/hooks/use-mobile";
 import { useConfigStore } from "@/entities/configurations";
 import { isTauri, type SidecarStatus } from "@/shared/lib/desktop";
 
+/**
+ * Signaling URL for the stored server. Rotates the access token first if it is missing or
+ * expiring, because the WebSocket handshake authenticates with the ?token= query.
+ */
+async function buildSignalUrl(): Promise<string | null> {
+  const serverUrlString = storage.getServerUrl();
+  const token = await ensureFreshToken();
+  if (!token || !serverUrlString) {
+    return null;
+  }
+  try {
+    const url = new URL(serverUrlString);
+    const wsProto = url.protocol === "https:" ? "wss" : "ws";
+    return `${wsProto}://${url.host}/signal?token=${token}`;
+  } catch {
+    console.error("Invalid server_url in storage:", serverUrlString);
+    return null;
+  }
+}
+
 export function AuthenticatedLayout() {
   const [wsUrl, setWsUrl] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
@@ -29,28 +49,13 @@ export function AuthenticatedLayout() {
     let cancelled = false;
 
     void (async () => {
-      const serverUrlString = storage.getServerUrl();
-      // Rotate the access token if it is missing/expiring so the WebSocket
-      // handshake (which authenticates via the ?token= query) uses a valid one.
-      const token = await ensureFreshToken();
-
+      const url = await buildSignalUrl();
       if (cancelled) return;
-
-      if (!token || !serverUrlString) {
+      if (!url) {
         navigate("/auth", { replace: true });
         return;
       }
-
-      try {
-        const url = new URL(serverUrlString);
-        const host = url.host;
-        const wsProto = url.protocol === "https:" ? "wss" : "ws";
-
-        setWsUrl(`${wsProto}://${host}/signal?token=${token}`);
-      } catch {
-        console.error("Invalid server_url in storage:", serverUrlString);
-        navigate("/auth", { replace: true });
-      }
+      setWsUrl(url);
     })();
 
     return () => {
@@ -109,7 +114,10 @@ export function AuthenticatedLayout() {
   const chatPanelWidth = isOpen && !isMobile ? PANEL_WIDTH : 0;
 
   return (
-    <WebSocketProvider url={wsUrl}>
+    <WebSocketProvider
+      url={wsUrl}
+      resolveUrl={isDemoMode ? undefined : buildSignalUrl}
+    >
       <FlowUiEventBridge />
       <div
         style={

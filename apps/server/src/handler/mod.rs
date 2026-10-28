@@ -18,6 +18,5 @@ pub mod stat;
 pub mod state;
 pub mod storage;
 pub mod streams;
-pub mod tunnel;
 pub mod users;
 pub mod ws;

@@ -1,4 +1,4 @@
-import type { ToolCallResult } from "@vessel/capsule-client";
+import type { ToolCallResult } from "@/shared/lib/llm/types";
 import type { Node, Edge, DataNodeType } from "../../model/types";
 
 export interface ToolExecutionResult {

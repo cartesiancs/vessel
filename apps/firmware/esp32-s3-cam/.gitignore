@@ -1,0 +1,7 @@
+build/
+sdkconfig
+sdkconfig.old
+managed_components/
+main/secrets.h
+test/host/build/
+.DS_Store

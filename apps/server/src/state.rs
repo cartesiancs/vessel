@@ -15,15 +15,72 @@ use dashmap::DashMap;
 
 use crate::flow::manager_state::FlowManagerCommand;
 use crate::map::MapStore;
+use crate::media::StreamActivator;
 use crate::recording::RecordingManager;
 use crate::streaming::HlsManager;
-use crate::{db::models::SystemConfiguration, tunnel_control::TunnelManager};
+use crate::db::models::SystemConfiguration;
 
 #[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum MediaType {
     Audio,
     Video,
+}
+
+impl MediaType {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            MediaType::Audio => "audio",
+            MediaType::Video => "video",
+        }
+    }
+
+    pub fn from_db(value: &str) -> Option<Self> {
+        match value {
+            "audio" => Some(MediaType::Audio),
+            "video" => Some(MediaType::Video),
+            _ => None,
+        }
+    }
+}
+
+/// Payload format a device pushes over RTP. `Jpeg` (RFC 2435) is transcoded to H.264 on the
+/// server because every consumer (WebRTC, HLS, recording) expects H.264.
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum StreamCodec {
+    #[default]
+    H264,
+    Jpeg,
+    Opus,
+}
+
+impl StreamCodec {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            StreamCodec::H264 => "h264",
+            StreamCodec::Jpeg => "jpeg",
+            StreamCodec::Opus => "opus",
+        }
+    }
+
+    pub fn from_db(value: &str) -> Option<Self> {
+        match value {
+            "h264" => Some(StreamCodec::H264),
+            "jpeg" => Some(StreamCodec::Jpeg),
+            "opus" => Some(StreamCodec::Opus),
+            _ => None,
+        }
+    }
+
+    pub fn supports(self, media_type: MediaType) -> bool {
+        matches!(
+            (self, media_type),
+            (StreamCodec::H264, MediaType::Video)
+                | (StreamCodec::Jpeg, MediaType::Video)
+                | (StreamCodec::Opus, MediaType::Audio)
+        )
+    }
 }
 
 #[derive(Serialize, Clone, Debug, PartialEq, Eq)]
@@ -124,11 +181,35 @@ impl StreamRegistry {
 
     pub fn remove(&self, ssrc: &u32) -> Option<(u32, StreamHandle)> {
         if let Some((key, handle)) = self.streams.remove(ssrc) {
-            self.topic_index.remove(&handle.descriptor.topic);
+            // A re-registered stream reuses the topic under a new SSRC; only drop the index
+            // entry if it still points at the stream being removed.
+            self.topic_index
+                .remove_if(&handle.descriptor.topic, |_, indexed| indexed == ssrc);
             Some((key, handle))
         } else {
             None
         }
+    }
+
+    /// Removes every stream registered under `topic` with `media_type` and returns their SSRCs.
+    pub fn remove_by_topic(&self, topic: &str, media_type: MediaType) -> Vec<u32> {
+        let stale: Vec<u32> = self
+            .streams
+            .iter()
+            .filter(|entry| {
+                entry.value().descriptor.topic == topic
+                    && entry.value().descriptor.media_type == media_type
+            })
+            .map(|entry| *entry.key())
+            .collect();
+        for ssrc in &stale {
+            self.remove(ssrc);
+        }
+        stale
+    }
+
+    pub fn contains(&self, ssrc: u32) -> bool {
+        self.streams.contains_key(&ssrc)
     }
 
     pub fn len(&self) -> usize {
@@ -183,8 +264,55 @@ pub struct AppState {
     pub dashboard_ui_tx: broadcast::Sender<DashboardUiEvent>,
     pub broadcast_tx: broadcast::Sender<String>,
     pub system_configs: Vec<SystemConfiguration>,
-    pub tunnel_manager: Arc<TunnelManager>,
     pub recording_manager: Arc<RecordingManager>,
     pub hls_manager: Arc<HlsManager>,
     pub map_store: Arc<MapStore>,
+    pub stream_activator: Arc<StreamActivator>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn descriptor(id: u32, topic: &str, media_type: MediaType) -> StreamDescriptor {
+        StreamDescriptor {
+            id,
+            topic: topic.to_string(),
+            user_id: "device".to_string(),
+            media_type,
+            protocol: Protocol::Udp,
+        }
+    }
+
+    #[test]
+    fn removing_stale_ssrc_keeps_topic_index_of_reregistered_stream() {
+        let registry = StreamRegistry::new();
+        registry.register(descriptor(1, "cam/video", MediaType::Video));
+        registry.register(descriptor(2, "cam/video", MediaType::Video));
+
+        registry.remove(&1);
+
+        let current = registry.get_by_topic("cam/video").map(|h| h.descriptor.id);
+        assert_eq!(current, Some(2));
+    }
+
+    #[test]
+    fn remove_by_topic_only_drops_matching_media_type() {
+        let registry = StreamRegistry::new();
+        registry.register(descriptor(1, "cam", MediaType::Video));
+        registry.register(descriptor(2, "cam", MediaType::Audio));
+
+        assert_eq!(registry.remove_by_topic("cam", MediaType::Video), vec![1]);
+        assert!(!registry.contains(1));
+        assert!(registry.contains(2));
+    }
+
+    #[test]
+    fn codec_media_type_compatibility() {
+        assert!(StreamCodec::Jpeg.supports(MediaType::Video));
+        assert!(StreamCodec::H264.supports(MediaType::Video));
+        assert!(StreamCodec::Opus.supports(MediaType::Audio));
+        assert!(!StreamCodec::Opus.supports(MediaType::Video));
+        assert!(!StreamCodec::Jpeg.supports(MediaType::Audio));
+    }
 }

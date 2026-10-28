@@ -1,13 +1,5 @@
-use std::collections::HashMap;
-
 use crate::{
-    db::{
-        models::{
-            NewPermission, NewRole, NewRolePermission, NewStream, NewUserRole, Permission, Role,
-            RolePermission, RoleWithPermissions, Stream,
-        },
-        schema::streams,
-    },
+    db::models::{NewStream, Stream},
     state::DbPool,
 };
 use diesel::prelude::*;
@@ -29,10 +21,29 @@ pub fn upsert_stream(pool: &DbPool, new_stream: &NewStream) -> Result<Stream, an
         .values(new_stream)
         .on_conflict((streams::topic, streams::device_id))
         .do_update()
-        .set(streams::ssrc.eq(new_stream.ssrc))
+        .set((
+            streams::ssrc.eq(new_stream.ssrc),
+            streams::media_type.eq(new_stream.media_type),
+            streams::codec.eq(new_stream.codec),
+        ))
         .get_result(&mut conn)?;
 
     Ok(stream)
+}
+
+pub fn get_stream_by_ssrc(
+    pool: &DbPool,
+    target_ssrc: i32,
+) -> Result<Option<Stream>, anyhow::Error> {
+    use crate::db::schema::streams::dsl::*;
+
+    let mut conn = pool.get()?;
+    let found = streams
+        .filter(ssrc.eq(target_ssrc))
+        .select(Stream::as_select())
+        .first(&mut conn)
+        .optional()?;
+    Ok(found)
 }
 
 pub fn delete_stream(pool: &DbPool, target_ssrc: i32) -> Result<usize, anyhow::Error> {

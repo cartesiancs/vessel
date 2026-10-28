@@ -140,6 +140,7 @@ diesel::table! {
         device_id -> Text,
         media_type -> Text,
         created_at -> Timestamp,
+        codec -> Text,
     }
 }
 

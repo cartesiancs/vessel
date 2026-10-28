@@ -582,7 +582,6 @@ fn main() {
 
     tauri::Builder::default()
         .manage(SidecarManager::default())
-        .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_shell::init())
         .plugin(
             PreventBuilder::new()
@@ -607,16 +606,6 @@ fn main() {
         .setup(|app| {
             for window in app.webview_windows().values() {
                 let _ = window.eval(PREVENT_NAV_JS);
-            }
-
-            #[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
-            {
-                use tauri_plugin_deep_link::DeepLinkExt;
-                let app_handle = app.handle().clone();
-                app.deep_link().on_open_url(move |event| {
-                    let urls: Vec<String> = event.urls().iter().map(|u| u.to_string()).collect();
-                    let _ = app_handle.emit("deep-link-opened", urls);
-                });
             }
 
             let handle = app.handle().clone();

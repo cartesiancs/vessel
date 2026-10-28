@@ -1,6 +1,7 @@
 const request = require("supertest");
 
-const API_BASE_URL = "http://localhost:6174";
+const API_BASE_URL = process.env.VESSEL_API_URL || "http://localhost:6174";
+const ADMIN_PASSWORD = process.env.VESSEL_ADMIN_PASSWORD || "admin1";
 const RUN_ID = Date.now();
 const uniq = (s) => `${s}_${RUN_ID}`;
 
@@ -10,7 +11,7 @@ describe("Vessel API E2E Test", () => {
   beforeAll(async () => {
     const response = await request(API_BASE_URL).post("/api/auth").send({
       id: "admin",
-      password: "admin1",
+      password: ADMIN_PASSWORD,
     });
 
     expect(response.status).toBe(200);
@@ -25,6 +26,23 @@ describe("Vessel API E2E Test", () => {
       const res = await request(API_BASE_URL).get("/info");
       expect(res.status).toBe(200);
       expect(res.body).toMatchObject({ id: "vessel-server", code: 200 });
+    });
+  });
+
+  describe("Unknown and removed endpoints", () => {
+    it("answers an unknown API path with a JSON 404, not the app's HTML", async () => {
+      const res = await request(API_BASE_URL).get(`/api/${uniq("nope")}`);
+      expect(res.status).toBe(404);
+      expect(res.body.error).toMatch(/No API route/);
+    });
+
+    it.each([
+      ["get", "/api/tunnel/status"],
+      ["post", "/api/tunnel/start"],
+      ["post", "/api/tunnel/stop"],
+    ])("no longer serves the cloud tunnel: %s %s", async (method, path) => {
+      const res = await request(API_BASE_URL)[method](path).send({});
+      expect(res.status).toBe(404);
     });
   });
 
@@ -579,28 +597,6 @@ describe("Vessel API E2E Test", () => {
       expect(res.body).toHaveProperty("count");
       expect(res.body.count).toHaveProperty("entities");
       expect(res.body.count).toHaveProperty("devices");
-    });
-  });
-
-  describe("Tunnel API", () => {
-    it("GET /api/tunnel/status returns tunnel status (no auth required)", async () => {
-      const res = await request(API_BASE_URL).get("/api/tunnel/status");
-      expect(res.status).toBe(200);
-      expect(res.body).toHaveProperty("active");
-      expect(typeof res.body.active).toBe("boolean");
-    });
-
-    it("POST /api/tunnel/stop is idempotent", async () => {
-      const res = await request(API_BASE_URL).post("/api/tunnel/stop");
-      expect([204, 502]).toContain(res.status);
-    });
-
-    it("POST /api/tunnel/start with bogus server returns 200 or 502", async () => {
-      const res = await request(API_BASE_URL).post("/api/tunnel/start").send({
-        server: "http://127.0.0.1:1",
-        target: "http://127.0.0.1:1",
-      });
-      expect([200, 502]).toContain(res.status);
     });
   });
 

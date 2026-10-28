@@ -15,11 +15,11 @@ import { AppSidebar } from "@/features/sidebar";
 import {
   Blocks,
   ChevronRight,
-  Cloud,
   Code,
   Network,
   ScrollText,
   Server,
+  Sparkles,
   UserCog,
 } from "lucide-react";
 
@@ -33,16 +33,16 @@ type Category = {
 
 const categories: Category[] = [
   {
-    id: "account",
-    title: "Account",
-    description: "Vessel Cloud, Capsule Server, TURN credentials",
-    icon: <Cloud className='h-5 w-5' />,
-    to: "/settings/account",
+    id: "ai",
+    title: "AI",
+    description: "Chat model endpoint (OpenAI-compatible)",
+    icon: <Sparkles className='h-5 w-5' />,
+    to: "/settings/ai",
   },
   {
     id: "services",
     title: "Services",
-    description: "Code workspace, Tunnel",
+    description: "Code workspace, Live streaming",
     icon: <Code className='h-5 w-5' />,
     to: "/settings/services",
   },
