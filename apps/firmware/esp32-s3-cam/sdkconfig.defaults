@@ -20,3 +20,12 @@ CONFIG_ESP_MAIN_TASK_STACK_SIZE=8192
 CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y
 CONFIG_COMPILER_OPTIMIZATION_PERF=y
 
+# Network: one HTTP client during registration plus one UDP socket per media stream
+CONFIG_LWIP_MAX_SOCKETS=8
+CONFIG_LWIP_UDP_RECVMBOX_SIZE=16
+# A VGA frame is ~25-40 RTP packets sent back to back; deeper TX queues absorb the burst.
+CONFIG_ESP_WIFI_DYNAMIC_TX_BUFFER_NUM=64
+
+# Peripherals
+CONFIG_I2S_ISR_IRAM_SAFE=y
+CONFIG_CAMERA_CORE1=y
