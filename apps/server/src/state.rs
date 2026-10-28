@@ -43,6 +43,45 @@ impl MediaType {
     }
 }
 
+/// Payload format a device pushes over RTP. `Jpeg` (RFC 2435) is transcoded to H.264 on the
+/// server because every consumer (WebRTC, HLS, recording) expects H.264.
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum StreamCodec {
+    #[default]
+    H264,
+    Jpeg,
+    Opus,
+}
+
+impl StreamCodec {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            StreamCodec::H264 => "h264",
+            StreamCodec::Jpeg => "jpeg",
+            StreamCodec::Opus => "opus",
+        }
+    }
+
+    pub fn from_db(value: &str) -> Option<Self> {
+        match value {
+            "h264" => Some(StreamCodec::H264),
+            "jpeg" => Some(StreamCodec::Jpeg),
+            "opus" => Some(StreamCodec::Opus),
+            _ => None,
+        }
+    }
+
+    pub fn supports(self, media_type: MediaType) -> bool {
+        matches!(
+            (self, media_type),
+            (StreamCodec::H264, MediaType::Video)
+                | (StreamCodec::Jpeg, MediaType::Video)
+                | (StreamCodec::Opus, MediaType::Audio)
+        )
+    }
+}
+
 #[derive(Serialize, Clone, Debug, PartialEq, Eq)]
 pub enum Protocol {
     MQTT,
