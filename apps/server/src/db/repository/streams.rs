@@ -31,6 +31,21 @@ pub fn upsert_stream(pool: &DbPool, new_stream: &NewStream) -> Result<Stream, an
     Ok(stream)
 }
 
+pub fn get_stream_by_ssrc(
+    pool: &DbPool,
+    target_ssrc: i32,
+) -> Result<Option<Stream>, anyhow::Error> {
+    use crate::db::schema::streams::dsl::*;
+
+    let mut conn = pool.get()?;
+    let found = streams
+        .filter(ssrc.eq(target_ssrc))
+        .select(Stream::as_select())
+        .first(&mut conn)
+        .optional()?;
+    Ok(found)
+}
+
 pub fn delete_stream(pool: &DbPool, target_ssrc: i32) -> Result<usize, anyhow::Error> {
     use crate::db::schema::streams::dsl::*;
 
