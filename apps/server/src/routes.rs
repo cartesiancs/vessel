@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use anyhow::Result;
 use axum::{
+    extract::DefaultBodyLimit,
     http::{header, Method, StatusCode, Uri},
     response::IntoResponse,
     routing::{delete, get, post, put},
@@ -14,13 +15,16 @@ use tracing::info;
 
 use crate::{
     handler::{
-        auth::auth_with_password, configurations, custom_nodes, dashboards, device_tokens, devices,
+        auth::{auth_with_password, logout, refresh_token},
+        configurations, custom_nodes, dashboards, device_tokens, devices,
         entities, flows, ha, integration, log, map, permissions, recordings, roles, sdr, stat,
         state, storage, streams, tunnel, users, ws::ws_handler,
     },
     state::AppState,
 };
 use rust_embed::Embed;
+
+const MAP_IMPORT_BODY_LIMIT: usize = 256 * 1024 * 1024;
 
 async fn get_server_info() -> Json<serde_json::Value> {
     Json(json!({
@@ -68,6 +72,8 @@ pub async fn web_server(
 
     let api_routes = Router::new()
         .route("/auth", post(auth_with_password))
+        .route("/auth/refresh", post(refresh_token))
+        .route("/auth/logout", post(logout))
         .route(
             "/users",
             get(users::get_users_list).post(users::create_user),
@@ -172,9 +178,17 @@ pub async fn web_server(
                 .put(map::update_layer)
                 .delete(map::delete_layer),
         )
-        .route("/map/features", post(map::create_feature))
+        .route("/map/layers/:id/export", get(map::export_layer))
         .route(
-            "/map/features/:id",
+            "/map/import",
+            post(map::import_layer).layer(DefaultBodyLimit::max(MAP_IMPORT_BODY_LIMIT)),
+        )
+        .route(
+            "/map/layers/:layer_id/features",
+            post(map::create_feature),
+        )
+        .route(
+            "/map/layers/:layer_id/features/:feature_id",
             get(map::get_feature)
                 .put(map::update_feature)
                 .delete(map::delete_feature),

@@ -1,4 +1,4 @@
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -8,6 +8,7 @@ import {
 import { useRecordingStore } from "@/entities/recording";
 import { getRecordingStreamUrl } from "@/entities/recording";
 import { storage } from "@/shared/lib/storage";
+import { ensureFreshToken } from "@/shared/lib/session";
 import { AudioWaveformPlayer } from "./AudioWaveformPlayer";
 import { VideoControlBar } from "./VideoControlBar";
 
@@ -27,13 +28,27 @@ export function VideoPlaybackDialog({
   const recording = recordings.find((r) => r.id === recordingId);
 
   const serverUrl = storage.getServerUrl() || "";
-  const token = storage.getToken() || "";
+  const [token, setToken] = useState<string>("");
 
-  const streamUrl = recordingId
-    ? getRecordingStreamUrl(recordingId, serverUrl, token)
-    : null;
+  const streamUrl =
+    recordingId && token
+      ? getRecordingStreamUrl(recordingId, serverUrl, token)
+      : null;
 
   const isAudioOnly = recording?.media_type === "audio";
+
+  // Refresh the access token when the dialog opens so the stream URL (which
+  // carries ?token=) is authenticated with a non-expired token.
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    void ensureFreshToken().then((fresh) => {
+      if (!cancelled) setToken(fresh ?? "");
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
 
   useEffect(() => {
     if (open && videoRef.current && streamUrl && !isAudioOnly) {

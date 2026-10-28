@@ -7,11 +7,9 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/shared/ui/breadcrumb";
-import { Separator } from "@/shared/ui/separator";
 import {
   SidebarInset,
   SidebarProvider,
-  SidebarTrigger,
 } from "@/shared/ui/sidebar";
 import { Logs } from "@/features/log";
 import { AppSidebar } from "@/features/sidebar";
@@ -22,11 +20,6 @@ export function LogSettingsPage() {
       <AppSidebar />
       <SidebarInset>
         <header className='flex h-12 shrink-0 items-center gap-2 border-b px-4 fixed w-full bg-background/60 backdrop-blur-md z-[999999]'>
-          <SidebarTrigger className='-ml-1' />
-          <Separator
-            orientation='vertical'
-            className='mr-2 data-[orientation=vertical]:h-4'
-          />
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem className='hidden md:block'>

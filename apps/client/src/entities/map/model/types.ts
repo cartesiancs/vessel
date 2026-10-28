@@ -1,8 +1,8 @@
 import { LatLng } from "leaflet";
 
 export interface MapVertex {
-  id: number;
-  feature_id: number;
+  id?: string;
+  feature_id?: string;
   latitude: number;
   longitude: number;
   altitude?: number;
@@ -10,14 +10,11 @@ export interface MapVertex {
 }
 
 export interface MapFeature {
-  id: number;
-  layer_id: number;
+  id: string;
+  layer_id: string;
   feature_type: "POINT" | "LINE" | "POLYGON";
   name?: string;
   style_properties?: string;
-  created_by_user_id: number;
-  created_at: string;
-  updated_at: string;
 }
 
 export interface FeatureWithVertices extends MapFeature {
@@ -25,10 +22,9 @@ export interface FeatureWithVertices extends MapFeature {
 }
 
 export interface MapLayer {
-  id: number;
+  id: string;
   name: string;
   description?: string;
-  owner_user_id: number;
   is_visible: number;
   created_at: string;
   updated_at: string;
@@ -51,7 +47,7 @@ export interface VertexPayload {
 }
 
 export interface FeaturePayload {
-  layer_id: number;
+  layer_id: string;
   feature_type: "POINT" | "LINE" | "POLYGON";
   name?: string;
   style_properties?: string;
@@ -62,6 +58,14 @@ export interface UpdateFeaturePayload {
   name?: string;
   style_properties?: string;
   vertices?: VertexPayload[];
+}
+
+export type MapExportFormat = "geojson" | "kml";
+
+export interface ImportPayload {
+  name?: string;
+  format: "geojson" | "kml" | "json";
+  file: File | Blob;
 }
 
 export type DrawingMode = "POINT" | "LINE" | "POLYGON" | null;
@@ -109,17 +113,18 @@ export interface MapDataState {
   isLoading: boolean;
   error: string | null;
   layers: MapLayer[];
-  activeLayerId: number | null;
+  activeLayerId: string | null;
   fetchAllLayers: () => Promise<void>;
-  setActiveLayer: (layerId: number) => Promise<void>;
+  setActiveLayer: (layerId: string) => Promise<void>;
   addLayer: (payload: LayerPayload) => Promise<void>;
-  removeLayer: (layerId: number) => Promise<void>;
-  editLayer: (layerId: number, payload: LayerPayload) => Promise<void>;
-  fetchLayerData: (layerId: number) => Promise<void>;
+  removeLayer: (layerId: string) => Promise<void>;
+  editLayer: (layerId: string, payload: LayerPayload) => Promise<void>;
+  fetchLayerData: (layerId: string) => Promise<void>;
+  importLayer: (payload: ImportPayload) => Promise<void>;
   addFeature: (payload: FeaturePayload) => Promise<void>;
-  removeFeature: (featureId: number) => Promise<void>;
+  removeFeature: (featureId: string) => Promise<void>;
   updateFeature: (
-    featureId: number,
+    featureId: string,
     payload: UpdateFeaturePayload,
   ) => Promise<void>;
 }

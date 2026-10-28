@@ -8,11 +8,9 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/shared/ui/breadcrumb";
-import { Separator } from "@/shared/ui/separator";
 import {
   SidebarInset,
   SidebarProvider,
-  SidebarTrigger,
 } from "@/shared/ui/sidebar";
 import { AppSidebar } from "@/features/sidebar";
 import {
@@ -79,11 +77,6 @@ export function DevicePage() {
       <AppSidebar />
       <SidebarInset>
         <header className='flex h-12 shrink-0 items-center gap-2 border-b px-4'>
-          <SidebarTrigger className='-ml-1' />
-          <Separator
-            orientation='vertical'
-            className='mr-2 data-[orientation=vertical]:h-4'
-          />
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem className='hidden md:block'>

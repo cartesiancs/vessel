@@ -13,12 +13,11 @@ Cargo + npm workspaces (monorepo).
 - `apps/server` — Rust (axum, tokio) backend. SQLite via Diesel (`migrations/`, schema in `src/db/schema.rs`). MQTT broker (rumqttd) + client (rumqttc), WebRTC, RTP/RTSP via GStreamer, ONNX inference (ort/tract). Entry: `src/main.rs`. Routes wired in `src/routes.rs`, handlers under `src/handler/`. Flow engine in `src/flow/` (engine, manager, nodes). Built-in flow nodes live in `src/flow/nodes/`. The compiled server embeds the client `dist/` via `rust-embed`.
 - `apps/client` — React 19 + Vite + TypeScript + Tailwind v4 + Radix + Zustand. FSD-ish layout: `app/`, `pages/`, `widgets/`, `features/`, `entities/`, `shared/`, plus `components/ui` (shadcn) and `hooks/`, `contexts/`, `lib/`. Routing in `src/App.tsx` (react-router v7).
 - `apps/desktop` — Tauri v2 shell. The Tauri build runs `cargo build --release -p server` and bundles the server binary as a sidecar; frontend served from `apps/client/dist`. Crate at `apps/desktop/src-tauri`.
-- `apps/landing` — Marketing site (React + Vite). Deployed at vessel.cartesiancs.com.
 - `apps/capsule` — Standalone Rust service for "Capsule" zero-knowledge LLM proxy (X25519 + ChaCha20-Poly1305). Has its own Dockerfile/docker-compose.
 - `packages/capsule-client` — TS client SDK for Capsule (`@vessel/capsule-client`). Built before `client` in the build chain.
 - `packages/custom-node-utils` — Python helpers for user-authored custom flow nodes.
 - `packages/shared-types` — empty placeholder.
-- `docs/` — VitePress site (vessel.cartesiancs.com/docs).
+- Website and docs are not in this repo: they live in the cartesiancs.com repo and are served at cartesiancs.com/vessel and cartesiancs.com/vessel/docs.
 - `tests/` — Jest + supertest E2E against a running server at `http://localhost:6174`. Default creds `admin/admin1`.
 - `configs/`, `config.toml`, `.env.example` — server config (jwt_secret, listen_address, database_url).
 - `migrations/` lives under `apps/server/`. `database.db` at repo root is the dev DB.
@@ -30,12 +29,10 @@ Run from repo root unless noted.
 - `npm run server` — `cargo run -p server` (debug). `npm run server:prod` for release.
 - `npm run client` — Vite dev server for the React client.
 - `npm run desktop` — Tauri dev (builds capsule-client + client + release server, then launches shell). `npm run desktop:build` to package.
-- `npm run landing` — landing site dev server.
 - `npm run capsule` — capsule service.
 - `npm run build` — `cargo build --release` of the server only. Output: `target/release/server` (needs a `.env` next to it to run).
 - `npm run client:build` — builds capsule-client then the client.
 - `npm test` — Jest E2E in `tests/`. Server must already be running on `:6174` with seeded admin.
-- `npm run docs:dev` / `docs:build` — VitePress.
 - Diesel: `cd apps/server && diesel setup && diesel migration run` (requires diesel_cli). Migrations are also embedded and auto-run on server boot via `MIGRATIONS`.
 
 ## Architecture notes

@@ -69,7 +69,7 @@ export function NavFooter({
             >
               <Avatar className='h-8 w-8 '>
                 <AvatarFallback className=''>
-                  <User />
+                  <User className='size-4' />
                 </AvatarFallback>
               </Avatar>
               <div className='grid flex-1 text-left text-sm leading-tight'>

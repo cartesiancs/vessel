@@ -9,11 +9,12 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
-  SidebarRail,
 } from "@/shared/ui/sidebar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/shared/ui/popover";
 import { AccountSwitcher } from "../../account-switcher";
 import { useLocation, useNavigate } from "react-router";
 import {
@@ -24,8 +25,6 @@ import {
   CircleDashed,
   Code,
   RadioTower,
-  ChevronDown,
-  ChevronRight,
   Video,
 } from "lucide-react";
 import { NavFooter } from "./footer";
@@ -43,7 +42,6 @@ import {
   useState,
 } from "react";
 
-const CONTROLS_OPEN_KEY = "controls-menu-open";
 const SIDEBAR_SCROLL_KEY = "sidebar-scroll-top";
 
 const data = {
@@ -151,15 +149,7 @@ export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
       .filter((g): g is (typeof data.navMain)[number] => g !== null);
   }, [configurations]);
 
-  const [controlsOpen, setControlsOpen] = useState<boolean>(() => {
-    if (typeof window === "undefined") return true;
-    try {
-      const saved = localStorage.getItem(CONTROLS_OPEN_KEY);
-      return saved === null ? true : saved === "true";
-    } catch {
-      return true;
-    }
-  });
+  const [controlsFlyoutOpen, setControlsFlyoutOpen] = useState(false);
 
   const dashboardView = useMemo(() => {
     const params = new URLSearchParams(location.search);
@@ -194,14 +184,6 @@ export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
   }, [currentPath]);
 
   useEffect(() => {
-    try {
-      localStorage.setItem(CONTROLS_OPEN_KEY, controlsOpen ? "true" : "false");
-    } catch {
-      // ignore storage write errors
-    }
-  }, [controlsOpen]);
-
-  useEffect(() => {
     if (!hasLoaded && !isLoading) {
       loadDashboards();
     }
@@ -218,6 +200,7 @@ export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar
       {...props}
+      collapsible='icon'
       style={{
         top: isElectron() ? "34px" : "0",
         height: isElectron() ? "calc(100% - 34px)" : "100%",
@@ -226,7 +209,11 @@ export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
       <SidebarHeader>
         <AccountSwitcher />
       </SidebarHeader>
-      <SidebarContent ref={scrollRef} onScroll={handleScroll}>
+      <SidebarContent
+        ref={scrollRef}
+        onScroll={handleScroll}
+        className='justify-center'
+      >
         {navMain.map((group) => (
           <SidebarGroup key={group.title}>
             <SidebarGroupLabel>{group.title}</SidebarGroupLabel>
@@ -238,74 +225,100 @@ export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
                     currentPath === item.url ||
                     (isControls &&
                       currentPath.startsWith("/dynamic-dashboard"));
+
+                  if (isControls) {
+                    return (
+                      <SidebarMenuItem key={item.title}>
+                        <Popover
+                          open={controlsFlyoutOpen}
+                          onOpenChange={setControlsFlyoutOpen}
+                        >
+                          <PopoverTrigger asChild>
+                            <SidebarMenuButton
+                              asChild
+                              isActive={isActive}
+                              onMouseEnter={() => setControlsFlyoutOpen(true)}
+                              onClick={() => navigate(item.url)}
+                            >
+                              <span>
+                                {item.icon} {item.title}
+                              </span>
+                            </SidebarMenuButton>
+                          </PopoverTrigger>
+                          <PopoverContent
+                            side='right'
+                            align='start'
+                            sideOffset={8}
+                            className='w-56 p-1'
+                            onMouseEnter={() => setControlsFlyoutOpen(true)}
+                            onMouseLeave={() => setControlsFlyoutOpen(false)}
+                          >
+                            <div className='px-2 py-1.5 text-xs font-medium text-muted-foreground'>
+                              {item.title}
+                            </div>
+                            <div className='flex flex-col'>
+                              {controlViews.map((view) => {
+                                const subActive =
+                                  currentPath === "/dashboard" &&
+                                  dashboardView === view.id;
+                                return (
+                                  <button
+                                    key={view.id}
+                                    type='button'
+                                    data-active={subActive}
+                                    className='flex w-full items-center rounded-sm px-2 py-1.5 text-left text-sm hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:bg-sidebar-accent data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground'
+                                    onClick={() => {
+                                      navigate(`/dashboard?view=${view.id}`);
+                                      setControlsFlyoutOpen(false);
+                                    }}
+                                  >
+                                    <span className='truncate'>{view.name}</span>
+                                  </button>
+                                );
+                              })}
+                              {dashboards.map((db) => {
+                                const subActive =
+                                  currentPath ===
+                                    `/dynamic-dashboard/${db.id}` ||
+                                  (currentPath.startsWith(
+                                    "/dynamic-dashboard",
+                                  ) &&
+                                    activeDashboardId === db.id);
+                                return (
+                                  <button
+                                    key={db.id}
+                                    type='button'
+                                    data-active={subActive}
+                                    className='flex w-full items-center rounded-sm px-2 py-1.5 text-left text-sm hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:bg-sidebar-accent data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground'
+                                    onClick={() => {
+                                      setActiveDashboard(db.id);
+                                      navigate(`/dynamic-dashboard/${db.id}`);
+                                      setControlsFlyoutOpen(false);
+                                    }}
+                                  >
+                                    <span className='truncate'>{db.name}</span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                      </SidebarMenuItem>
+                    );
+                  }
+
                   return (
                     <SidebarMenuItem key={item.title}>
                       <SidebarMenuButton
                         asChild
                         isActive={isActive}
-                        onClick={() => {
-                          if (isControls) {
-                            setControlsOpen((prev) => !prev);
-                            navigate(item.url);
-                          } else {
-                            navigate(item.url);
-                          }
-                        }}
+                        tooltip={item.title}
+                        onClick={() => navigate(item.url)}
                       >
                         <span>
                           {item.icon} {item.title}
-                          {isControls && (
-                            <span className='ml-auto flex items-center'>
-                              {controlsOpen ? (
-                                <ChevronDown className='h-4 w-4 text-muted-foreground' />
-                              ) : (
-                                <ChevronRight className='h-4 w-4 text-muted-foreground' />
-                              )}
-                            </span>
-                          )}
                         </span>
                       </SidebarMenuButton>
-
-                      {isControls && controlsOpen && (
-                        <SidebarMenuSub>
-                          {controlViews.map((view) => {
-                            const subActive =
-                              currentPath === "/dashboard" &&
-                              dashboardView === view.id;
-                            return (
-                              <SidebarMenuSubItem key={view.id}>
-                                <SidebarMenuSubButton
-                                  isActive={subActive}
-                                  onClick={() => {
-                                    navigate(`/dashboard?view=${view.id}`);
-                                  }}
-                                >
-                                  <span className='truncate'>{view.name}</span>
-                                </SidebarMenuSubButton>
-                              </SidebarMenuSubItem>
-                            );
-                          })}
-                          {dashboards.map((db) => {
-                            const subActive =
-                              currentPath === `/dynamic-dashboard/${db.id}` ||
-                              (currentPath.startsWith("/dynamic-dashboard") &&
-                                activeDashboardId === db.id);
-                            return (
-                              <SidebarMenuSubItem key={db.id}>
-                                <SidebarMenuSubButton
-                                  isActive={subActive}
-                                  onClick={() => {
-                                    setActiveDashboard(db.id);
-                                    navigate(`/dynamic-dashboard/${db.id}`);
-                                  }}
-                                >
-                                  <span className='truncate'>{db.name}</span>
-                                </SidebarMenuSubButton>
-                              </SidebarMenuSubItem>
-                            );
-                          })}
-                        </SidebarMenuSub>
-                      )}
                     </SidebarMenuItem>
                   );
                 })}
@@ -314,7 +327,6 @@ export function AppSidebar({ ...props }: ComponentProps<typeof Sidebar>) {
           </SidebarGroup>
         ))}
       </SidebarContent>
-      <SidebarRail />
       <SidebarFooter>
         <NavFooter
           user={{

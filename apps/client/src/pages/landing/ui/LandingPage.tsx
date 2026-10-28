@@ -32,7 +32,7 @@ function LandingPage() {
             <Button
               variant='outline'
               onClick={() =>
-                window.open("https://vessel.cartesiancs.com/docs/introduction")
+                window.open("https://cartesiancs.com/vessel/docs")
               }
             >
               <BookText /> Docs

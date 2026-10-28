@@ -153,7 +153,7 @@ export function FeatureDetailsPanel({
           <div className='flex justify-between items-start'>
             <CardTitle className='flex items-center'>
               <FeatureIcon type={selectedFeature.feature_type} />
-              Feature #{selectedFeature.id}
+              Feature {selectedFeature.id.slice(0, 8)}
             </CardTitle>
             <div className='flex items-center'>
               <Button

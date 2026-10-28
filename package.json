@@ -2,35 +2,22 @@
   "name": "vessel",
   "version": "1.0.0",
   "description": "Physical Device Orchestration Platform",
-  "directories": {
-    "doc": "docs"
-  },
   "private": true,
   "scripts": {
     "test": "jest",
     "client": "npm run dev --workspace=client",
     "client:build": "npm run build --workspace=@vessel/capsule-client && npm run build --workspace=client",
-    "landing": "npm run dev --workspace=landing",
     "server": "cargo run -p server",
     "server:prod": "cargo run -p server --release",
     "desktop": "npm run dev --workspace=desktop",
     "desktop:build": "npm run tauri build --workspace=desktop",
     "capsule": "cd ./apps/capsule && cargo run -p capsule",
-    "build": "cd ./apps/server && cargo build --release",
-    "build:landing": "npm run build --workspace=landing && vitepress build docs",
-    "docs:dev": "vitepress dev docs",
-    "docs:build": "vitepress build docs",
-    "docs:preview": "vitepress preview docs"
+    "build": "cd ./apps/server && cargo build --release"
   },
   "workspaces": [
     "apps/*",
     "packages/*"
   ],
-  "overrides": {
-    "@docsearch/css": "4.6.2",
-    "@docsearch/js": "4.6.2",
-    "@docsearch/react": "4.6.2"
-  },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.8",
     "class-variance-authority": "^0.7.1",
@@ -60,7 +47,6 @@
     "tw-animate-css": "^1.3.7",
     "typescript": "~5.8.3",
     "typescript-eslint": "^8.39.1",
-    "vite": "^7.1.2",
-    "vitepress": "^1.6.3"
+    "vite": "^7.1.2"
   }
 }

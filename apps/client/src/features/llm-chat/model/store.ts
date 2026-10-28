@@ -50,7 +50,7 @@ function handleChatError(
     showInChat = true;
   } else if (error instanceof CapsuleSubscriptionError) {
     errorMessage =
-      "Pro subscription required. Upgrade at [vessel.cartesiancs.com/pricing](https://vessel.cartesiancs.com/pricing)";
+      "Pro subscription required. Upgrade at [cartesiancs.com/vessel/pricing](https://cartesiancs.com/vessel/pricing)";
     showInChat = true;
   } else if (error instanceof CapsuleRateLimitError) {
     errorMessage = "Daily usage limit reached. Please try again tomorrow.";

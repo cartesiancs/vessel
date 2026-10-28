@@ -12,6 +12,7 @@ import { DefaultAdminPasswordDialog } from "./DefaultAdminPasswordDialog";
 import { authenticateWithPassword } from "../api";
 import { storage } from "@/shared/lib/storage";
 import { parseJwt } from "@/shared/lib/jwt";
+import { refreshActiveSession } from "@/shared/lib/session";
 import {
   ensureSidecarRunning,
   getDesktopServerUrl,
@@ -143,12 +144,19 @@ export function LoginForm({
     }
 
     try {
-      const token = await authenticateWithPassword(processedUrl, {
-        id,
-        password,
-      });
+      const { token, refreshToken } = await authenticateWithPassword(
+        processedUrl,
+        {
+          id,
+          password,
+        },
+      );
 
-      storage.addServer({ url: processedUrl, token });
+      storage.addServer({
+        url: processedUrl,
+        token,
+        refreshToken: refreshToken ?? undefined,
+      });
 
       setServerUrlForDialog(processedUrl);
 
@@ -219,21 +227,32 @@ export function LoginForm({
     if (!isAddMode) {
       const token = storage.getToken();
       const serverUrl = storage.getServerUrl();
+      const refreshToken = storage.getRefreshToken();
 
       if (token && serverUrl) {
         const parsed = parseJwt(token);
-        if (!parsed?.exp) {
-          storage.removeToken();
-        } else {
-          const now = new Date();
-          const exp = new Date(parsed.exp * 1000);
-          if (now.getTime() >= exp.getTime()) {
-            storage.removeToken();
-          } else {
-            navigate("/dashboard");
-            return;
-          }
+        const isValid =
+          parsed?.exp && new Date().getTime() < new Date(parsed.exp * 1000).getTime();
+
+        if (isValid) {
+          navigate("/dashboard");
+          return;
         }
+
+        // Access token is missing/expired: try to silently recover the session
+        // with the refresh token before forcing a re-login.
+        if (refreshToken) {
+          void refreshActiveSession().then((newToken) => {
+            if (newToken) {
+              navigate("/dashboard");
+            } else {
+              storage.removeToken();
+            }
+          });
+          return;
+        }
+
+        storage.removeToken();
       }
     }
 
@@ -404,11 +423,18 @@ export function LoginForm({
       <DefaultAdminPasswordDialog
         open={isPasswordDialogOpen}
         serverUrl={serverUrlForDialog}
-        onSuccess={(refreshedToken) => {
+        onSuccess={(refreshedTokens) => {
           if (serverUrlForDialog) {
-            storage.addServer({ url: serverUrlForDialog, token: refreshedToken });
+            storage.addServer({
+              url: serverUrlForDialog,
+              token: refreshedTokens.token,
+              refreshToken: refreshedTokens.refreshToken ?? undefined,
+            });
           } else {
-            storage.setToken(refreshedToken);
+            storage.setActiveTokens({
+              token: refreshedTokens.token,
+              refreshToken: refreshedTokens.refreshToken ?? undefined,
+            });
           }
           setIsPasswordDialogOpen(false);
           toast.success(

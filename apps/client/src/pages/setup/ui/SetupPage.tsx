@@ -8,11 +8,9 @@ import {
   BreadcrumbSeparator,
 } from "@/shared/ui/breadcrumb";
 import { Button } from "@/shared/ui/button";
-import { Separator } from "@/shared/ui/separator";
 import {
   SidebarInset,
   SidebarProvider,
-  SidebarTrigger,
 } from "@/shared/ui/sidebar";
 import { AppSidebar } from "@/features/sidebar";
 import { ArrowRight, Check, Circle, Loader2 } from "lucide-react";
@@ -48,11 +46,6 @@ export function SetupPage(): React.ReactElement {
       <AppSidebar />
       <SidebarInset>
         <header className='flex h-12 shrink-0 items-center gap-2 border-b border-gray-800 px-4'>
-          <SidebarTrigger className='-ml-1' />
-          <Separator
-            orientation='vertical'
-            className='mr-2 border-gray-700 data-[orientation=vertical]:h-4'
-          />
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem className='hidden md:block'>

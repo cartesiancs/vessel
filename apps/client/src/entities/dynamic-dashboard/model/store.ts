@@ -23,7 +23,7 @@ export type DashboardItemDataMap = {
     action?: string;
   };
   map: {
-    layerId?: number;
+    layerId?: string;
     center?: [number, number];
     zoom?: number;
   };

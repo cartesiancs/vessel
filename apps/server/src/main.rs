@@ -37,6 +37,7 @@ mod tunnel_control;
 pub mod db;
 pub mod error;
 pub mod flow;
+pub mod map;
 pub mod utils;
 pub mod logo;
 pub mod media;
@@ -81,6 +82,8 @@ async fn main() -> Result<()> {
 
     let pool = establish_connection(&settings.database_url);
 
+    let map_store = Arc::new(map::MapStore::new()?);
+
     {
         let mut conn = pool
             .get()
@@ -93,6 +96,15 @@ async fn main() -> Result<()> {
         create_initial_configurations(&mut conn);
         seed_initial_permissions(&mut conn);
         create_hydrate_streams(&pool, &streams);
+
+        match db::repository::delete_expired_refresh_tokens(&pool) {
+            Ok(removed) => info!("Pruned {} expired refresh tokens.", removed),
+            Err(e) => error!("Failed to prune expired refresh tokens: {}", e),
+        }
+
+        if let Err(e) = init::map_migration::migrate_map_db_to_files(&pool, &map_store) {
+            error!("Map DB-to-file migration failed: {}", e);
+        }
     }
 
     let (mqtt_tx, _) = broadcast::channel::<MqttMessage>(1024);
@@ -127,6 +139,7 @@ async fn main() -> Result<()> {
         tunnel_manager: tunnel_manager.clone(),
         recording_manager,
         hls_manager: hls_manager.clone(),
+        map_store: map_store.clone(),
     });
 
     let mut set = JoinSet::new();

@@ -1,6 +1,4 @@
 /node_modules
-docs/.vitepress/dist
-docs/.vitepress/cache
 /target
 .env
 database.db
@@ -21,3 +19,4 @@ database.db-*
 /tests/chaos/.tmp
 /tests/load/config.test.toml.local
 /hls/*
+*.bak

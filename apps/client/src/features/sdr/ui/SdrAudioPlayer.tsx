@@ -1,5 +1,6 @@
 import { useEffect, useRef, useCallback, useState } from "react";
 import { storage } from "@/shared/lib/storage";
+import { ensureFreshToken } from "@/shared/lib/session";
 
 const AUDIO_SAMPLE_RATE = 48000;
 const BUFFER_SIZE = 4096;
@@ -98,13 +99,7 @@ export function SdrAudioPlayer({
       return;
     }
 
-    const wsUrl = serverUrl.replace(/^http/, "ws") + "/api/sdr/audio";
-    const token = storage.getToken();
-    const ws = new WebSocket(
-      token ? `${wsUrl}?token=${encodeURIComponent(token)}` : wsUrl,
-    );
-    ws.binaryType = "arraybuffer";
-    wsRef.current = ws;
+    let cancelled = false;
 
     const audioCtx = new AudioContext({ sampleRate: AUDIO_SAMPLE_RATE });
     audioCtxRef.current = audioCtx;
@@ -196,39 +191,53 @@ export function SdrAudioPlayer({
     };
     animFrameRef.current = requestAnimationFrame(drawWaterfall);
 
-    ws.onmessage = (event) => {
-      if (typeof event.data === "string") {
-        const msg = JSON.parse(event.data);
-        if (msg.type === "info") {
-          onInfo?.({
-            samplerate: msg.samplerate,
-            audio_rate: msg.audio_rate,
-          });
-        } else if (msg.error) {
-          onError?.(msg.error);
+    // Open the authenticated WS only after ensuring the access token is fresh,
+    // so the ?token= handshake never uses an expired token.
+    void ensureFreshToken().then((token) => {
+      if (cancelled) return;
+
+      const wsUrl = serverUrl.replace(/^http/, "ws") + "/api/sdr/audio";
+      const ws = new WebSocket(
+        token ? `${wsUrl}?token=${encodeURIComponent(token)}` : wsUrl,
+      );
+      ws.binaryType = "arraybuffer";
+      wsRef.current = ws;
+
+      ws.onmessage = (event) => {
+        if (typeof event.data === "string") {
+          const msg = JSON.parse(event.data);
+          if (msg.type === "info") {
+            onInfo?.({
+              samplerate: msg.samplerate,
+              audio_rate: msg.audio_rate,
+            });
+          } else if (msg.error) {
+            onError?.(msg.error);
+          }
+          return;
         }
-        return;
-      }
 
-      // Binary: int16 PCM samples
-      const pcmData = new Int16Array(event.data);
-      bufferQueueRef.current.push(pcmData);
+        // Binary: int16 PCM samples
+        const pcmData = new Int16Array(event.data);
+        bufferQueueRef.current.push(pcmData);
 
-      // Prevent buffer from growing too large (drop oldest)
-      while (bufferQueueRef.current.length > 20) {
-        bufferQueueRef.current.shift();
-      }
-    };
+        // Prevent buffer from growing too large (drop oldest)
+        while (bufferQueueRef.current.length > 20) {
+          bufferQueueRef.current.shift();
+        }
+      };
 
-    ws.onerror = () => {
-      onError?.("WebSocket connection error");
-    };
+      ws.onerror = () => {
+        onError?.("WebSocket connection error");
+      };
 
-    ws.onclose = () => {
-      onDisconnect?.();
-    };
+      ws.onclose = () => {
+        onDisconnect?.();
+      };
+    });
 
     return () => {
+      cancelled = true;
       scriptNode.disconnect();
       cleanup();
     };

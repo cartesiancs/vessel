@@ -16,12 +16,13 @@ import {
   authenticateWithPassword,
   fetchAdminUser,
   updateUserPassword,
+  type AuthTokens,
 } from "../api";
 
 type DefaultAdminPasswordDialogProps = {
   open: boolean;
   serverUrl: string;
-  onSuccess: (token: string) => void;
+  onSuccess: (tokens: AuthTokens) => void;
 };
 
 export function DefaultAdminPasswordDialog({
@@ -61,7 +62,7 @@ export function DefaultAdminPasswordDialog({
 
       await updateUserPassword(adminUser.id, newPassword);
 
-      const refreshedToken = await authenticateWithPassword(serverUrl, {
+      const refreshedTokens = await authenticateWithPassword(serverUrl, {
         id: adminUser.username,
         password: newPassword,
       });
@@ -69,7 +70,7 @@ export function DefaultAdminPasswordDialog({
       setNewPassword("");
       setConfirmNewPassword("");
       toast.success("Password updated. Logging you in with the new password.");
-      onSuccess(refreshedToken);
+      onSuccess(refreshedTokens);
     } catch (error) {
       toast.error(
         error instanceof Error

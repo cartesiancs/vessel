@@ -5,6 +5,7 @@ import { FlowUiEventBridge } from "@/features/ws";
 import { TopBarWrapper } from "./TopBarWrapper";
 import { isDemoMode } from "@/shared/config/demo";
 import { storage } from "@/shared/lib/storage";
+import { ensureFreshToken } from "@/shared/lib/session";
 import {
   ChatPanelContainer,
   useChatStore,
@@ -25,24 +26,36 @@ export function AuthenticatedLayout() {
       return;
     }
 
-    const token = storage.getToken();
-    const serverUrlString = storage.getServerUrl();
+    let cancelled = false;
 
-    if (!token || !serverUrlString) {
-      navigate("/auth", { replace: true });
-      return;
-    }
+    void (async () => {
+      const serverUrlString = storage.getServerUrl();
+      // Rotate the access token if it is missing/expiring so the WebSocket
+      // handshake (which authenticates via the ?token= query) uses a valid one.
+      const token = await ensureFreshToken();
 
-    try {
-      const url = new URL(serverUrlString);
-      const host = url.host;
-      const wsProto = url.protocol === "https:" ? "wss" : "ws";
+      if (cancelled) return;
 
-      setWsUrl(`${wsProto}://${host}/signal?token=${token}`);
-    } catch {
-      console.error("Invalid server_url in storage:", serverUrlString);
-      navigate("/auth", { replace: true });
-    }
+      if (!token || !serverUrlString) {
+        navigate("/auth", { replace: true });
+        return;
+      }
+
+      try {
+        const url = new URL(serverUrlString);
+        const host = url.host;
+        const wsProto = url.protocol === "https:" ? "wss" : "ws";
+
+        setWsUrl(`${wsProto}://${host}/signal?token=${token}`);
+      } catch {
+        console.error("Invalid server_url in storage:", serverUrlString);
+        navigate("/auth", { replace: true });
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [navigate, reloadKey]);
 
   useEffect(() => {

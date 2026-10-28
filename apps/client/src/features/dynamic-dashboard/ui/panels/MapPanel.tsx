@@ -15,7 +15,7 @@ import { DashboardItemDataMap } from "@/entities/dynamic-dashboard";
 
 type MapPanelProps = {
   data?: DashboardItemDataMap["map"];
-  onLayerChange?: (layerId?: number) => void;
+  onLayerChange?: (layerId?: string) => void;
 };
 
 const FALLBACK_CENTER: [number, number] = [37.5665, 126.978];
@@ -27,7 +27,7 @@ export function MapPanel({ data, onLayerChange }: MapPanelProps) {
   const clearSelection = useMapInteractionStore(
     (state) => state.setSelectedFeature,
   );
-  const [localLayerId, setLocalLayerId] = useState<number | undefined>(
+  const [localLayerId, setLocalLayerId] = useState<string | undefined>(
     data?.layerId,
   );
 
@@ -38,13 +38,13 @@ export function MapPanel({ data, onLayerChange }: MapPanelProps) {
   }, [fetchAllLayers]);
 
   useEffect(() => {
-    if (typeof data?.layerId === "number") {
+    if (typeof data?.layerId === "string") {
       setLocalLayerId(data.layerId);
     }
   }, [data?.layerId]);
 
   useEffect(() => {
-    if (typeof localLayerId !== "number" || activeLayerId === localLayerId) {
+    if (typeof localLayerId !== "string" || activeLayerId === localLayerId) {
       return;
     }
 
@@ -77,8 +77,7 @@ export function MapPanel({ data, onLayerChange }: MapPanelProps) {
   const zoom = data?.zoom ?? FALLBACK_ZOOM;
 
   const handleLayerChange = (value: string) => {
-    const nextId = Number(value);
-    const validId = Number.isFinite(nextId) ? nextId : undefined;
+    const validId = value || undefined;
     setLocalLayerId(validId);
     onLayerChange?.(validId);
   };
@@ -88,7 +87,7 @@ export function MapPanel({ data, onLayerChange }: MapPanelProps) {
       <div className='flex items-center justify-between gap-2 text-xs'>
         <Select
           value={
-            typeof localLayerId === "number" ? String(localLayerId) : undefined
+            typeof localLayerId === "string" ? String(localLayerId) : undefined
           }
           onValueChange={handleLayerChange}
         >
@@ -106,7 +105,7 @@ export function MapPanel({ data, onLayerChange }: MapPanelProps) {
         <Badge variant='outline'>{layer?.features.length ?? 0} features</Badge>
       </div>
       <div className='relative h-full w-full overflow-hidden bg-muted/50'>
-        {typeof localLayerId !== "number" ? (
+        {typeof localLayerId !== "string" ? (
           <div className='flex h-full items-center justify-center text-xs text-muted-foreground'>
             Select a layer to preview the map.
           </div>

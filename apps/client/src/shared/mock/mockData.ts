@@ -24,7 +24,7 @@ export type MockDatabase = {
   };
   storage: Record<string, { type: "file" | "dir"; content?: string }>;
   mapLayers: MapLayer[];
-  mapFeatures: Record<number, FeatureWithVertices[]>;
+  mapFeatures: Record<string, FeatureWithVertices[]>;
   haStates: HaState[];
   customNodes: CustomNode[];
   permissions: Permission[];
@@ -209,30 +209,26 @@ export const createMockDb = (): MockDatabase => ({
   },
   mapLayers: [
     {
-      id: 1,
+      id: "demo-layer-1",
       name: "Demo Layer",
       description: "Sample map data",
-      owner_user_id: 1,
       is_visible: 1,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     },
   ],
   mapFeatures: {
-    1: [
+    "demo-layer-1": [
       {
-        id: 1,
-        layer_id: 1,
+        id: "demo-feature-1",
+        layer_id: "demo-layer-1",
         feature_type: "POINT",
         name: "HQ",
         style_properties: JSON.stringify({ color: "blue" }),
-        created_by_user_id: 1,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
         vertices: [
           {
-            id: 1,
-            feature_id: 1,
+            id: "demo-vertex-1",
+            feature_id: "demo-feature-1",
             latitude: 37.7749,
             longitude: -122.4194,
             altitude: 0,

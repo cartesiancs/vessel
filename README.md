@@ -6,12 +6,12 @@
 <a href="https://github.com/cartesiancs/vessel/blob/main/LICENSE"><img src="https://img.shields.io/github/license/cartesiancs/vessel?style=for-the-badge" /></a>
 <a href="https://github.com/cartesiancs/vessel/stargazers"><img src="https://img.shields.io/github/stars/cartesiancs/vessel?style=for-the-badge" /></a>
 <a href="https://github.com/cartesiancs/vessel/issues"><img src="https://img.shields.io/github/issues/cartesiancs/vessel?style=for-the-badge" /></a>
-<a href="https://vessel.cartesiancs.com/"><img src="https://img.shields.io/badge/Website-Live-2563eb?style=for-the-badge" /></a>
-<a href="https://vessel.cartesiancs.com/docs/introduction"><img src="https://img.shields.io/badge/Docs-Ready-7c3aed?style=for-the-badge" /></a>
+<a href="https://cartesiancs.com/vessel"><img src="https://img.shields.io/badge/Website-Live-2563eb?style=for-the-badge" /></a>
+<a href="https://cartesiancs.com/vessel/docs"><img src="https://img.shields.io/badge/Docs-Ready-7c3aed?style=for-the-badge" /></a>
 </p>
 
 <p align='center'>
-<a href="https://vessel.cartesiancs.com/">Visit Website</a> · <a href="https://github.com/cartesiancs/vessel/issues">Report Bugs</a> · <a href="https://vessel.cartesiancs.com/docs/introduction">Docs</a> · <a href="https://vsl.cartesiancs.com/">App</a>
+<a href="https://cartesiancs.com/vessel">Visit Website</a> · <a href="https://github.com/cartesiancs/vessel/issues">Report Bugs</a> · <a href="https://cartesiancs.com/vessel/docs">Docs</a> · <a href="https://vsl.cartesiancs.com/">App</a>
 </p>
 
 ## About The Project
@@ -139,7 +139,7 @@ The compiled binary, named 'server', will be located in the target/release direc
 
 Please visit our Roadmap page below:
 
-[Roadmap Page >](https://vessel.cartesiancs.com/roadmap)
+[Roadmap Page >](https://cartesiancs.com/vessel/roadmap)
 
 ## Contributing
 
