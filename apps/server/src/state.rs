@@ -273,4 +273,13 @@ mod tests {
         let current = registry.get_by_topic("cam/video").map(|h| h.descriptor.id);
         assert_eq!(current, Some(2));
     }
+
+    #[test]
+    fn codec_media_type_compatibility() {
+        assert!(StreamCodec::Jpeg.supports(MediaType::Video));
+        assert!(StreamCodec::H264.supports(MediaType::Video));
+        assert!(StreamCodec::Opus.supports(MediaType::Audio));
+        assert!(!StreamCodec::Opus.supports(MediaType::Video));
+        assert!(!StreamCodec::Jpeg.supports(MediaType::Audio));
+    }
 }
