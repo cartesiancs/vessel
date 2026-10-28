@@ -1,13 +1,5 @@
-use std::collections::HashMap;
-
 use crate::{
-    db::{
-        models::{
-            NewPermission, NewRole, NewRolePermission, NewStream, NewUserRole, Permission, Role,
-            RolePermission, RoleWithPermissions, Stream,
-        },
-        schema::streams,
-    },
+    db::models::{NewStream, Stream},
     state::DbPool,
 };
 use diesel::prelude::*;
