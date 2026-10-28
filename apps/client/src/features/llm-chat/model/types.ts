@@ -1,4 +1,4 @@
-import type { Tool, ToolCallResult } from "@vessel/capsule-client";
+import type { Tool, ToolCallResult } from "@/shared/lib/llm/types";
 import type { ToolExecutionResult } from "@/features/flow";
 
 export interface ChatMessageImage {
@@ -55,7 +55,6 @@ export interface ChatPanelState {
   setPendingImage: (image: File | null) => void;
   clearMessages: () => void;
   /** Update the Capsule server URL at runtime */
-  updateCapsuleUrl: (url: string) => void;
   /** Set flow context for tool calling */
   setFlowContext: (ctx: FlowChatContext | null) => void;
 }

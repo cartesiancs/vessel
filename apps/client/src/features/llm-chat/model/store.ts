@@ -1,14 +1,12 @@
 import { create } from "zustand";
-import {
-  CapsuleClient,
-  CapsuleAuthError,
-  CapsuleSubscriptionError,
-  CapsuleRateLimitError,
-} from "@vessel/capsule-client";
-import type { HistoryMessage, ToolCallResult } from "@vessel/capsule-client";
-import { supabase } from "@/shared/lib/supabase";
+import { LlmClient, LlmHttpError, LlmNotConfiguredError } from "@/shared/lib/llm/client";
+import type { HistoryMessage, ToolCallResult } from "@/shared/lib/llm/types";
 import { storage } from "@/shared/lib/storage";
 import type { ChatMessage, ChatPanelState } from "./types";
+
+const HTTP_UNAUTHORIZED = 401;
+const HTTP_FORBIDDEN = 403;
+const HTTP_TOO_MANY_REQUESTS = 429;
 
 function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
@@ -25,18 +23,8 @@ function buildHistory(messages: ChatMessage[]): HistoryMessage[] {
     });
 }
 
-const DEFAULT_CAPSULE_URL = import.meta.env.VITE_CAPSULE_URL || "http://localhost:3000";
-
-const capsuleClient = new CapsuleClient({
-  baseUrl: storage.getCapsuleUrl() || DEFAULT_CAPSULE_URL,
-  timeout: 120000,
-  getAccessToken: async () => {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    return session?.access_token ?? null;
-  },
-});
+// Settings are read per request, so changes in Settings -> AI apply immediately.
+const llmClient = new LlmClient(() => storage.getLlmSettings());
 
 function handleChatError(
   error: unknown,
@@ -45,21 +33,20 @@ function handleChatError(
   let errorMessage = defaultMsg;
   let showInChat = false;
 
-  if (error instanceof CapsuleAuthError) {
-    errorMessage = "Please sign in to continue.";
+  if (error instanceof LlmNotConfiguredError) {
+    errorMessage = error.message;
     showInChat = true;
-  } else if (error instanceof CapsuleSubscriptionError) {
-    errorMessage =
-      "Pro subscription required. Upgrade at [cartesiancs.com/vessel/pricing](https://cartesiancs.com/vessel/pricing)";
+  } else if (
+    error instanceof LlmHttpError &&
+    (error.status === HTTP_UNAUTHORIZED || error.status === HTTP_FORBIDDEN)
+  ) {
+    errorMessage = "The AI endpoint rejected the request. Check the API key in Settings → AI.";
     showInChat = true;
-  } else if (error instanceof CapsuleRateLimitError) {
-    errorMessage = "Daily usage limit reached. Please try again tomorrow.";
+  } else if (error instanceof LlmHttpError && error.status === HTTP_TOO_MANY_REQUESTS) {
+    errorMessage = "The AI endpoint is rate limiting requests. Please try again later.";
     showInChat = true;
   } else if (error instanceof Error) {
     errorMessage = error.message;
-    if (errorMessage.includes("length limit exceeded")) {
-      errorMessage = "Image is too large. Please use an image under 20MB.";
-    }
     showInChat = true;
   }
 
@@ -108,7 +95,7 @@ export const useChatStore = create<ChatPanelState>((set, get) => ({
 
       let receivedToolCalls: ToolCallResult[] | null = null;
 
-      await capsuleClient.chatStream(content, (chunk, done) => {
+      await llmClient.chatStream(content, (chunk, done) => {
         if (done) {
           set((state) => ({
             messages: state.messages.map((m) =>
@@ -181,7 +168,7 @@ export const useChatStore = create<ChatPanelState>((set, get) => ({
           get().messages.slice(0, -1),
         );
 
-        await capsuleClient.chatStream(
+        await llmClient.chatStream(
           "Based on the tool execution results above, briefly summarize what was done.",
           (chunk, done) => {
             if (done) {
@@ -261,7 +248,7 @@ export const useChatStore = create<ChatPanelState>((set, get) => ({
 
     try {
       const history = buildHistory(get().messages.slice(0, -2));
-      await capsuleClient.analyzeImageStream(
+      await llmClient.analyzeImageStream(
         { image, message: content },
         (chunk, done) => {
           if (done) {
@@ -310,10 +297,5 @@ export const useChatStore = create<ChatPanelState>((set, get) => ({
       }
     });
     set({ messages: [], error: null });
-  },
-
-  updateCapsuleUrl: (url: string) => {
-    storage.setCapsuleUrl(url);
-    capsuleClient.setBaseUrl(url);
   },
 }));
