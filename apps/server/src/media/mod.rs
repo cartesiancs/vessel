@@ -1,4 +1,5 @@
 pub mod adapter;
+pub mod forwarding;
 pub mod mjpeg_transcoder;
 pub mod rtp_push;
 pub mod rtsp_pull;
