@@ -29,6 +29,23 @@ describe("Vessel API E2E Test", () => {
     });
   });
 
+  describe("Unknown and removed endpoints", () => {
+    it("answers an unknown API path with a JSON 404, not the app's HTML", async () => {
+      const res = await request(API_BASE_URL).get(`/api/${uniq("nope")}`);
+      expect(res.status).toBe(404);
+      expect(res.body.error).toMatch(/No API route/);
+    });
+
+    it.each([
+      ["get", "/api/tunnel/status"],
+      ["post", "/api/tunnel/start"],
+      ["post", "/api/tunnel/stop"],
+    ])("no longer serves the cloud tunnel: %s %s", async (method, path) => {
+      const res = await request(API_BASE_URL)[method](path).send({});
+      expect(res.status).toBe(404);
+    });
+  });
+
   describe("Auth API", () => {
     it("POST /api/auth rejects wrong credentials with 401", async () => {
       const res = await request(API_BASE_URL).post("/api/auth").send({
